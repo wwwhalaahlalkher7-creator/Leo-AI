@@ -1,0 +1,168 @@
+name: Prepare Leo Android Bootstrap Files (Temporary)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Run the one-time dependency and generated-source preparation
+        required: true
+        type: choice
+        options:
+          - prepare
+        default: prepare
+
+permissions:
+  contents: read
+
+concurrency:
+  group: leo-android-bootstrap-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare-files:
+    name: Generate pinned lockfiles, FRB sources and Android runner
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout project source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Set up pinned Rust toolchain and targets
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: aarch64-linux-android,x86_64-pc-windows-msvc
+
+      - name: Set up pinned Flutter and Dart
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+          channel: stable
+          cache: true
+
+      - name: Verify source milestone and toolchain versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/check_version.py
+          test "$(cat config/VERSION | tr -d '\r\n')" = "v0.27.0"
+          test "$(cat config/RELEASE_CHANNEL | tr -d '\r\n')" = "ALPHA"
+          grep -Eq '^channel = "1\.100\.0"$' rust-toolchain.toml
+          flutter --version
+          dart --version
+          rustc --version
+          cargo --version
+
+      - name: Resolve Flutter packages and create pubspec.lock
+        working-directory: apps/leo_app
+        run: flutter pub get
+
+      - name: Resolve Rust workspace and create Cargo.lock
+        run: cargo generate-lockfile --manifest-path Cargo.toml
+
+      - name: Install the pinned Flutter Rust Bridge generator
+        run: cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked
+
+      - name: Generate typed Rust and Dart bridge sources
+        run: scripts/generate_bridge.sh
+
+      - name: Generate and validate the hardened Android project scaffold
+        run: scripts/prepare_android_runner.sh
+
+      - name: Verify generated files and enforce lockfile reproducibility
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s apps/leo_app/pubspec.lock
+          test -s Cargo.lock
+          test -s core/bridge/src/frb_generated.rs
+          test -s apps/leo_app/lib/src/rust/frb_generated.dart
+          test -s apps/leo_app/android/app/build.gradle.kts
+          test -s apps/leo_app/android/app/src/main/AndroidManifest.xml
+          test -s apps/leo_app/android/app/src/main/res/xml/leo_backup_rules.xml
+          test -s apps/leo_app/android/app/src/main/res/xml/leo_data_extraction_rules.xml
+
+          # These commands must accept the generated lockfiles without changing them.
+          (
+            cd apps/leo_app
+            flutter pub get --enforce-lockfile
+          )
+          cargo metadata --manifest-path Cargo.toml --format-version 1 --locked \
+            > "$RUNNER_TEMP/leo-cargo-metadata.json"
+
+          # Verify the Android runner's security and platform contract once more.
+          python scripts/verify_android_runner.py apps/leo_app
+
+      - name: Assemble portable preparation bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          OUT="$RUNNER_TEMP/leo-android-bootstrap-files"
+          mkdir -p "$OUT/apps/leo_app/lib/src" \
+                   "$OUT/apps/leo_app" \
+                   "$OUT/core/bridge/src"
+
+          cp apps/leo_app/pubspec.lock "$OUT/apps/leo_app/pubspec.lock"
+          cp Cargo.lock "$OUT/Cargo.lock"
+          cp core/bridge/src/frb_generated.rs "$OUT/core/bridge/src/frb_generated.rs"
+          cp -a apps/leo_app/lib/src/rust "$OUT/apps/leo_app/lib/src/rust"
+          cp -a apps/leo_app/android "$OUT/apps/leo_app/android"
+
+          # Flutter may write a runner-local SDK path here. It is machine-specific
+          # and must not be brought back into the project.
+          rm -f "$OUT/apps/leo_app/android/local.properties"
+          find "$OUT/apps/leo_app/android" -type d \
+            \( -name .gradle -o -name build \) -prune -exec rm -rf {} +
+
+          if [[ -f apps/leo_app/.metadata ]]; then
+            cp apps/leo_app/.metadata "$OUT/apps/leo_app/.metadata"
+          fi
+
+          {
+            echo "# Leo Android bootstrap preparation"
+            echo
+            echo "- Source version: $(cat config/VERSION)"
+            echo "- Release channel: $(cat config/RELEASE_CHANNEL)"
+            echo "- Flutter: $(flutter --version | sed -n '1p')"
+            echo "- Dart: $(dart --version 2>&1 | tail -n 1)"
+            echo "- Rust: $(rustc --version)"
+            echo "- Cargo: $(cargo --version)"
+            echo "- Flutter Rust Bridge generator: 2.13.0"
+            echo "- Android runner: generated and validated; no APK was built"
+            echo
+            echo "## Included files"
+            echo
+            echo "- apps/leo_app/pubspec.lock"
+            echo "- Cargo.lock"
+            echo "- core/bridge/src/frb_generated.rs"
+            echo "- apps/leo_app/lib/src/rust/ (generated Dart bridge sources)"
+            echo "- apps/leo_app/android/ (generated Android runner and hardened backup rules)"
+            echo "- apps/leo_app/.metadata (when generated)"
+            echo
+            echo "This is a generated-files bundle only. It does not contain an APK, production signature, model, voice weights, or credentials."
+          } > "$OUT/PREPARATION_REPORT.md"
+
+          (
+            cd "$OUT"
+            find . -type f ! -name SHA256SUMS.txt -print0 \
+              | sort -z \
+              | xargs -0 sha256sum > SHA256SUMS.txt
+          )
+
+          cd "$RUNNER_TEMP"
+          zip -qr Leo_Android_Bootstrap_Files_v0.27.0.zip leo-android-bootstrap-files
+
+      - name: Upload prepared files for manual integration
+        uses: actions/upload-artifact@v4
+        with:
+          name: leo-android-bootstrap-files-v0.27.0
+          path: ${{ runner.temp }}/Leo_Android_Bootstrap_Files_v0.27.0.zip
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "status": "active_catalog",
+  "product": "Leo AI",
+  "selection_policy": "automatic",
+  "user_agent_creation_required": false,
+  "agents": [
+    {
+      "id": "planner",
+      "name": "Planner & Coordinator",
+      "domains": [
+        "task_decomposition",
+        "routing",
+        "workflow"
+      ],
+      "may_delegate": true,
+      "required_capabilities": []
+    },
+    {
+      "id": "general",
+      "name": "General Assistant",
+      "domains": [
+        "conversation",
+        "everyday",
+        "explanation"
+      ],
+      "may_delegate": true,
+      "required_capabilities": []
+    },
+    {
+      "id": "researcher",
+      "name": "Researcher",
+      "domains": [
+        "local_research",
+        "document_analysis",
+        "evidence_comparison"
+      ],
+      "may_delegate": false,
+      "required_capabilities": [
+        "knowledge.search",
+        "files.read"
+      ]
+    },
+    {
+      "id": "programmer",
+      "name": "Programmer",
+      "domains": [
+        "coding",
+        "debugging",
+        "testing"
+      ],
+      "may_delegate": false,
+      "required_capabilities": [
+        "workspace.read",
+        "workspace.write",
+        "process.run"
+      ]
+    },
+    {
+      "id": "code_reviewer",
+      "name": "Code Reviewer",
+      "domains": [
+        "code_review",
+        "security_review",
+        "regression_review"
+      ],
+      "may_delegate": false,
+      "required_capabilities": [
+        "workspace.read",
+        "git.read",
+        "process.run"
+      ]
+    },
+    {
+      "id": "math_science",
+      "name": "Math & Science Specialist",
+      "domains": [
+        "mathematics",
+        "engineering",
+        "science",
+        "reasoning"
+      ],
+      "may_delegate": false,
+      "required_capabilities": [
+        "compute.safe_math"
+      ]
+    },
+    {
+      "id": "writer",
+      "name": "Writer & Editor",
+      "domains": [
+        "writing",
+        "editing",
+        "summarization",
+        "translation"
+      ],
+      "may_delegate": false,
+      "required_capabilities": []
+    },
+    {
+      "id": "data_analyst",
+      "name": "Data Analyst",
+      "domains": [
+        "csv",
+        "json",
+        "statistics",
+        "reporting"
+      ],
+      "may_delegate": false,
+      "required_capabilities": [
+        "files.read",
+        "compute.data"
+      ]
+    },
+    {
+      "id": "file_operator",
+      "name": "File & Workspace Operator",
+      "domains": [
+        "file_management",
+        "documents",
+        "workspace"
+      ],
+      "may_delegate": false,
+      "required_capabilities": [
+        "files.read",
+        "files.open_selected",
+        "files.write"
+      ]
+    },
+    {
+      "id": "device_operator",
+      "name": "Device & App Operator",
+      "domains": [
+        "os_control",
+        "application_workflows",
+        "device_settings"
+      ],
+      "may_delegate": false,
+      "required_capabilities": [
+        "device.app_launch",
+        "device.open_url",
+        "calendar.create_event",
+        "clipboard.write"
+      ]
+    },
+    {
+      "id": "communications",
+      "name": "Communications Assistant",
+      "domains": [
+        "email",
+        "calls",
+        "messages"
+      ],
+      "may_delegate": false,
+      "required_capabilities": [
+        "communications.compose",
+        "phone.dial"
+      ]
+    },
+    {
+      "id": "skill_curator",
+      "name": "Skill Curator",
+      "domains": [
+        "skill_learning",
+        "workflow_capture",
+        "procedure_improvement"
+      ],
+      "may_delegate": false,
+      "required_capabilities": []
+    },
+    {
+      "id": "verifier",
+      "name": "Quality & Verification Agent",
+      "domains": [
+        "result_verification",
+        "acceptance_checks",
+        "claim_validation"
+      ],
+      "may_delegate": false,
+      "required_capabilities": []
+    }
+  ],
+  "rules": [
+    "Agent roles do not grant operating-system permissions.",
+    "All tool calls pass through the same Capability Broker and Action Policy.",
+    "Use the smallest number of agents that can complete the task.",
+    "The planner selects agents; users do not need to pre-create them.",
+    "Independent subtasks may run concurrently only when runtime resources permit it."
+  ]
+}

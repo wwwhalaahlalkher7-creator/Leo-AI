@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "status": "policy_implemented_native_adapters_pending",
+  "product": "Leo AI",
+  "permission_request_policy": "just_in_time_on_first_use",
+  "capabilities": [
+    {"id": "audio.microphone", "platforms": ["android", "windows"], "provider_order": ["os_api"], "grant_scope": "microphone_access", "action_confirmation": "while_recording_visible", "risk": "sensitive"},
+    {"id": "contacts.read", "platforms": ["android"], "provider_order": ["os_api", "app_handoff"], "grant_scope": "contacts_read", "action_confirmation": "before_export_or_share", "risk": "sensitive"},
+    {"id": "phone.dial", "platforms": ["android"], "provider_order": ["dialer_intent"], "grant_scope": "none_for_dialer_handoff", "action_confirmation": "user_confirms_in_dialer", "risk": "high"},
+    {"id": "phone.call_direct", "platforms": ["android"], "provider_order": ["telephony_api"], "grant_scope": "call_phone_permission", "action_confirmation": "per_call_recipient_confirmation", "risk": "high"},
+    {"id": "email.compose", "platforms": ["android", "windows"], "provider_order": ["installed_mail_app", "local_mcp_connector", "app_api"], "grant_scope": "selected_mail_connector", "action_confirmation": "before_send", "risk": "high"},
+    {"id": "messages.compose", "platforms": ["android", "windows"], "provider_order": ["installed_messaging_app", "app_api"], "grant_scope": "selected_messaging_connector", "action_confirmation": "before_send", "risk": "high"},
+    {"id": "files.read", "platforms": ["android", "windows"], "provider_order": ["saf_or_picker", "shell_or_filesystem_api"], "grant_scope": "selected_files_or_folders", "action_confirmation": "before_sensitive_export", "risk": "sensitive"},
+    {"id": "files.write", "platforms": ["android", "windows"], "provider_order": ["saf_or_picker", "shell_or_filesystem_api"], "grant_scope": "selected_files_or_folders", "action_confirmation": "before_overwrite_or_bulk_change", "risk": "high"},
+    {"id": "device.app_launch", "platforms": ["android", "windows"], "provider_order": ["os_intent_or_shell"], "grant_scope": "app_launch", "action_confirmation": "not_required_for_open_only", "risk": "low"},
+    {"id": "app.ui_automation", "platforms": ["android", "windows"], "provider_order": ["official_app_api", "mcp_or_cli", "ui_automation_fallback"], "grant_scope": "per_application", "action_confirmation": "based_on_action_risk", "risk": "high"},
+    {"id": "process.run", "platforms": ["windows"], "provider_order": ["installed_cli", "native_process_api"], "grant_scope": "workspace_and_command_policy", "action_confirmation": "for_untrusted_or_destructive_commands", "risk": "high"},
+    {"id": "system.admin_operation", "platforms": ["windows"], "provider_order": ["narrow_elevated_helper"], "grant_scope": "one_operation_uac", "action_confirmation": "every_operation", "risk": "critical"},
+    {"id": "peer.task_receive", "platforms": ["android", "windows"], "provider_order": ["paired_local_peer"], "grant_scope": "paired_device", "action_confirmation": "receiver_approval_per_task", "risk": "high"}
+  ],
+  "global_rules": [
+    "No sensitive permission is requested during initial launch unless the user immediately invokes a feature that needs it.",
+    "Check the actual OS grant state before every sensitive operation; a stored Leo grant is not proof the OS permission remains active.",
+    "A skill or agent may declare a required capability but cannot grant it.",
+    "Capability grants and per-action confirmations are separate controls.",
+    "Default to a standard Windows user token; never keep Leo elevated permanently.",
+    "Deny or revoke means fail closed and preserve unrelated functionality.",
+    "Use the narrowest supported resource scope, especially for file access."
+  ]
+}

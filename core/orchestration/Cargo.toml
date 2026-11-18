@@ -1,0 +1,12 @@
+[package]
+name = "leo-orchestration"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+leo-shared = { path = "../shared" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[lints]
+workspace = true

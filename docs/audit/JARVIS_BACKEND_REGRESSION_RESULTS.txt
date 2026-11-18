@@ -1,0 +1,16 @@
+J.A.R.V.I.R backend regression subset — 2026-11-15
+
+Command 1:
+  PYTHONPATH=. timeout 35s pytest -q tests/test_session_live_state.py --disable-warnings --maxfail=1
+Result:
+  5 passed in 0.03s
+
+Command 2:
+  PYTHONPATH=. timeout 40s pytest -q tests/test_server.py --disable-warnings --maxfail=1
+Result:
+  9 passed, 2 skipped in 7.38s
+
+Combined:
+  14 passed, 2 skipped
+
+The complete backend test suite was attempted but exceeded the execution time limit; no complete-suite result is claimed.

@@ -1,0 +1,90 @@
+{
+  "product": "Leo AI",
+  "application_name": "Leo",
+  "current_version": "v0.27.0",
+  "current_channel": "ALPHA",
+  "format": "vMAJOR.MINOR.PATCH",
+  "custom_policy": true,
+  "components": {
+    "major": {
+      "position": 1,
+      "meaning": "Application generation/completeness level",
+      "zero": "Foundational assembly and construction; first complete buildable Leo application has not yet been declared",
+      "one": "First coherent buildable Leo application",
+      "increment_when": "Major architecture or product-generation change",
+      "reset": [
+        "minor",
+        "patch"
+      ]
+    },
+    "minor": {
+      "position": 2,
+      "meaning": "Feature/function/resource change counter",
+      "increment_when": "Each delivered feature addition or functional, configuration, or app-resource change",
+      "reset": [
+        "patch"
+      ]
+    },
+    "patch": {
+      "position": 3,
+      "meaning": "Small correction counter",
+      "increment_when": "Analyzer, static-test, small bug, stability, or compatibility correction without feature addition or material behavior change"
+    }
+  },
+  "channels": [
+    "ALPHA",
+    "BETA",
+    "RELEASE"
+  ],
+  "channel_meanings": {
+    "ALPHA": "Construction and assembly",
+    "BETA": "Testing and release validation",
+    "RELEASE": "Final icon/branding, production signing, packaging and publication"
+  },
+  "rules": [
+    "Channel is stored separately and is not a fourth numeric version component.",
+    "Never reuse a version for different application contents.",
+    "Feature/functional/resource change increments MINOR and resets PATCH to zero.",
+    "Small correction increments PATCH only.",
+    "Major generation change increments MAJOR and resets MINOR and PATCH to zero.",
+    "Documentation-only edits do not change the application version unless app content, configuration, assets or packaging changes.",
+    "Signing an unchanged binary does not itself require a public version bump.",
+    "Replacing the actual application icon is an app-resource change and increments MINOR unless the exact asset was already part of the tested candidate.",
+    "Flutter pubspec uses MAJOR.MINOR.PATCH+BUILD; BUILD is separate platform build metadata, not a fourth public version component. Increment it only when producing a new installable binary that requires a monotonically increasing platform build number."
+  ],
+  "source_of_truth": {
+    "version_file": "config/VERSION",
+    "channel_file": "config/RELEASE_CHANNEL",
+    "build_number_file": "config/BUILD_NUMBER"
+  },
+  "examples": [
+    {
+      "change": "Initial construction baseline",
+      "version": "v0.1.0"
+    },
+    {
+      "change": "Analyzer-only fix",
+      "version": "v0.1.1"
+    },
+    {
+      "change": "Add a product capability",
+      "version": "v0.2.0"
+    },
+    {
+      "change": "Add the user-facing long-term memory review and bounded chat retrieval",
+      "version": "v0.7.0"
+    },
+    {
+      "change": "First integrated buildable app",
+      "version": "v1.0.0"
+    },
+    {
+      "change": "Small Beta bug fix",
+      "version": "v1.0.1"
+    },
+    {
+      "change": "Add a new feature",
+      "version": "v1.1.0"
+    }
+  ]
+}

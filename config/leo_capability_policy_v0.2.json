@@ -1,0 +1,327 @@
+{
+  "schema_version": 3,
+  "status": "alpha_os_capability_expansion_partial",
+  "product": "Leo AI",
+  "application_name": "Leo",
+  "permission_request_policy": "just_in_time_on_first_use",
+  "two_independent_gates": [
+    "leo_app_consent",
+    "operating_system_permission_or_user_selected_resource"
+  ],
+  "action_approval_policy": "separate_per_consequential_action",
+  "capabilities": [
+    {
+      "id": "files.read",
+      "platforms": [
+        "android",
+        "windows"
+      ],
+      "provider_order": [
+        "os_document_picker",
+        "installed_app_api",
+        "mcp_connector",
+        "leo_native_adapter"
+      ],
+      "grant_scope": "selected_files",
+      "risk": "read_only",
+      "alpha_supported": true,
+      "offline": true,
+      "actions": [
+        "pick_file",
+        "read_selected_utf8_text_max_2_mib"
+      ]
+    },
+    {
+      "id": "files.open_selected",
+      "platforms": [
+        "android",
+        "windows"
+      ],
+      "provider_order": [
+        "operating_system_file_handler"
+      ],
+      "grant_scope": "selected_file_open",
+      "risk": "moderate",
+      "alpha_supported": true,
+      "offline": true,
+      "actions": [
+        "user_selects_one_file",
+        "open_only_safe_document_media_extensions_in_registered_viewer"
+      ],
+      "action_approval": "each_open_handoff",
+      "note": "Executable, script, shortcut, installer, HTML and unknown file types are not opened by this tool."
+    },
+    {
+      "id": "files.write",
+      "platforms": [
+        "android",
+        "windows"
+      ],
+      "provider_order": [
+        "android_saf_document_tree",
+        "leo_native_adapter"
+      ],
+      "grant_scope": "selected_workspace",
+      "risk": "high",
+      "alpha_supported": true,
+      "offline": true,
+      "actions": [
+        "pick_one_workspace_folder_per_action",
+        "create_or_replace_one_utf8_text_file_at_workspace_root",
+        "max_16_kib_and_10000_characters",
+        "before_after_diff_and_separate_approval_for_each_write",
+        "no_subdirectories_no_delete_no_arbitrary_shell"
+      ],
+      "action_approval": "every_individual_write",
+      "note": "One direct child file only. No directory creation, delete, move, rename, shell, or unrestricted filesystem access."
+    },
+    {
+      "id": "device.app_launch",
+      "platforms": [
+        "android",
+        "windows"
+      ],
+      "provider_order": [
+        "os_launch_api",
+        "installed_application"
+      ],
+      "grant_scope": "selected_application",
+      "risk": "low",
+      "alpha_supported": true,
+      "offline": true,
+      "actions": [
+        "launch_android_package",
+        "launch_registered_windows_app_target"
+      ]
+    },
+    {
+      "id": "device.open_url",
+      "platforms": [
+        "android",
+        "windows"
+      ],
+      "provider_order": [
+        "os_intent_or_shell",
+        "installed_application"
+      ],
+      "grant_scope": "link_handoff",
+      "risk": "moderate",
+      "alpha_supported": true,
+      "offline": true,
+      "allowed_schemes": [
+        "http",
+        "https"
+      ],
+      "action_approval": "each_external_handoff",
+      "note": "Generic web-link opening is limited to HTTP/HTTPS; mail and telephone use dedicated, separately-confirmed capabilities."
+    },
+    {
+      "id": "phone.dial",
+      "platforms": [
+        "android",
+        "windows"
+      ],
+      "provider_order": [
+        "os_dialer_handoff"
+      ],
+      "grant_scope": "dialer_handoff",
+      "risk": "moderate",
+      "alpha_supported": true,
+      "offline": true,
+      "action_approval": "per_handoff",
+      "note": "Opens the dialer; Leo does not place a call directly."
+    },
+    {
+      "id": "phone.call_direct",
+      "platforms": [
+        "android"
+      ],
+      "provider_order": [
+        "telephony_api"
+      ],
+      "grant_scope": "call_phone_permission",
+      "risk": "critical",
+      "alpha_supported": false,
+      "offline": true,
+      "action_approval": "per_call_recipient_confirmation"
+    },
+    {
+      "id": "email.compose",
+      "platforms": [
+        "android",
+        "windows"
+      ],
+      "provider_order": [
+        "installed_mail_app",
+        "mcp_connector",
+        "app_api"
+      ],
+      "grant_scope": "mail_app_handoff",
+      "risk": "high",
+      "alpha_supported": true,
+      "offline": true,
+      "action_approval": "each_compose_handoff",
+      "note": "Prepares a draft in the user's mail app; no silent send."
+    },
+    {
+      "id": "messages.compose",
+      "platforms": [
+        "android"
+      ],
+      "provider_order": [
+        "installed_messaging_app"
+      ],
+      "grant_scope": "messaging_app_handoff",
+      "risk": "high",
+      "alpha_supported": true,
+      "offline": true,
+      "action_approval": "each_compose_handoff",
+      "note": "Opens the SMS app with a draft; does not send automatically."
+    },
+    {
+      "id": "contacts.read",
+      "platforms": [
+        "android"
+      ],
+      "provider_order": [
+        "android_contacts_provider"
+      ],
+      "grant_scope": "contacts_read",
+      "risk": "moderate",
+      "alpha_supported": true,
+      "offline": true,
+      "action_approval": "consent_on_first_use",
+      "maximum_rows": 500
+    },
+    {
+      "id": "audio.microphone",
+      "platforms": [
+        "android",
+        "windows"
+      ],
+      "provider_order": [
+        "operating_system_audio_api"
+      ],
+      "grant_scope": "microphone_access",
+      "risk": "moderate",
+      "alpha_supported": true,
+      "offline": true,
+      "action_approval": "while_recording_visible",
+      "note": "Leo consent is requested on first use. Android separately requests RECORD_AUDIO from the OS. Windows opens the OS microphone privacy page on first use; actual capture is still enforced by Windows. Capture runs only while the chat screen visibly shows an active recording session."
+    },
+    {
+      "id": "process.run",
+      "platforms": [
+        "windows"
+      ],
+      "provider_order": [
+        "allowlisted_cli",
+        "restricted_process_api"
+      ],
+      "grant_scope": "workspace_and_command_policy",
+      "risk": "high",
+      "alpha_supported": false,
+      "offline": true
+    },
+    {
+      "id": "system.admin_operation",
+      "platforms": [
+        "windows"
+      ],
+      "provider_order": [
+        "narrow_elevated_helper"
+      ],
+      "grant_scope": "one_operation_uac",
+      "risk": "critical",
+      "alpha_supported": false,
+      "offline": true
+    },
+    {
+      "id": "app.ui_automation",
+      "platforms": [
+        "android",
+        "windows"
+      ],
+      "provider_order": [
+        "official_app_api",
+        "mcp_connector",
+        "ui_automation_fallback"
+      ],
+      "grant_scope": "per_application",
+      "risk": "high",
+      "alpha_supported": false,
+      "offline": true
+    },
+    {
+      "id": "peer.task_receive",
+      "platforms": [
+        "android",
+        "windows"
+      ],
+      "provider_order": [
+        "paired_local_peer"
+      ],
+      "grant_scope": "paired_device",
+      "risk": "high",
+      "alpha_supported": false,
+      "offline": true
+    },
+    {
+      "id": "calendar.create_event",
+      "platforms": [
+        "android",
+        "windows"
+      ],
+      "provider_order": [
+        "android_calendar_insert_intent",
+        "windows_registered_ics_handler"
+      ],
+      "grant_scope": "calendar_event_draft",
+      "risk": "high",
+      "alpha_supported": true,
+      "offline": true,
+      "actions": [
+        "validated_single_event_draft",
+        "system_calendar_editor_handoff",
+        "user_must_save_in_calendar_app"
+      ],
+      "action_approval": "each_event_draft_handoff",
+      "note": "No calendar database permission is requested; Leo never silently inserts or invites attendees."
+    },
+    {
+      "id": "clipboard.write",
+      "platforms": [
+        "android",
+        "windows"
+      ],
+      "provider_order": [
+        "operating_system_clipboard_api"
+      ],
+      "grant_scope": "system_clipboard_write",
+      "risk": "moderate",
+      "alpha_supported": true,
+      "offline": true,
+      "actions": [
+        "replace_system_clipboard_with_user_reviewed_text",
+        "maximum_16_kib_and_10000_characters"
+      ],
+      "action_approval": "each_clipboard_write",
+      "note": "Leo does not read existing clipboard contents; the user is shown the proposed text before it replaces the clipboard."
+    }
+  ],
+  "global_rules": [
+    "Never request sensitive permissions on initial launch.",
+    "Explain the capability, scope and effect before requesting Leo consent.",
+    "Request Android OS runtime permission only after Leo consent.",
+    "Use Android Storage Access Framework for selected resources; never request broad storage access for ordinary file operations.",
+    "A previously recorded Leo grant never overrides current OS revocation.",
+    "A selected document URI or Windows picker path is the resource boundary for file reads.",
+    "Capability grants and per-action approval are separate controls.",
+    "Email and SMS capabilities only prepare drafts in this Alpha; they never send silently.",
+    "Phone dialing opens the system dialer; direct calls are not enabled in this Alpha.",
+    "Windows runs at standard user integrity; administrator operations are not enabled.",
+    "Denied or revoked capabilities fail closed without disabling unrelated app features.",
+    "Agents and skills may declare required capabilities but cannot grant, revoke or approve them.",
+    "Use OS and installed-app APIs before MCP, custom adapters or UI automation."
+  ]
+}

@@ -1,0 +1,16 @@
+[package]
+name = "leo-runtime"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+leo-shared = { path = "../shared" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "=0.10.9"
+
+[lints]
+workspace = true
+
+[target.'cfg(any(all(target_os = "android", target_arch = "aarch64"), all(target_os = "windows", target_arch = "x86_64")))'.dependencies]
+libloading = "=0.8.9"

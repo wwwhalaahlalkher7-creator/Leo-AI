@@ -1,0 +1,11 @@
+[package]
+name = "leo-capabilities"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+leo-shared = { path = "../shared" }
+rusqlite = { version = "=0.43.0", features = ["bundled"] }
+
+[lints]
+workspace = true

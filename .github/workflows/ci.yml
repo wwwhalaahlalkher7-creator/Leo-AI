@@ -1,0 +1,166 @@
+name: Leo CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: leo-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Validate version and release channel
+        run: python scripts/check_version.py
+      - name: Verify immutable source archives
+        run: python scripts/verify_sources.py
+      - name: Test architecture, version and native ABI contracts
+        run: python -m unittest discover -s scripts/tests -v
+
+  full-stack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: aarch64-linux-android,x86_64-pc-windows-msvc
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+          channel: stable
+          cache: true
+      - name: Install pinned Flutter Rust Bridge generator
+        run: cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked
+      - name: Resolve Flutter dependencies and generate typed bridge
+        run: scripts/generate_bridge.sh
+      - name: Dart format check
+        working-directory: apps/leo_app
+        run: dart format --output=none --set-exit-if-changed .
+      - name: Flutter analyze
+        working-directory: apps/leo_app
+        run: flutter analyze --fatal-infos
+      - name: Flutter tests
+        working-directory: apps/leo_app
+        run: flutter test --reporter compact
+      - name: Rust format check
+        run: cargo fmt --all -- --check
+      - name: Rust unit tests
+        run: cargo test --workspace
+      - name: Android ARM64 Rust type-check
+        run: cargo check --package leo-runtime --target aarch64-linux-android
+      - name: Windows x64 Rust type-check
+        run: cargo check --package leo-runtime --target x86_64-pc-windows-msvc
+      - name: Rust Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+  android-app:
+    name: Android ARM64 debug + release qualification build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: aarch64-linux-android
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+          channel: stable
+          cache: true
+      - name: Install pinned Android SDK, NDK and CMake
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "ndk;30.0.16248370" "cmake;3.22.1" "platform-tools"
+          echo "ANDROID_NDK=$ANDROID_HOME/ndk/30.0.16248370" >> "$GITHUB_ENV"
+          echo "$ANDROID_HOME/cmake/3.22.1/bin" >> "$GITHUB_PATH"
+      - name: Install Ninja and native build tools
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Install pinned Flutter Rust Bridge generator
+        run: cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked
+      - name: Checkout pinned llama.cpp source
+        uses: actions/checkout@v4
+        with:
+          repository: ggml-org/llama.cpp
+          ref: cd959bae99ff4bed22bef2604f45241c09bbb8c8
+          path: third_party/llama.cpp
+      - name: Build and verify Android ARM64 debug + release APKs
+        env:
+          LEO_ANDROID_BUILD_MODE: both
+        run: scripts/build_android_app.sh
+      - name: Upload Android ARM64 qualification APKs and native checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: leo-alpha-android-arm64-qualification
+          path: |
+            apps/leo_app/build/app/outputs/flutter-apk/app-debug.apk
+            apps/leo_app/build/app/outputs/flutter-apk/app-release.apk
+            apps/leo_app/build/app/outputs/flutter-apk/SHA256SUMS.txt
+            build/android-native/arm64-v8a/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  windows-app:
+    name: Windows x64 debug application + local native runtime
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: x86_64-pc-windows-msvc
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+          channel: stable
+          cache: true
+      - name: Install pinned Flutter Rust Bridge generator
+        run: cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked
+      - name: Checkout pinned llama.cpp source
+        uses: actions/checkout@v4
+        with:
+          repository: ggml-org/llama.cpp
+          ref: cd959bae99ff4bed22bef2604f45241c09bbb8c8
+          path: third_party/llama.cpp
+      - name: Prepare Windows runner and generate bridge
+        shell: pwsh
+        run: |
+          ./scripts/prepare_windows_runner.ps1
+          Set-Location apps/leo_app
+          flutter pub get
+          flutter_rust_bridge_codegen generate
+          Set-Location ../..
+      - name: Build Windows x64 native llama.cpp backend
+        shell: pwsh
+        run: ./scripts/build_windows_native.ps1
+      - name: Build Windows x64 debug application
+        working-directory: apps/leo_app
+        run: flutter build windows --debug
+      - name: Package Windows native backend beside executable
+        shell: pwsh
+        run: |
+          $runner = 'apps/leo_app/build/windows/x64/runner/Debug'
+          New-Item -ItemType Directory -Path $runner -Force | Out-Null
+          Copy-Item 'build/windows-native/x64/leo_llama_backend.dll' $runner -Force
+          Copy-Item 'build/windows-native/x64/SHA256SUMS.txt' $runner -Force
+      - name: Upload Windows debug directory
+        uses: actions/upload-artifact@v4
+        with:
+          name: leo-alpha-windows-x64-debug
+          path: apps/leo_app/build/windows/x64/runner/Debug/
+          if-no-files-found: error
+          retention-days: 14

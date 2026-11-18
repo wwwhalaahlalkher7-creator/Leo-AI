@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "metadata": {
+    "app_version": "v0.27.0",
+    "platform": "android",
+    "device_class": "mid-range",
+    "model": "Qwen3-ASR-0.6B-INT8",
+    "sample_rate_hz": 16000
+  },
+  "samples": [
+    {
+      "id": "ar-001",
+      "language": "ar",
+      "reference": "اكتب هنا النص المرجعي الذي قيل فعلياً",
+      "hypothesis": "اكتب هنا النص الذي أعاده Leo",
+      "inference_ms": 0,
+      "model_load_ms": 0,
+      "process_peak_rss_bytes": 0
+    },
+    {
+      "id": "en-001",
+      "language": "en",
+      "reference": "replace with the exact spoken reference",
+      "hypothesis": "replace with the recognized transcript",
+      "inference_ms": 0,
+      "model_load_ms": 0,
+      "process_peak_rss_bytes": 0
+    }
+  ]
+}

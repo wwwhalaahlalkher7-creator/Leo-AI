@@ -1,0 +1,6 @@
+package,version,license,purpose,platforms,notes
+sherpa_onnx,2.0.1,Apache-2.0,Offline ASR and TTS runtime,Android; Windows,Model weights are separate user-imported files
+record,7.2.0,BSD-3-Clause,PCM16 microphone capture,Android; Windows,Windows permission query is not implemented by this plugin
+audioplayers,6.8.1,MIT,Local generated-WAV playback,Android; Windows,Windows requires CMake 3.15/CMP0091-compatible runner configuration
+crypto,3.0.8,BSD-3-Clause,Incremental SHA-256 voice-pack integrity manifest,Android; Windows,Hashes are local integrity baselines and do not authenticate publisher
+cross_file,^0.3.5,BSD-3-Clause,PlatformFile test adapter,Test only,Dev dependency

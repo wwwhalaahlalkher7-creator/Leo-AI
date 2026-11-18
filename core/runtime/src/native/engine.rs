@@ -1,0 +1,951 @@
+//! Narrow, runtime-loaded boundary to the platform llama.cpp adapter.
+//!
+//! Android and Windows load a Leo-owned shared library through the same stable
+//! C ABI. Unsupported host targets keep truthful no-op stubs for tests.
+
+use std::ffi::{c_char, c_void};
+use std::fmt;
+
+/// C ABI callback used by the native decoder to stream token pieces.
+pub type NativeTokenCallback =
+    unsafe extern "C" fn(*const c_char, usize, u32, *mut c_void) -> i32;
+
+/// One role-aware message passed to the native chat-template formatter.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NativeChatMessage {
+    pub role: String,
+    pub content: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NativeEngineStatus {
+    pub available: bool,
+    pub version: Option<String>,
+    pub model_loaded: bool,
+    pub inference_available: bool,
+    pub context_tokens: Option<u32>,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NativeGenerationOperation {
+    pub success: bool,
+    pub cancelled: bool,
+    pub generated_tokens: u32,
+    pub trimmed_messages: u32,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NativeModelOperation {
+    pub success: bool,
+    pub model_loaded: bool,
+    pub context_tokens: u32,
+    pub message: String,
+}
+
+/// Process-wide memory and native-session lifecycle diagnostics. RSS values
+/// include the whole app process and are not a llama.cpp-only allocation total.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NativeMemorySnapshot {
+    pub available: bool,
+    pub memory_readable: bool,
+    pub model_loaded: bool,
+    pub context_loaded: bool,
+    pub generation_active: bool,
+    pub resident_bytes: u64,
+    pub peak_resident_bytes: u64,
+    pub virtual_bytes: u64,
+    pub kv_cache_clear_count: u64,
+    pub model_load_count: u64,
+    pub model_unload_count: u64,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NativeMemoryOperation {
+    pub success: bool,
+    pub message: String,
+}
+
+impl NativeMemorySnapshot {
+    #[cfg(not(any(
+        all(target_os = "android", target_arch = "aarch64"),
+        all(target_os = "windows", target_arch = "x86_64")
+    )))]
+    fn unavailable() -> Self {
+        Self {
+            available: false,
+            memory_readable: false,
+            model_loaded: false,
+            context_loaded: false,
+            generation_active: false,
+            resident_bytes: 0,
+            peak_resident_bytes: 0,
+            virtual_bytes: 0,
+            kv_cache_clear_count: 0,
+            model_load_count: 0,
+            model_unload_count: 0,
+            message: "قياسات الذاكرة الأصلية غير متاحة على هذه المنصة.".to_owned(),
+        }
+    }
+}
+
+impl NativeEngineStatus {
+    #[cfg(not(any(
+        all(target_os = "android", target_arch = "aarch64"),
+        all(target_os = "windows", target_arch = "x86_64")
+    )))]
+    fn unavailable(message: impl Into<String>) -> Self {
+        Self {
+            available: false,
+            version: None,
+            model_loaded: false,
+            inference_available: false,
+            context_tokens: None,
+            message: message.into(),
+        }
+    }
+}
+
+#[cfg(any(
+    all(target_os = "android", target_arch = "aarch64"),
+    all(target_os = "windows", target_arch = "x86_64")
+))]
+#[allow(unsafe_code)]
+mod native_backend {
+    use super::{
+        NativeChatMessage, NativeEngineStatus, NativeGenerationOperation, NativeMemoryOperation,
+        NativeMemorySnapshot, NativeModelOperation, NativeTokenCallback,
+    };
+    use libloading::Library;
+    use std::ffi::{c_char, c_void, CStr, CString};
+    use std::sync::OnceLock;
+
+    type InitializeFn = unsafe extern "C" fn() -> i32;
+    type VersionFn = unsafe extern "C" fn() -> *const c_char;
+    type LoadModelFn = unsafe extern "C" fn(*const c_char, u32, i32, *mut u32) -> i32;
+    type UnloadModelFn = unsafe extern "C" fn() -> i32;
+    type IsLoadedFn = unsafe extern "C" fn() -> i32;
+    type ContextTokensFn = unsafe extern "C" fn() -> u32;
+    type LastErrorFn = unsafe extern "C" fn() -> *const c_char;
+    type InferenceAvailableFn = unsafe extern "C" fn() -> i32;
+    type CancelGenerationFn = unsafe extern "C" fn() -> i32;
+    type MemorySnapshotFn = unsafe extern "C" fn(*mut MemorySnapshotFfi) -> i32;
+    type ClearContextMemoryFn = unsafe extern "C" fn() -> i32;
+
+    #[repr(C)]
+    #[derive(Default)]
+    struct MemorySnapshotFfi {
+        memory_readable: i32,
+        model_loaded: i32,
+        context_loaded: i32,
+        generation_active: i32,
+        resident_bytes: u64,
+        peak_resident_bytes: u64,
+        virtual_bytes: u64,
+        kv_cache_clear_count: u64,
+        model_load_count: u64,
+        model_unload_count: u64,
+    }
+
+    #[repr(C)]
+    struct ChatMessageFfi {
+        role: *const c_char,
+        content: *const c_char,
+    }
+
+    type GenerateFn = unsafe extern "C" fn(
+        *const ChatMessageFfi,
+        usize,
+        u32,
+        f32,
+        u32,
+        f32,
+        u32,
+        NativeTokenCallback,
+        *mut c_void,
+        *mut u32,
+        *mut u32,
+    ) -> i32;
+
+    struct LoadedBackend {
+        // Keeping the handle alive keeps all function pointers valid for the
+        // lifetime of this process-level backend.
+        _library: Library,
+        version: String,
+        load_model: LoadModelFn,
+        unload_model: UnloadModelFn,
+        is_model_loaded: IsLoadedFn,
+        context_tokens: ContextTokensFn,
+        last_error: LastErrorFn,
+        inference_available: InferenceAvailableFn,
+        cancel_generation: CancelGenerationFn,
+        memory_snapshot: MemorySnapshotFn,
+        clear_context_memory: ClearContextMemoryFn,
+        generate: GenerateFn,
+    }
+
+    // The backend is immutable after load. Do not hold a Rust mutex while calling
+    // generate: the native session mutex protects the model, while cancellation
+    // must be able to enter the adapter concurrently.
+    static BACKEND: OnceLock<Result<LoadedBackend, String>> = OnceLock::new();
+
+    fn with_backend<T>(
+        operation: impl FnOnce(&LoadedBackend) -> Result<T, String>,
+    ) -> Result<T, String> {
+        match BACKEND.get_or_init(load_backend) {
+            Ok(backend) => operation(backend),
+            Err(error) => Err(error.clone()),
+        }
+    }
+
+    fn load_backend() -> Result<LoadedBackend, String> {
+        // Resolve the Windows DLL beside the executable to avoid loading a
+        // same-named library from the current working directory or PATH.
+        #[cfg(all(target_os = "android", target_arch = "aarch64"))]
+        let library_name = std::ffi::OsString::from("libleo_llama_backend.so");
+        #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+        let library_name = {
+            let executable = std::env::current_exe().map_err(|error| error.to_string())?;
+            executable
+                .parent()
+                .ok_or_else(|| "تعذر تحديد مجلد تشغيل Leo لتحميل المحرك المحلي.".to_owned())?
+                .join("leo_llama_backend.dll")
+                .into_os_string()
+        };
+        // SAFETY: the library is packaged in the app's native library directory
+        // on Android or beside the executable on Windows. CI validates its ABI.
+        let library = unsafe { Library::new(library_name) }
+            .map_err(|error| format!("تعذر تحميل محرك Leo المحلي: {error}"))?;
+
+        // SAFETY: symbol names and signatures are defined by the Leo C ABI.
+        let initialize = unsafe {
+            *library
+                .get::<InitializeFn>(b"leo_llama_backend_init\0")
+                .map_err(|error| error.to_string())?
+        };
+        // SAFETY: the returned version pointer is a null-terminated static string.
+        let version_fn = unsafe {
+            *library
+                .get::<VersionFn>(b"leo_llama_version\0")
+                .map_err(|error| error.to_string())?
+        };
+        // SAFETY: the following symbols use the signatures declared in llama_probe.cpp.
+        let load_model = unsafe {
+            *library
+                .get::<LoadModelFn>(b"leo_llama_load_model\0")
+                .map_err(|error| error.to_string())?
+        };
+        // SAFETY: function signature matches the exported C ABI.
+        let unload_model = unsafe {
+            *library
+                .get::<UnloadModelFn>(b"leo_llama_unload_model\0")
+                .map_err(|error| error.to_string())?
+        };
+        // SAFETY: function signature matches the exported C ABI.
+        let is_model_loaded = unsafe {
+            *library
+                .get::<IsLoadedFn>(b"leo_llama_is_model_loaded\0")
+                .map_err(|error| error.to_string())?
+        };
+        // SAFETY: function signature matches the exported C ABI.
+        let context_tokens = unsafe {
+            *library
+                .get::<ContextTokensFn>(b"leo_llama_loaded_context_tokens\0")
+                .map_err(|error| error.to_string())?
+        };
+        // SAFETY: function signature matches the exported C ABI.
+        let last_error = unsafe {
+            *library
+                .get::<LastErrorFn>(b"leo_llama_last_error\0")
+                .map_err(|error| error.to_string())?
+        };
+        // SAFETY: all three signatures mirror the pinned Leo native C ABI.
+        let inference_available = unsafe {
+            *library
+                .get::<InferenceAvailableFn>(b"leo_llama_inference_available\0")
+                .map_err(|error| error.to_string())?
+        };
+        let cancel_generation = unsafe {
+            *library
+                .get::<CancelGenerationFn>(b"leo_llama_cancel_generation\0")
+                .map_err(|error| error.to_string())?
+        };
+        let memory_snapshot = unsafe {
+            *library
+                .get::<MemorySnapshotFn>(b"leo_llama_memory_snapshot\0")
+                .map_err(|error| error.to_string())?
+        };
+        let clear_context_memory = unsafe {
+            *library
+                .get::<ClearContextMemoryFn>(b"leo_llama_clear_context_memory\0")
+                .map_err(|error| error.to_string())?
+        };
+        let generate = unsafe {
+            *library
+                .get::<GenerateFn>(b"leo_llama_generate\0")
+                .map_err(|error| error.to_string())?
+        };
+
+        // SAFETY: the adapter initializes its process-global backend once.
+        if unsafe { initialize() } != 1 {
+            return Err("فشلت تهيئة llama.cpp backend.".to_owned());
+        }
+        // SAFETY: llama_version returns a null-terminated static string.
+        let version_ptr = unsafe { version_fn() };
+        if version_ptr.is_null() {
+            return Err("أعاد llama.cpp إصداراً فارغاً.".to_owned());
+        }
+        // SAFETY: the pointer remains valid while the library handle is retained.
+        let version = unsafe { CStr::from_ptr(version_ptr) }
+            .to_string_lossy()
+            .into_owned();
+        if version.trim().is_empty() {
+            return Err("تعذر قراءة إصدار llama.cpp.".to_owned());
+        }
+
+        Ok(LoadedBackend {
+            _library: library,
+            version,
+            load_model,
+            unload_model,
+            is_model_loaded,
+            context_tokens,
+            last_error,
+            inference_available,
+            cancel_generation,
+            memory_snapshot,
+            clear_context_memory,
+            generate,
+        })
+    }
+
+    fn read_last_error(backend: &LoadedBackend, fallback: &str) -> String {
+        // SAFETY: the adapter returns thread-local, null-terminated text.
+        let pointer = unsafe { (backend.last_error)() };
+        if pointer.is_null() {
+            return fallback.to_owned();
+        }
+        // SAFETY: the pointer is valid until the next adapter call on this thread.
+        let message = unsafe { CStr::from_ptr(pointer) }
+            .to_string_lossy()
+            .into_owned();
+        if message.trim().is_empty() {
+            fallback.to_owned()
+        } else {
+            message
+        }
+    }
+
+    pub(super) fn status() -> NativeEngineStatus {
+        match with_backend(|backend| {
+            // SAFETY: query functions are process-safe and serialize session state internally.
+            let model_loaded = unsafe { (backend.is_model_loaded)() == 1 };
+            // SAFETY: the value is copied and does not expose native memory.
+            let context_tokens = unsafe { (backend.context_tokens)() };
+            // This becomes true after a full response and resets when the model is unloaded.
+            let inference_available = unsafe { (backend.inference_available)() == 1 };
+            Ok((
+                backend.version.clone(),
+                model_loaded,
+                context_tokens,
+                inference_available,
+            ))
+        }) {
+            Ok((version, model_loaded, context_tokens, inference_available)) => {
+                NativeEngineStatus {
+                    available: true,
+                    version: Some(version),
+                    model_loaded,
+                    inference_available,
+                    context_tokens: if model_loaded {
+                        Some(context_tokens)
+                    } else {
+                        None
+                    },
+                    message: if model_loaded && inference_available {
+                        "تم تحميل GGUF والتحقق من نجاح توليد نص محلي.".to_owned()
+                    } else if model_loaded {
+                        "تم تحميل GGUF وإنشاء سياق CPU. لم يُتحقق من نجاح التوليد بعد."
+                            .to_owned()
+                    } else {
+                        "تمت تهيئة llama.cpp؛ لا يوجد نموذج محمّل.".to_owned()
+                    },
+                }
+            }
+            Err(error) => NativeEngineStatus {
+                available: false,
+                version: None,
+                model_loaded: false,
+                inference_available: false,
+                context_tokens: None,
+                message: format!("تعذر تحميل محول llama.cpp الأصلي: {error}"),
+            },
+        }
+    }
+
+    pub(super) fn load_model(
+        path: &str,
+        context_tokens: u32,
+        threads: u32,
+    ) -> NativeModelOperation {
+        if !(512..=4096).contains(&context_tokens) {
+            return NativeModelOperation {
+                success: false,
+                model_loaded: false,
+                context_tokens: 0,
+                message: "حجم السياق يجب أن يكون بين 512 و4096.".to_owned(),
+            };
+        }
+        if !(1..=4).contains(&threads) {
+            return NativeModelOperation {
+                success: false,
+                model_loaded: false,
+                context_tokens: 0,
+                message: "عدد خيوط CPU يجب أن يكون بين 1 و4.".to_owned(),
+            };
+        }
+        let path = match CString::new(path) {
+            Ok(path) => path,
+            Err(_) => {
+                return NativeModelOperation {
+                    success: false,
+                    model_loaded: false,
+                    context_tokens: 0,
+                    message: "مسار النموذج يحتوي على محرف NUL.".to_owned(),
+                };
+            }
+        };
+
+        match with_backend(|backend| {
+            let mut actual_context_tokens = 0_u32;
+            // SAFETY: CString remains alive for the duration of the native call;
+            // the adapter copies the path before returning.
+            let result = unsafe {
+                (backend.load_model)(
+                    path.as_ptr(),
+                    context_tokens,
+                    threads as i32,
+                    &mut actual_context_tokens,
+                )
+            };
+            if result != 1 {
+                return Err(read_last_error(backend, "فشل تحميل نموذج GGUF."));
+            }
+            // SAFETY: this reads a boolean-like integer and the copied context size.
+            let loaded = unsafe { (backend.is_model_loaded)() == 1 };
+            if !loaded || actual_context_tokens == 0 {
+                return Err("لم يؤكد المحول تحميل النموذج.".to_owned());
+            }
+            Ok(actual_context_tokens)
+        }) {
+            Ok(actual_context_tokens) => NativeModelOperation {
+                success: true,
+                model_loaded: true,
+                context_tokens: actual_context_tokens,
+                message: format!(
+                    "حُمّل GGUF على CPU بسياق {actual_context_tokens} رمزاً. يمكنك الآن تجربة التوليد من صفحة المحادثة."
+                ),
+            },
+            Err(message) => NativeModelOperation {
+                success: false,
+                model_loaded: false,
+                context_tokens: 0,
+                message,
+            },
+        }
+    }
+
+    // The C ABI callback and user-data pointer are intentionally passed as one
+    // synchronous pair; keeping them explicit avoids storing callback state globally.
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn generate_text(
+        messages: &[NativeChatMessage],
+        max_tokens: u32,
+        temperature: f32,
+        top_k: u32,
+        top_p: f32,
+        seed: u32,
+        callback: NativeTokenCallback,
+        user_data: *mut c_void,
+    ) -> NativeGenerationOperation {
+        let total_bytes = messages
+            .iter()
+            .map(|message| message.content.len())
+            .sum::<usize>();
+        let valid_roles = ["system", "user", "assistant", "tool"];
+        if messages.is_empty()
+            || messages.len() > 4096
+            || total_bytes > 1024 * 1024
+            || messages.iter().any(|message| {
+                message.content.trim().is_empty() || !valid_roles.contains(&message.role.as_str())
+            })
+            || !messages.last().is_some_and(|last| {
+                last.role == "user"
+                    || (last.role == "tool"
+                        && messages.len() >= 3
+                        && messages[messages.len() - 2].role == "assistant"
+                        && messages[..messages.len() - 2]
+                            .iter()
+                            .any(|message| message.role == "user"))
+            })
+            || !(1..=1024).contains(&max_tokens)
+            || !(0.05..=2.0).contains(&temperature)
+            || !(1..=100).contains(&top_k)
+            || !(0.1..=1.0).contains(&top_p)
+        {
+            return NativeGenerationOperation {
+                success: false,
+                cancelled: false,
+                generated_tokens: 0,
+                trimmed_messages: 0,
+                message: "المحادثة أو إعدادات التوليد خارج نطاق النقل الآمن.".to_owned(),
+            };
+        }
+        let owned_messages: Result<Vec<(CString, CString)>, std::ffi::NulError> = messages
+            .iter()
+            .map(|message| {
+                Ok((
+                    CString::new(message.role.as_str())?,
+                    CString::new(message.content.as_str())?,
+                ))
+            })
+            .collect();
+        let owned_messages = match owned_messages {
+            Ok(value) => value,
+            Err(_) => {
+                return NativeGenerationOperation {
+                    success: false,
+                    cancelled: false,
+                    generated_tokens: 0,
+                    trimmed_messages: 0,
+                    message: "تحتوي إحدى الرسائل على محرف NUL غير صالح.".to_owned(),
+                };
+            }
+        };
+        let ffi_messages: Vec<ChatMessageFfi> = owned_messages
+            .iter()
+            .map(|(role, content)| ChatMessageFfi {
+                role: role.as_ptr(),
+                content: content.as_ptr(),
+            })
+            .collect();
+
+        match with_backend(|backend| {
+            let mut generated_tokens = 0_u32;
+            let mut trimmed_messages = 0_u32;
+            // SAFETY: message strings, pointer table, and callback state remain
+            // alive for this synchronous call.
+            let result = unsafe {
+                (backend.generate)(
+                    ffi_messages.as_ptr(),
+                    ffi_messages.len(),
+                    max_tokens,
+                    temperature,
+                    top_k,
+                    top_p,
+                    seed,
+                    callback,
+                    user_data,
+                    &mut generated_tokens,
+                    &mut trimmed_messages,
+                )
+            };
+            let operation = match result {
+                1 if generated_tokens > 0 => NativeGenerationOperation {
+                    success: true,
+                    cancelled: false,
+                    generated_tokens,
+                    trimmed_messages,
+                    message: "اكتمل التوليد المحلي بنجاح.".to_owned(),
+                },
+                2 => NativeGenerationOperation {
+                    success: false,
+                    cancelled: true,
+                    generated_tokens,
+                    trimmed_messages,
+                    message: "أوقفت عملية التوليد.".to_owned(),
+                },
+                _ => NativeGenerationOperation {
+                    success: false,
+                    cancelled: false,
+                    generated_tokens,
+                    trimmed_messages,
+                    message: read_last_error(backend, "فشل توليد النص عبر llama.cpp."),
+                },
+            };
+            Ok(operation)
+        }) {
+            Ok(result) => result,
+            Err(message) => NativeGenerationOperation {
+                success: false,
+                cancelled: false,
+                generated_tokens: 0,
+                trimmed_messages: 0,
+                message,
+            },
+        }
+    }
+
+    pub(super) fn memory_snapshot() -> NativeMemorySnapshot {
+        match with_backend(|backend| {
+            let mut snapshot = MemorySnapshotFfi::default();
+            // SAFETY: the adapter writes a fixed repr(C) POD snapshot into this
+            // initialized buffer and does not retain the pointer.
+            if unsafe { (backend.memory_snapshot)(&mut snapshot) } != 1 {
+                return Err(read_last_error(backend, "تعذر قراءة قياسات الذاكرة الأصلية."));
+            }
+            Ok(snapshot)
+        }) {
+            Ok(snapshot) => NativeMemorySnapshot {
+                available: true,
+                memory_readable: snapshot.memory_readable == 1,
+                model_loaded: snapshot.model_loaded == 1,
+                context_loaded: snapshot.context_loaded == 1,
+                generation_active: snapshot.generation_active == 1,
+                resident_bytes: snapshot.resident_bytes,
+                peak_resident_bytes: snapshot.peak_resident_bytes,
+                virtual_bytes: snapshot.virtual_bytes,
+                kv_cache_clear_count: snapshot.kv_cache_clear_count,
+                model_load_count: snapshot.model_load_count,
+                model_unload_count: snapshot.model_unload_count,
+                message: if snapshot.memory_readable == 1 {
+                    "قياسات ذاكرة العملية الأصلية متاحة.".to_owned()
+                } else {
+                    "حالة جلسة النموذج متاحة، لكن /proc/self/status غير قابل للقراءة.".to_owned()
+                },
+            },
+            Err(message) => NativeMemorySnapshot {
+                available: false,
+                memory_readable: false,
+                model_loaded: false,
+                context_loaded: false,
+                generation_active: false,
+                resident_bytes: 0,
+                peak_resident_bytes: 0,
+                virtual_bytes: 0,
+                kv_cache_clear_count: 0,
+                model_load_count: 0,
+                model_unload_count: 0,
+                message,
+            },
+        }
+    }
+
+    pub(super) fn clear_context_memory() -> NativeMemoryOperation {
+        match with_backend(|backend| {
+            // SAFETY: the adapter uses try_lock and refuses to clear a live
+            // generation's KV state.
+            if unsafe { (backend.clear_context_memory)() } != 1 {
+                return Err(read_last_error(backend, "تعذر تفريغ KV Cache."));
+            }
+            Ok(())
+        }) {
+            Ok(()) => NativeMemoryOperation {
+                success: true,
+                message: "تم تفريغ KV Cache المؤقت مع الإبقاء على أوزان النموذج والسياق.".to_owned(),
+            },
+            Err(message) => NativeMemoryOperation {
+                success: false,
+                message,
+            },
+        }
+    }
+
+    pub(super) fn cancel_generation() -> bool {
+        with_backend(|backend| {
+            // SAFETY: sets an atomic cancellation flag without waiting on the session lock.
+            Ok(unsafe { (backend.cancel_generation)() == 1 })
+        })
+        .unwrap_or(false)
+    }
+
+    pub(super) fn unload_model() -> NativeModelOperation {
+        match with_backend(|backend| {
+            // SAFETY: unloading is serialized inside the adapter and releases
+            // the context before its owning model.
+            if unsafe { (backend.unload_model)() } != 1 {
+                return Err(read_last_error(backend, "تعذر تفريغ نموذج GGUF."));
+            }
+            // SAFETY: query confirms the process-global state after unloading.
+            if unsafe { (backend.is_model_loaded)() } == 1 {
+                return Err("ما زال GGUF محمّلاً بعد طلب التفريغ.".to_owned());
+            }
+            Ok(())
+        }) {
+            Ok(()) => NativeModelOperation {
+                success: true,
+                model_loaded: false,
+                context_tokens: 0,
+                message: "تم تفريغ سياق التشغيل وأوزان GGUF.".to_owned(),
+            },
+            Err(message) => NativeModelOperation {
+                success: false,
+                model_loaded: true,
+                context_tokens: 0,
+                message,
+            },
+        }
+    }
+}
+
+#[cfg(any(
+    all(target_os = "android", target_arch = "aarch64"),
+    all(target_os = "windows", target_arch = "x86_64")
+))]
+pub fn native_engine_status() -> NativeEngineStatus {
+    native_backend::status()
+}
+
+#[cfg(not(any(
+    all(target_os = "android", target_arch = "aarch64"),
+    all(target_os = "windows", target_arch = "x86_64")
+)))]
+pub fn native_engine_status() -> NativeEngineStatus {
+    NativeEngineStatus::unavailable(
+        "محرك llama.cpp الأصلي متاح حالياً على Android ARM64 وWindows x64 فقط.",
+    )
+}
+
+#[cfg(any(
+    all(target_os = "android", target_arch = "aarch64"),
+    all(target_os = "windows", target_arch = "x86_64")
+))]
+pub fn load_native_model(path: &str, context_tokens: u32, threads: u32) -> NativeModelOperation {
+    native_backend::load_model(path, context_tokens, threads)
+}
+
+#[cfg(not(any(
+    all(target_os = "android", target_arch = "aarch64"),
+    all(target_os = "windows", target_arch = "x86_64")
+)))]
+pub fn load_native_model(
+    _path: &str,
+    _context_tokens: u32,
+    _threads: u32,
+) -> NativeModelOperation {
+    NativeModelOperation {
+        success: false,
+        model_loaded: false,
+        context_tokens: 0,
+        message: "تحميل GGUF متاح على Android ARM64 وWindows x64 فقط.".to_owned(),
+    }
+}
+
+#[cfg(any(
+    all(target_os = "android", target_arch = "aarch64"),
+    all(target_os = "windows", target_arch = "x86_64")
+))]
+// The callback/user-data pair is part of the narrow native adapter boundary.
+#[allow(clippy::too_many_arguments)]
+pub fn generate_native_text(
+    messages: &[NativeChatMessage],
+    max_tokens: u32,
+    temperature: f32,
+    top_k: u32,
+    top_p: f32,
+    seed: u32,
+    callback: NativeTokenCallback,
+    user_data: *mut c_void,
+) -> NativeGenerationOperation {
+    native_backend::generate_text(
+        messages,
+        max_tokens,
+        temperature,
+        top_k,
+        top_p,
+        seed,
+        callback,
+        user_data,
+    )
+}
+
+#[cfg(not(any(
+    all(target_os = "android", target_arch = "aarch64"),
+    all(target_os = "windows", target_arch = "x86_64")
+)))]
+// Keep the host stub aligned with the Android adapter's callback/user-data ABI.
+#[allow(clippy::too_many_arguments)]
+pub fn generate_native_text(
+    _messages: &[NativeChatMessage],
+    _max_tokens: u32,
+    _temperature: f32,
+    _top_k: u32,
+    _top_p: f32,
+    _seed: u32,
+    _callback: NativeTokenCallback,
+    _user_data: *mut c_void,
+) -> NativeGenerationOperation {
+    NativeGenerationOperation {
+        success: false,
+        cancelled: false,
+        generated_tokens: 0,
+        trimmed_messages: 0,
+        message: "توليد النص المحلي متاح على Android ARM64 وWindows x64 فقط.".to_owned(),
+    }
+}
+
+#[cfg(any(
+    all(target_os = "android", target_arch = "aarch64"),
+    all(target_os = "windows", target_arch = "x86_64")
+))]
+pub fn cancel_native_generation() -> bool {
+    native_backend::cancel_generation()
+}
+
+#[cfg(not(any(
+    all(target_os = "android", target_arch = "aarch64"),
+    all(target_os = "windows", target_arch = "x86_64")
+)))]
+pub fn cancel_native_generation() -> bool {
+    false
+}
+
+#[cfg(any(
+    all(target_os = "android", target_arch = "aarch64"),
+    all(target_os = "windows", target_arch = "x86_64")
+))]
+pub fn unload_native_model() -> NativeModelOperation {
+    native_backend::unload_model()
+}
+
+#[cfg(not(any(
+    all(target_os = "android", target_arch = "aarch64"),
+    all(target_os = "windows", target_arch = "x86_64")
+)))]
+pub fn unload_native_model() -> NativeModelOperation {
+    NativeModelOperation {
+        success: false,
+        model_loaded: false,
+        context_tokens: 0,
+        message: "تفريغ GGUF متاح على Android ARM64 وWindows x64 فقط.".to_owned(),
+    }
+}
+
+#[cfg(any(
+    all(target_os = "android", target_arch = "aarch64"),
+    all(target_os = "windows", target_arch = "x86_64")
+))]
+pub fn native_memory_snapshot() -> NativeMemorySnapshot {
+    native_backend::memory_snapshot()
+}
+
+#[cfg(not(any(
+    all(target_os = "android", target_arch = "aarch64"),
+    all(target_os = "windows", target_arch = "x86_64")
+)))]
+pub fn native_memory_snapshot() -> NativeMemorySnapshot {
+    NativeMemorySnapshot::unavailable()
+}
+
+#[cfg(any(
+    all(target_os = "android", target_arch = "aarch64"),
+    all(target_os = "windows", target_arch = "x86_64")
+))]
+pub fn clear_native_context_memory() -> NativeMemoryOperation {
+    native_backend::clear_context_memory()
+}
+
+#[cfg(not(any(
+    all(target_os = "android", target_arch = "aarch64"),
+    all(target_os = "windows", target_arch = "x86_64")
+)))]
+pub fn clear_native_context_memory() -> NativeMemoryOperation {
+    NativeMemoryOperation {
+        success: false,
+        message: "تفريغ KV Cache متاح على Android ARM64 وWindows x64 فقط.".to_owned(),
+    }
+}
+
+impl fmt::Display for NativeEngineStatus {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.available {
+            write!(formatter, "llama.cpp {}", self.version.as_deref().unwrap_or(""))
+        } else {
+            formatter.write_str(&self.message)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(not(any(
+        all(target_os = "android", target_arch = "aarch64"),
+        all(target_os = "windows", target_arch = "x86_64")
+    )))]
+    #[test]
+    fn unsupported_host_does_not_claim_native_engine_availability() {
+        let status = native_engine_status();
+        assert!(!status.available);
+        assert!(!status.model_loaded);
+        assert!(!status.inference_available);
+        assert!(status.version.is_none());
+        assert!(status.message.contains("Android ARM64") || status.message.contains("Windows x64"));
+    }
+
+    #[cfg(not(any(
+        all(target_os = "android", target_arch = "aarch64"),
+        all(target_os = "windows", target_arch = "x86_64")
+    )))]
+    #[test]
+    fn host_memory_lifecycle_does_not_claim_native_measurements() {
+        let snapshot = native_memory_snapshot();
+        assert!(!snapshot.available);
+        assert!(!snapshot.memory_readable);
+        assert!(!snapshot.model_loaded);
+        assert!(!snapshot.context_loaded);
+        assert_eq!(snapshot.resident_bytes, 0);
+        assert!(!clear_native_context_memory().success);
+    }
+
+    #[cfg(not(any(
+        all(target_os = "android", target_arch = "aarch64"),
+        all(target_os = "windows", target_arch = "x86_64")
+    )))]
+    #[test]
+    fn unsupported_host_rejects_native_model_loading_without_claiming_success() {
+        let result = load_native_model("model.gguf", 2048, 4);
+        assert!(!result.success);
+        assert!(!result.model_loaded);
+        assert!(result.message.contains("Android ARM64") || result.message.contains("Windows x64"));
+    }
+
+    #[cfg(not(any(
+        all(target_os = "android", target_arch = "aarch64"),
+        all(target_os = "windows", target_arch = "x86_64")
+    )))]
+    #[test]
+    fn unsupported_host_rejects_native_text_generation_without_claiming_success() {
+        extern "C" fn unused_callback(
+            _data: *const c_char,
+            _length: usize,
+            _generated_tokens: u32,
+            _user_data: *mut c_void,
+        ) -> i32 {
+            1
+        }
+
+        let result = generate_native_text(
+            &[NativeChatMessage {
+                role: "user".to_owned(),
+                content: "Hello".to_owned(),
+            }],
+            128,
+            0.7,
+            40,
+            0.92,
+            0,
+            unused_callback,
+            std::ptr::null_mut(),
+        );
+        assert!(!result.success);
+        assert!(!result.cancelled);
+        assert_eq!(result.generated_tokens, 0);
+        assert_eq!(result.trimmed_messages, 0);
+        assert!(result.message.contains("Android ARM64") || result.message.contains("Windows x64"));
+        assert!(!cancel_native_generation());
+    }
+}

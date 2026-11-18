@@ -1,0 +1,19 @@
+[package]
+name = "leo-bridge"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+flutter_rust_bridge = "=2.13.0"
+leo-runtime = { path = "../runtime" }
+leo-orchestration = { path = "../orchestration" }
+leo-memory = { path = "../memory" }
+leo-shared = { path = "../shared" }
+leo-capabilities = { path = "../capabilities" }
+serde_json = "1"
+
+[lints]
+workspace = true

@@ -1,0 +1,61 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+build/
+coverage/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Rust
+/target/
+**/target/
+*.so
+*.dll
+*.dylib
+*.a
+*.lib
+*.pdb
+
+# Native builds
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+compile_commands.json
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+key.properties
+*.p12
+*.pem
+*.key
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local model and voice assets: never commit large weights
+models/**/*.gguf
+models/**/*.onnx
+models/**/*.bin
+voice_packs/**
+!voice_packs/README.md
+
+# Local logs / temp
+*.log
+*.tmp
+*.bak
+
+# Pinned upstream source is fetched by CI/build scripts and is not vendored
+third_party/llama.cpp/
+
+# Local personal memory data (never commit user memories)
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm

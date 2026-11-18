@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "product": "Leo AI",
+  "skill_format": "Leo declarative workflow v1; Agent Skills-compatible concepts",
+  "storage": "app_private_local_json",
+  "offline": true,
+  "lifecycle": [
+    "proposed",
+    "testing",
+    "active",
+    "disabled",
+    "rejected"
+  ],
+  "activation_policy": "user_approval_after_blocking_preflight_checks",
+  "retrieval_policy": {
+    "active_only": true,
+    "validated_only": true,
+    "max_skills_per_request": 2,
+    "max_characters_total": 3600,
+    "transient_context_only": true
+  },
+  "execution_policy": {
+    "embedded_scripts_executed": false,
+    "skills_grant_permissions": false,
+    "external_actions_require_capability_broker": true,
+    "sensitive_actions_require_per_action_confirmation": true,
+    "preflight_checks_are_not_runtime_execution_tests": true,
+    "conversation_learning": "explicit_user_initiated_local_model_proposal",
+    "conversation_proposals_start_inactive": true,
+    "conversation_analysis_executes_no_actions": true
+  },
+  "limits": {
+    "max_skills": 500,
+    "max_triggers_per_skill": 12,
+    "max_steps_per_skill": 30,
+    "max_test_examples_per_skill": 10,
+    "max_instruction_characters": 12000
+  },
+  "future_work": [
+    "automatic skill proposals from durable completed-task execution logs after real task execution and trace storage exist",
+    "model-assisted simulation of test examples in a permission-free sandbox",
+    "skill conflict detection and dependency management",
+    "signed skill packs and trust provenance",
+    "full SKILL.md folder/ZIP import with safe asset/reference handling",
+    "skill quality scoring and proposal deduplication"
+  ],
+  "format_interchange": {
+    "format": "Agent Skills-style SKILL.md declarative subset",
+    "export": "single UTF-8 Markdown file with name/description YAML frontmatter",
+    "import": "single UTF-8 Markdown file; imported records always become proposed and inactive",
+    "max_document_bytes": 65536,
+    "supported_sections": [
+      "When to use",
+      "Instructions",
+      "Steps",
+      "Acceptance scenarios",
+      "Required capabilities"
+    ],
+    "scripts_imported": false,
+    "assets_and_reference_folders_imported": false,
+    "activation_state_imported": false,
+    "validation_state_imported": false
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "generated_at": "2026-11-15",
+  "sources": [
+    {
+      "name": "J.A.R.V.I.R",
+      "file_count": 1017,
+      "total_bytes": 20519584,
+      "decisions": {
+        "defer": 217,
+        "adapt": 575,
+        "reuse": 104,
+        "reimplement": 3,
+        "reject": 118
+      },
+      "top_level_counts": {
+        "JARVIS_DEV_WORKFLOW.md": 1,
+        ".gitignore": 1,
+        "README.MD": 1,
+        "update.json": 1,
+        ".dockerignore": 1,
+        "JARVIS_CHANGELOG.md": 1,
+        "pubspec.yaml": 1,
+        "NORTHFLANK_DEPLOY.md": 1,
+        "LICENSE": 1,
+        "l10n.yaml": 1,
+        "Dockerfile": 1,
+        "pubspec.lock": 1,
+        "analysis_options.yaml": 1,
+        ".metadata": 1,
+        "THIRD_PARTY_NOTICES.md": 1,
+        "README.zh-CN.MD": 1,
+        "CLOUD_TARGET.md": 1,
+        "tool": 9,
+        "test": 298,
+        "assets": 6,
+        "lib": 363,
+        "android": 22,
+        "docs": 15,
+        "ios": 53,
+        "web": 7,
+        "test_driver": 1,
+        "scripts": 2,
+        "integration_test": 2,
+        "windows": 20,
+        "server": 118,
+        "third_party": 82,
+        ".github": 2
+      }
+    },
+    {
+      "name": "NEXUS-Beta-1.6",
+      "file_count": 274,
+      "total_bytes": 1939528,
+      "decisions": {
+        "defer": 91,
+        "adapt": 181,
+        "reuse": 2
+      },
+      "top_level_counts": {
+        "flutter_rust_bridge.yaml": 1,
+        ".gitignore": 1,
+        "Cargo.toml": 1,
+        "pubspec.yaml": 1,
+        "rust-toolchain.toml": 1,
+        "analysis_options.yaml": 1,
+        "README.md": 1,
+        ".github": 2,
+        "licenses": 1,
+        "test": 34,
+        "lib": 69,
+        "hook": 1,
+        "docs": 65,
+        "scripts": 74,
+        ".pytest_cache": 4,
+        "core": 13,
+        "integrations": 1,
+        "native": 2,
+        "protocols": 1
+      }
+    }
+  ],
+  "total_files": 1291,
+  "note": "Every extracted file is listed with SHA-256. Decision classifications are provisional path-based migration decisions; REVIEWED indicates the component area was checked during Alpha 0.1 baselining, not that every file has passed line-by-line code review."
+}

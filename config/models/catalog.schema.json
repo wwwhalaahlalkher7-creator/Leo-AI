@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://leo-ai.local/schemas/model-catalog-v1.json",
+  "title": "Leo local GGUF model catalogue",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "models"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "models": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/model" }
+    }
+  },
+  "$defs": {
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "display_name", "relative_path", "format", "file_size_bytes",
+        "sha256", "architecture", "quantization", "context_length",
+        "min_required_ram_bytes", "supported_platforms", "imported_at_utc"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9_-]{1,80}$" },
+        "display_name": { "type": "string", "minLength": 1 },
+        "relative_path": { "type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*(?:\\\\|:|(?:^|/)\\.\\.(?:/|$))).+\\.gguf$" },
+        "format": { "const": "GGUF" },
+        "file_size_bytes": { "type": "integer", "minimum": 1 },
+        "sha256": { "type": ["string", "null"], "pattern": "^[A-Fa-f0-9]{64}$" },
+        "architecture": { "type": ["string", "null"] },
+        "quantization": { "type": ["string", "null"] },
+        "context_length": { "type": "integer", "minimum": 1 },
+        "min_required_ram_bytes": { "type": ["integer", "null"], "minimum": 1 },
+        "supported_platforms": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "imported_at_utc": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

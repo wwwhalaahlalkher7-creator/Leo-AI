@@ -1,0 +1,41 @@
+name: leo_app
+description: Leo — offline-first personal AI assistant for Android and Windows.
+publish_to: none
+version: 0.27.0+4
+
+environment:
+  sdk: '>=3.13.0 <4.0.0'
+  flutter: '>=3.47.1'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  shared_preferences: ^2.5.5
+  flutter_secure_storage: ^11.2.0
+  flutter_markdown: ^0.7.7+1
+  markdown: ^7.2.2
+  flutter_math_fork: ^0.7.4
+  flutter_rust_bridge: 2.13.0
+  file_picker: ^12.3.0
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  flutter_rust_bridge_hooks: 2.13.0
+  leo_platform_capabilities:
+    path: ../../packages/leo_platform_capabilities
+  # Offline voice runtime; model weights are imported separately and are not bundled.
+  sherpa_onnx: 2.0.1
+  crypto: ^3.0.8
+  cryptography: ^2.9.0
+  record: 7.2.0
+  audioplayers: 6.8.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  cross_file: ^0.3.5
+
+flutter:
+  uses-material-design: true
