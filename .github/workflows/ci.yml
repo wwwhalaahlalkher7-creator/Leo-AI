@@ -43,7 +43,21 @@ jobs:
       - name: Install pinned Flutter Rust Bridge generator
         run: cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked
       - name: Resolve Flutter dependencies and generate typed bridge
-        run: scripts/generate_bridge.sh
+        run: bash scripts/generate_bridge.sh
+      - name: Verify generated bridge outputs
+        shell: bash
+        run: |
+          test -s core/bridge/src/frb_generated.rs
+          test -s apps/leo_app/lib/src/rust/frb_generated.dart
+      - name: Publish generated bridge for platform jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: leo-frb-generated-bindings
+          path: |
+            core/bridge/src/frb_generated.rs
+            apps/leo_app/lib/src/rust/
+          if-no-files-found: error
+          retention-days: 1
       - name: Dart format check
         working-directory: apps/leo_app
         run: dart format --output=none --set-exit-if-changed .
@@ -73,7 +87,12 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: ''
+          accept-android-sdk-licenses: 'true'
+          log-accepted-android-sdk-licenses: 'false'
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           target: aarch64-linux-android
@@ -85,7 +104,6 @@ jobs:
       - name: Install pinned Android SDK, NDK and CMake
         shell: bash
         run: |
-          yes | sdkmanager --licenses >/dev/null
           sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "ndk;30.0.16248370" "cmake;3.22.1" "platform-tools"
           echo "ANDROID_NDK=$ANDROID_HOME/ndk/30.0.16248370" >> "$GITHUB_ENV"
           echo "$ANDROID_HOME/cmake/3.22.1/bin" >> "$GITHUB_PATH"
@@ -102,7 +120,7 @@ jobs:
       - name: Build and verify Android ARM64 debug + release APKs
         env:
           LEO_ANDROID_BUILD_MODE: both
-        run: scripts/build_android_app.sh
+        run: bash scripts/build_android_app.sh
       - name: Upload Android ARM64 qualification APKs and native checksums
         uses: actions/upload-artifact@v4
         with:
@@ -117,6 +135,7 @@ jobs:
 
   windows-app:
     name: Windows x64 debug application + local native runtime
+    needs: full-stack
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -128,22 +147,38 @@ jobs:
           flutter-version: '3.47.1'
           channel: stable
           cache: true
-      - name: Install pinned Flutter Rust Bridge generator
-        run: cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked
       - name: Checkout pinned llama.cpp source
         uses: actions/checkout@v4
         with:
           repository: ggml-org/llama.cpp
           ref: cd959bae99ff4bed22bef2604f45241c09bbb8c8
           path: third_party/llama.cpp
-      - name: Prepare Windows runner and generate bridge
+      - name: Download generated Flutter Rust Bridge files
+        uses: actions/download-artifact@v4
+        with:
+          name: leo-frb-generated-bindings
+          path: .
+      - name: Verify generated bridge files
+        shell: pwsh
+        run: |
+          if (-not (Test-Path 'core/bridge/src/frb_generated.rs')) {
+            throw 'Generated Rust bridge file is missing from the Linux codegen artifact.'
+          }
+          if (-not (Test-Path 'apps/leo_app/lib/src/rust/frb_generated.dart')) {
+            throw 'Generated Dart bridge file is missing from the Linux codegen artifact.'
+          }
+      - name: Prepare Windows runner and resolve Flutter dependencies
         shell: pwsh
         run: |
           ./scripts/prepare_windows_runner.ps1
-          Set-Location apps/leo_app
-          flutter pub get
-          flutter_rust_bridge_codegen generate
-          Set-Location ../..
+          if ($LASTEXITCODE -ne 0) { throw 'Windows runner preparation failed.' }
+          Push-Location apps/leo_app
+          try {
+            flutter pub get
+            if ($LASTEXITCODE -ne 0) { throw 'Flutter dependency resolution failed.' }
+          } finally {
+            Pop-Location
+          }
       - name: Build Windows x64 native llama.cpp backend
         shell: pwsh
         run: ./scripts/build_windows_native.ps1

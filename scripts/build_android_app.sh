@@ -16,9 +16,11 @@ case "${BUILD_MODE}" in
     ;;
 esac
 
-"${ROOT_DIR}/scripts/prepare_android_runner.sh"
-"${ROOT_DIR}/scripts/generate_bridge.sh"
-"${ROOT_DIR}/scripts/build_android_native.sh"
+# Repository shell scripts are intentionally not executable (mode 100644),
+# so invoke them through bash instead of relying on executable bits.
+bash "${ROOT_DIR}/scripts/prepare_android_runner.sh"
+bash "${ROOT_DIR}/scripts/generate_bridge.sh"
+bash "${ROOT_DIR}/scripts/build_android_native.sh"
 
 mkdir -p "${APP_DIR}/android/app/src/main/jniLibs/arm64-v8a"
 cp "${NATIVE_DIR}/libleo_llama_backend.so" "${APP_DIR}/android/app/src/main/jniLibs/arm64-v8a/"
