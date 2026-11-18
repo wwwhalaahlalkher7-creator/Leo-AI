@@ -25,24 +25,25 @@ class FlutterRustBridgePathTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.values = read_simple_yaml(CONFIG)
-        cls.base = (APP / cls.values["base_dir"]).resolve()
+        cls.base = APP.resolve()
 
-    def test_base_dir_resolves_to_repository_root(self) -> None:
-        self.assertEqual(self.base, ROOT.resolve())
+    def test_paths_are_relative_to_flutter_package_root(self) -> None:
+        self.assertNotIn("base_dir", self.values)
+        self.assertEqual(self.base, APP.resolve())
 
     def test_rust_root_and_output_share_canonical_prefix(self) -> None:
-        crate_root = (self.base / self.values["rust_root"]).resolve()
-        rust_output = (self.base / self.values["rust_output"]).resolve()
+        crate_root = (APP / self.values["rust_root"]).resolve()
+        rust_output = (APP / self.values["rust_output"]).resolve()
         self.assertEqual(crate_root, (ROOT / "core" / "bridge").resolve())
         self.assertTrue(rust_output.is_relative_to(crate_root))
         self.assertEqual(
             rust_output,
             (ROOT / "core" / "bridge" / "src" / "frb_generated.rs").resolve(),
         )
-        self.assertNotIn("..", Path(self.values["rust_output"]).parts)
+        self.assertEqual(self.values["rust_output"], "../../core/bridge/src/frb_generated.rs")
 
     def test_dart_output_and_root_resolve_to_flutter_package(self) -> None:
-        dart_output = (self.base / self.values["dart_output"]).resolve()
+        dart_output = (APP / self.values["dart_output"]).resolve()
         dart_root = (APP / self.values["dart_root"]).resolve()
         self.assertEqual(dart_root, APP.resolve())
         self.assertTrue(dart_output.is_relative_to(APP / "lib"))
