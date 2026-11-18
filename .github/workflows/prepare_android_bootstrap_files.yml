@@ -69,10 +69,10 @@ jobs:
         run: cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked
 
       - name: Generate typed Rust and Dart bridge sources
-        run: scripts/generate_bridge.sh
+        run: bash scripts/generate_bridge.sh
 
       - name: Generate and validate the hardened Android project scaffold
-        run: scripts/prepare_android_runner.sh
+        run: bash scripts/prepare_android_runner.sh
 
       - name: Verify generated files and enforce lockfile reproducibility
         shell: bash
@@ -88,15 +88,12 @@ jobs:
           test -s apps/leo_app/android/app/src/main/res/xml/leo_backup_rules.xml
           test -s apps/leo_app/android/app/src/main/res/xml/leo_data_extraction_rules.xml
 
-          # These commands must accept the generated lockfiles without changing them.
           (
             cd apps/leo_app
             flutter pub get --enforce-lockfile
           )
           cargo metadata --manifest-path Cargo.toml --format-version 1 --locked \
             > "$RUNNER_TEMP/leo-cargo-metadata.json"
-
-          # Verify the Android runner's security and platform contract once more.
           python scripts/verify_android_runner.py apps/leo_app
 
       - name: Assemble portable preparation bundle
@@ -114,9 +111,6 @@ jobs:
           cp core/bridge/src/frb_generated.rs "$OUT/core/bridge/src/frb_generated.rs"
           cp -a apps/leo_app/lib/src/rust "$OUT/apps/leo_app/lib/src/rust"
           cp -a apps/leo_app/android "$OUT/apps/leo_app/android"
-
-          # Flutter may write a runner-local SDK path here. It is machine-specific
-          # and must not be brought back into the project.
           rm -f "$OUT/apps/leo_app/android/local.properties"
           find "$OUT/apps/leo_app/android" -type d \
             \( -name .gradle -o -name build \) -prune -exec rm -rf {} +
@@ -155,7 +149,6 @@ jobs:
               | sort -z \
               | xargs -0 sha256sum > SHA256SUMS.txt
           )
-
           cd "$RUNNER_TEMP"
           zip -qr Leo_Android_Bootstrap_Files_v0.27.0.zip leo-android-bootstrap-files
 

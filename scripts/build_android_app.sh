@@ -16,8 +16,7 @@ case "${BUILD_MODE}" in
     ;;
 esac
 
-# Repository shell scripts are intentionally not executable (mode 100644),
-# so invoke them through bash instead of relying on executable bits.
+# Scripts are tracked as mode 100644, so always invoke them through bash.
 bash "${ROOT_DIR}/scripts/prepare_android_runner.sh"
 bash "${ROOT_DIR}/scripts/generate_bridge.sh"
 bash "${ROOT_DIR}/scripts/build_android_native.sh"

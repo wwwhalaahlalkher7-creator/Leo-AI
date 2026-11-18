@@ -1,23 +1,31 @@
-Leo-AI CI fixes for failed run 44300239883
+Leo-AI CI repair notes — v0.27.0 source (ALPHA)
 
-Files to replace in the repository:
-  .github/workflows/ci.yml
-  scripts/build_android_app.sh
+The current Actions checks exposed these issues:
 
-What changed:
-1. Upgrade android-actions/setup-android from v3 to v4 and skip the obsolete
-   default package install. Android SDK packages are installed explicitly.
-2. Invoke shell scripts with bash because the repository stores them as mode
-   100644 (not executable). This applies both to CI steps and nested Android
-   build-script calls.
-3. Generate Flutter Rust Bridge outputs once on Ubuntu and upload them as an
-   artifact. The Windows job downloads those generated files instead of running
-   FRB codegen on Windows, where this run failed with the known Windows path
-   canonicalization error: "prefix not found".
-4. Make the Windows build depend on successful full-stack generation and tests.
+1. The bootstrap workflow attempted to execute shell scripts that Git tracks
+   with mode 100644. Linux returned exit code 126 (Permission denied).
+2. Flutter Rust Bridge 2.13.0 canonicalizes rust_root, but the configured
+   rust_output retained ../../ segments. The generator then failed while
+   calculating the Rust module path with StripPrefixError: prefix not found.
+3. The Android SDK setup error from the earlier run was already addressed by
+   switching android-actions/setup-android to v4 and installing SDK packages
+   explicitly. The current Android build reached FRB generation and stopped
+   at issue 2, before the native CMake build or APK packaging.
 
-Application version is not changed.
-No APK signing or release publication is added.
+Corrections in this package:
 
-Apply by replacing the two repository files with the same paths above, then
-push to main or run Leo CI manually from GitHub Actions.
+- Invoke scripts/generate_bridge.sh and scripts/prepare_android_runner.sh via
+  bash in the temporary bootstrap workflow.
+- Invoke Android nested scripts via bash in scripts/build_android_app.sh.
+- Set FRB base_dir to the repository root and use root-relative Rust/Dart
+  output paths without parent-directory traversal. Set dart_root to the
+  Flutter package working directory.
+- Add a preflight path-contract check to scripts/generate_bridge.sh.
+- Retain Linux FRB generation and artifact transfer to Windows; Windows no
+  longer tries to run the failing code generator itself.
+
+No application version is changed. These source corrections have passed the
+local structural checks described in docs/audit/CI_FAILURE_ANALYSIS_AND_FIXES.md.
+A new GitHub Actions run is still required to prove full dependency resolution,
+Dart/Rust tests, Android native compilation and APK packaging. No APK is
+claimed as built or platform-qualified by this archive.

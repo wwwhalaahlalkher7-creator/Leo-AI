@@ -1,7 +1,10 @@
-# Paths are relative to apps/leo_app (the Flutter package root).
+# Paths other than dart_root are relative to base_dir (the repository root).
+# dart_root is relative to the codegen working directory (apps/leo_app).
+base_dir: ../..
 rust_input: crate::api
-rust_root: ../../core/bridge
-rust_output: ../../core/bridge/src/frb_generated.rs
-dart_output: lib/src/rust
+rust_root: core/bridge
+rust_output: core/bridge/src/frb_generated.rs
+dart_output: apps/leo_app/lib/src/rust
+dart_root: .
 type_64bit_int: true
 default_dart_async: true
