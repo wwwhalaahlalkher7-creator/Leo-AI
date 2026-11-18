@@ -1,31 +1,27 @@
-Leo-AI CI repair notes — v0.27.0 source (ALPHA)
+Leo-AI FRB base_dir hotfix
 
-The current Actions checks exposed these issues:
+Purpose
+Fixes the false path validation failure in scripts/generate_bridge.sh.
 
-1. The bootstrap workflow attempted to execute shell scripts that Git tracks
-   with mode 100644. Linux returned exit code 126 (Permission denied).
-2. Flutter Rust Bridge 2.13.0 canonicalizes rust_root, but the configured
-   rust_output retained ../../ segments. The generator then failed while
-   calculating the Rust module path with StripPrefixError: prefix not found.
-3. The Android SDK setup error from the earlier run was already addressed by
-   switching android-actions/setup-android to v4 and installing SDK packages
-   explicitly. The current Android build reached FRB generation and stopped
-   at issue 2, before the native CMake build or APK packaging.
+Replace
+Copy scripts/generate_bridge.sh from this ZIP into the repository at:
+  scripts/generate_bridge.sh
 
-Corrections in this package:
+Then commit and push that file to main. No flutter_rust_bridge.yaml change is needed.
 
-- Invoke scripts/generate_bridge.sh and scripts/prepare_android_runner.sh via
-  bash in the temporary bootstrap workflow.
-- Invoke Android nested scripts via bash in scripts/build_android_app.sh.
-- Set FRB base_dir to the repository root and use root-relative Rust/Dart
-  output paths without parent-directory traversal. Set dart_root to the
-  Flutter package working directory.
-- Add a preflight path-contract check to scripts/generate_bridge.sh.
-- Retain Linux FRB generation and artifact transfer to Windows; Windows no
-  longer tries to run the failing code generator itself.
+Root cause
+The current flutter_rust_bridge.yaml sets base_dir: ../.. and declares rust_root,
+rust_output and dart_output relative to that base directory. The previous validator
+incorrectly required paths relative to apps/leo_app and rejected the valid config.
+The replacement validator resolves all paths using base_dir and validates the
+resolved targets instead of imposing the wrong relative strings.
 
-No application version is changed. These source corrections have passed the
-local structural checks described in docs/audit/CI_FAILURE_ANALYSIS_AND_FIXES.md.
-A new GitHub Actions run is still required to prove full dependency resolution,
-Dart/Rust tests, Android native compilation and APK packaging. No APK is
-claimed as built or platform-qualified by this archive.
+Local validation performed
+- bash -n scripts/generate_bridge.sh: passed
+- FRB path contract with stub Flutter/codegen executables: passed
+- python3 -m unittest discover -s scripts/tests -q: 201 tests passed
+
+Not claimed
+The real flutter_rust_bridge_codegen generate command and Android APK build were
+not executed in this environment. After pushing this replacement, rerun GitHub Actions
+and inspect the next failure, if any.
