@@ -80,7 +80,10 @@ class GenerateBridgeBootstrapTests(unittest.TestCase):
                 "if sys.argv[1:] == ['--version']:\n"
                 "    print('flutter_rust_bridge_codegen 2.13.0')\n"
                 "    raise SystemExit(0)\n"
-                "assert sys.argv[1:] == ['generate', '--skip-tool-install'], sys.argv\n"
+                "if sys.argv[1:] == ['generate', '--help']:\n"
+                "    print('Usage: flutter_rust_bridge_codegen generate [OPTIONS]\\n  --skip-fvm-install')\n"
+                "    raise SystemExit(0)\n"
+                "assert sys.argv[1:] == ['generate', '--skip-fvm-install'], sys.argv\n"
                 "app = pathlib.Path.cwd()\n"
                 "root = (app / '../..').resolve()\n"
                 "rust = (root / 'core/bridge/src/frb_generated.rs')\n"
@@ -114,6 +117,32 @@ class GenerateBridgeBootstrapTests(unittest.TestCase):
             self.assertTrue((app / "lib/src/rust/frb_generated.io.dart").is_file())
             self.assertTrue((app / "lib/src/rust/frb_generated.web.dart").is_file())
             self.assertFalse((app / "core/bridge").exists())
+
+            # An executable with a mismatched CLI surface must be rejected
+            # before the actual generator command is invoked. This models the
+            # reported 2.13.0 failure where --skip-tool-install was not accepted.
+            codegen.write_text(
+                "#!/usr/bin/env python3\n"
+                "import sys\n"
+                "if sys.argv[1:] == ['--version']:\n"
+                "    print('flutter_rust_bridge_codegen 2.13.0')\n"
+                "elif sys.argv[1:] == ['generate', '--help']:\n"
+                "    print('--skip-tool-install')\n"
+                "else:\n"
+                "    raise SystemExit('generator must not run with an unsupported CLI surface')\n",
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                ["bash", str(repo / "scripts" / "generate_bridge.sh")],
+                cwd=repo,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 2, msg=result.stdout + result.stderr)
+            self.assertIn("does not advertise --skip-fvm-install", result.stderr)
+            self.assertIn("--skip-tool-install", result.stderr)
 
             # A stale generator earlier on PATH must be rejected before codegen.
             codegen.write_text(

@@ -88,9 +88,13 @@ missing. That means a clean runner could download a transitive tool at an
 unfixed version, or fail while installing it, before actual code generation.
 
 **Correction:** both workflows explicitly install `cargo-expand 1.0.126` with
-`--locked`; the generation script verifies that exact version and invokes FRB
-with `--skip-tool-install`. A missing or mismatched tool now fails with a clear
-message before generation instead of triggering a hidden installation.
+`--locked`; the generation script verifies that exact version before invoking
+FRB. The pinned FRB **2.13.0** CLI does not accept the newer
+`--skip-tool-install` spelling; it exposes `--skip-fvm-install`. The script now
+checks `generate --help` for that exact flag and invokes the version-compatible
+option. This prevents an invalid-argument failure while keeping FVM setup under
+CI control; the separately pinned `cargo-expand` is already present before
+code generation.
 
 ### 6. Generated target-specific Dart bindings were not checked
 
@@ -120,8 +124,9 @@ hooks.
 - FRB 2.13 configuration supports a YAML config file and its path-resolution
   options; the project-specific resolution contract is now tested against the
   two path errors actually returned by Actions.
-- FRB's official tool-installation guide confirms that `cargo-expand` is
-  automatically installed when missing and documents `--skip-tool-install`.
+- The published FRB 2.13.0 CLI source exposes `--skip-fvm-install` on
+  `generate`; current online tool-installation documentation may describe a
+  newer `--skip-tool-install` flag, which is not accepted by this pinned binary.
 - FRB's Native Assets guide confirms that `flutter_rust_bridge_hooks` delegates
   Rust compilation to `native_toolchain_rust` and requires a crate with static
   and dynamic library outputs plus pinned Rust targets.

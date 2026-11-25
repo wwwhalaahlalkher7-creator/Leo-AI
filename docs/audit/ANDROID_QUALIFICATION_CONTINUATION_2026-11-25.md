@@ -58,8 +58,9 @@ and the shell preflight + regression tests use the same anchor as FRB.
 
 Additional predictable failures addressed in the same pass:
 
-- Pin `cargo-expand 1.0.126` explicitly and pass FRB `--skip-tool-install`,
-  preventing a hidden floating-version installation.
+- Pin `cargo-expand 1.0.126` explicitly. For the pinned FRB 2.13.0 CLI,
+  verify and pass `--skip-fvm-install` (not the newer `--skip-tool-install`),
+  preventing CLI argument mismatch while keeping the Flutter SDK managed by CI.
 - Verify all three generated Dart bindings (common, IO, Web), including the
   IO binding consumed by the Native Assets hook.
 - Compile `leo-bridge` immediately after generation in the bootstrap workflow,
@@ -165,3 +166,21 @@ Android SDK/NDK or `zipalign`. Accordingly, these additional checks prove the
 source-level guard behavior only; they do not claim that the Flutter template,
 Gradle build, Native Assets compilation, APK packaging or a device run has
 succeeded. The source baseline remains `v0.27.0 / ALPHA`.
+
+
+## FRB 2.13.0 CLI flag compatibility correction — 2026-11-25
+
+The latest GitHub Actions attempt successfully passed FRB path validation and
+dependency resolution, but stopped immediately because `generate
+--skip-tool-install` is not a recognized argument in the pinned 2.13.0
+generator. Its CLI usage explicitly advertises `--skip-fvm-install`.
+
+The generation script now checks the installed generator version, inspects
+`flutter_rust_bridge_codegen generate --help`, requires the 2.13.0-supported
+`--skip-fvm-install` flag, and invokes it. The pinned `cargo-expand 1.0.126`
+remains separately installed and version-checked before code generation. A
+regression test models the exact 2.13.0 CLI surface and rejects reintroduction
+of the unsupported flag.
+
+The local tests validate argument selection with a fake generator; a fresh
+GitHub Actions run is still required to confirm actual FRB generation.
