@@ -42,3 +42,7 @@ This is a gated plan. A milestone is not considered complete because source file
 ## Progress note — 2026-11-18
 
 Android qualification preparation has started: the workspace now pins/checks the Android NDK revision, validates the generated runner and APK packaging contract, and defines a two-device acceptance protocol. This is preparation, not completion of `v0.28.0`; no Android production build or physical-device result is available yet. Keep the current source at `v0.27.0 / ALPHA` until the Android CI and device exit gates pass.
+
+## Progress note — 2026-11-25
+
+Android qualification CI now has an explicit reproducible-dependency gate: the Android build waits for the full-stack checks, requires both lockfiles to be present and committed, and resolves Flutter/Cargo dependencies in locked mode once those files exist. The bootstrap workflow validates newly generated lockfiles before packaging them. This closes a CI policy gap; it does **not** complete Android qualification. The current supplied source still has no `apps/leo_app/pubspec.lock` or workspace `Cargo.lock`, so the Android qualification job is intentionally blocked until the generated bootstrap files are integrated. Flutter/Rust/NDK builds and the two-device functional matrix are still pending. Keep the source at `v0.27.0 / ALPHA`.

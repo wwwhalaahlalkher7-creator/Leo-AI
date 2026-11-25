@@ -133,6 +133,21 @@ class AndroidQualificationContractTests(unittest.TestCase):
         self.assertIn('sha256sum "${CHECKSUM_FILENAMES[@]}"', app_builder)
         self.assertIn("leo-alpha-android-arm64-qualification", workflow)
 
+    def test_android_qualification_job_requires_reproducible_committed_locks(self):
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        android_job = workflow.split("  android-app:", 1)[1].split("  windows-app:", 1)[0]
+        self.assertIn("needs: full-stack", android_job)
+        self.assertIn("Require committed reproducible dependency lockfiles", android_job)
+        self.assertIn("LEO_REQUIRE_LOCKFILES: '1'", android_job)
+        bridge = (ROOT / "scripts/generate_bridge.sh").read_text(encoding="utf-8")
+        self.assertIn("check_dependency_lockfiles.py", bridge)
+        self.assertIn("flutter pub get --enforce-lockfile", bridge)
+        self.assertIn("cargo metadata --manifest-path", bridge)
+
+    def test_bootstrap_workflow_validates_generated_locks_before_upload(self):
+        workflow = (ROOT / ".github/workflows/prepare_android_bootstrap_files.yml").read_text(encoding="utf-8")
+        self.assertIn("check_dependency_lockfiles.py --allow-untracked", workflow)
+
     def test_apk_validation_accepts_correct_arm64_native_package(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             apk = Path(temp_dir) / "leo.apk"

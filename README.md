@@ -7,6 +7,15 @@
 
 Leo is being built as an offline-first personal AI assistant for Android and Windows. It combines a local model runtime, automatic specialist-agent orchestration, durable memory, learnable skills, and an OS/application-first capability layer. A cloud service is never a mandatory dependency for the core assistant workflow.
 
+## Engineering workflow
+
+The required development process, milestone template and acceptance checklist are maintained in:
+- [`docs/development/ENGINEERING_PRODUCTION_PIPELINE.md`](docs/development/ENGINEERING_PRODUCTION_PIPELINE.md)
+- [`docs/development/MILESTONE_TEMPLATE.md`](docs/development/MILESTONE_TEMPLATE.md)
+- [`docs/development/ACCEPTANCE_CHECKLIST.md`](docs/development/ACCEPTANCE_CHECKLIST.md)
+
+These documents supplement the existing lifecycle/version policy, architecture ADRs, roadmap and platform qualification protocol; they do not override them. The current executable CI remains `.github/workflows/ci.yml`.
+
 ## Delivered milestones and current capabilities
 
 `v0.11.0` added the first OS/application-first Capability Hub slice: a persistent scoped permission broker, just-in-time Leo consent, independent OS/resource checks and separate per-action confirmation. Android supports SAF file selection, local contacts reading, dialer, email/SMS draft, HTTP/HTTPS and launcher-app handoffs. Windows supports the system file picker, selected-file UTF-8 text preview, registered app targets, dialer/mail and HTTP/HTTPS handoffs. File previews are limited to 2 MiB; Android URI access is session-only. Email/SMS are drafts and dialing opens the dialer; Leo does not silently send or call.

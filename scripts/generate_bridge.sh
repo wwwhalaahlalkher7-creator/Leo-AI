@@ -85,5 +85,25 @@ print(
 )
 PY_FRB_PATHS
 
-flutter pub get
+# Once both lockfiles have been generated, never silently re-resolve the
+# application graph during bridge generation. Qualification CI requires them
+# to be checked into source control; the bootstrap workflow may create them.
+if [[ "${LEO_REQUIRE_LOCKFILES:-0}" == "1" ]]; then
+  python3 "${ROOT_DIR}/scripts/check_dependency_lockfiles.py"
+fi
+if [[ -s "${APP_DIR}/pubspec.lock" ]]; then
+  flutter pub get --enforce-lockfile
+else
+  if [[ "${LEO_REQUIRE_LOCKFILES:-0}" == "1" ]]; then
+    echo "ERROR: apps/leo_app/pubspec.lock is required for qualification." >&2
+    exit 2
+  fi
+  flutter pub get
+fi
+if [[ -s "${ROOT_DIR}/Cargo.lock" ]]; then
+  cargo metadata --manifest-path "${ROOT_DIR}/Cargo.toml" --format-version 1 --locked >/dev/null
+elif [[ "${LEO_REQUIRE_LOCKFILES:-0}" == "1" ]]; then
+  echo "ERROR: workspace Cargo.lock is required for qualification." >&2
+  exit 2
+fi
 flutter_rust_bridge_codegen generate

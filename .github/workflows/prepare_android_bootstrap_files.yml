@@ -81,6 +81,7 @@ jobs:
 
           test -s apps/leo_app/pubspec.lock
           test -s Cargo.lock
+          python scripts/check_dependency_lockfiles.py --allow-untracked
           test -s core/bridge/src/frb_generated.rs
           test -s apps/leo_app/lib/src/rust/frb_generated.dart
           test -s apps/leo_app/android/app/build.gradle.kts

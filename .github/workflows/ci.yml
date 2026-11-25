@@ -80,9 +80,17 @@ jobs:
 
   android-app:
     name: Android ARM64 debug + release qualification build
+    needs: full-stack
     runs-on: ubuntu-latest
+    env:
+      LEO_REQUIRE_LOCKFILES: '1'
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Require committed reproducible dependency lockfiles
+        run: python scripts/check_dependency_lockfiles.py
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
