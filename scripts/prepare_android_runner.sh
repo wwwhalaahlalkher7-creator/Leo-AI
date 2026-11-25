@@ -5,7 +5,21 @@ APP_DIR="${ROOT_DIR}/apps/leo_app"
 
 command -v flutter >/dev/null 2>&1 || { echo "ERROR: Flutter SDK is required." >&2; exit 2; }
 cd "${APP_DIR}"
-if [[ ! -f android/app/build.gradle.kts ]]; then
+SCAFFOLD_READY=1
+for required_file in \
+  android/app/build.gradle.kts \
+  android/settings.gradle.kts \
+  android/gradle.properties \
+  android/gradlew \
+  android/gradlew.bat \
+  android/gradle/wrapper/gradle-wrapper.jar \
+  android/gradle/wrapper/gradle-wrapper.properties; do
+  if [[ ! -f "${required_file}" ]]; then
+    SCAFFOLD_READY=0
+    break
+  fi
+done
+if [[ "${SCAFFOLD_READY}" != "1" ]]; then
   flutter create --platforms=android --org ai.leo --project-name leo_app --no-pub .
 fi
 python3 - <<'PY_ANDROID'
@@ -22,6 +36,19 @@ if "minSdk = 28" not in text:
     raise SystemExit("Unable to set the Android minimum SDK to API 28.")
 if 'ndkVersion = "30.0.16248370"' not in text:
     raise SystemExit("Unable to pin the Android Gradle runner to NDK 30.0.16248370.")
+
+# This project still has Android modules that apply the Kotlin Gradle Plugin
+# and use the legacy AGP DSL. AGP 9 defaults to built-in Kotlin; explicitly
+# retain Flutter's temporary compatibility mode until every plugin migrates.
+gradle_properties = Path("android/gradle.properties")
+if not gradle_properties.is_file():
+    raise SystemExit("android/gradle.properties is missing after Flutter runner generation.")
+properties_text = gradle_properties.read_text(encoding="utf-8")
+import re
+for key in ("android.builtInKotlin", "android.newDsl"):
+    properties_text = re.sub(rf"(?m)^\s*{re.escape(key)}\s*=.*(?:\n|$)", "", properties_text)
+properties_text = properties_text.rstrip() + "\nandroid.builtInKotlin=false\nandroid.newDsl=false\n"
+gradle_properties.write_text(properties_text, encoding="utf-8")
 
 # flutter_secure_storage keeps its encryption key in Android Keystore and its
 # encrypted payload in app preferences. Restoring those preferences without

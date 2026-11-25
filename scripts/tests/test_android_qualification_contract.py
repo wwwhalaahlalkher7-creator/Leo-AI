@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 import tempfile
 import unittest
@@ -21,26 +22,39 @@ from verify_android_runner import (  # noqa: E402
 ANDROID_NS = "http://schemas.android.com/apk/res/android"
 
 
-def fake_arm64_elf(machine: int = 183) -> bytes:
-    header = bytearray(64)
-    header[:4] = b"\x7fELF"
-    header[4] = 2  # ELFCLASS64
-    header[5] = 1  # little endian
-    header[6] = 1  # current ELF version
-    header[18:20] = machine.to_bytes(2, "little")
-    return bytes(header)
+def fake_arm64_elf(machine: int = 183, alignment: int = 16384) -> bytes:
+    # ELF64 header plus one PT_LOAD header, with e_phoff=64/e_phentsize=56.
+    image = bytearray(120)
+    image[:4] = b"\x7fELF"
+    image[4] = 2  # ELFCLASS64
+    image[5] = 1  # little endian
+    image[6] = 1  # current ELF version
+    image[18:20] = machine.to_bytes(2, "little")
+    image[32:40] = (64).to_bytes(8, "little")
+    image[54:56] = (56).to_bytes(2, "little")
+    image[56:58] = (1).to_bytes(2, "little")
+    image[64:68] = (1).to_bytes(4, "little")  # PT_LOAD
+    image[112:120] = alignment.to_bytes(8, "little")  # p_align
+    return bytes(image)
 
 
 def create_fake_apk(path: Path, *, wrong_abi: bool = False, wrong_arch: bool = False,
-                    include_model: bool = False, omit_adapter: bool = False) -> None:
+                    include_model: bool = False, omit_adapter: bool = False,
+                    wrong_alignment: bool = False,
+                    third_party_bad_alignment: bool = False) -> None:
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         if not omit_adapter:
             archive.writestr(
                 "lib/arm64-v8a/libleo_llama_backend.so",
-                fake_arm64_elf(62 if wrong_arch else 183),
+                fake_arm64_elf(62 if wrong_arch else 183, 4096 if wrong_alignment else 16384),
             )
         archive.writestr("lib/arm64-v8a/libc++_shared.so", fake_arm64_elf())
         archive.writestr("lib/arm64-v8a/libflutter.so", fake_arm64_elf())
+        if third_party_bad_alignment:
+            archive.writestr(
+                "lib/arm64-v8a/libsherpa-onnx-c-api.so",
+                fake_arm64_elf(alignment=4096),
+            )
         if wrong_abi:
             archive.writestr("lib/x86_64/libforeign.so", fake_arm64_elf())
         if include_model:
@@ -66,6 +80,24 @@ android {
 }
 '''
     (android_app / "build.gradle.kts").write_text(gradle, encoding="utf-8")
+    (app_dir / "android" / "settings.gradle.kts").write_text(
+        'plugins { id("com.android.application") version "9.1.0" apply false }\n',
+        encoding="utf-8",
+    )
+    wrapper_dir = app_dir / "android" / "gradle" / "wrapper"
+    wrapper_dir.mkdir(parents=True)
+    (wrapper_dir / "gradle-wrapper.properties").write_text(
+        "distributionUrl=https\\://services.gradle.org/distributions/gradle-9.3.1-bin.zip\n",
+        encoding="utf-8",
+    )
+    with zipfile.ZipFile(wrapper_dir / "gradle-wrapper.jar", "w") as wrapper_jar:
+        wrapper_jar.writestr("org/gradle/wrapper/GradleWrapperMain.class", b"fixture-class")
+    (app_dir / "android" / "gradlew").write_text("#!/bin/sh\n", encoding="utf-8")
+    (app_dir / "android" / "gradlew").chmod(0o755)
+    (app_dir / "android" / "gradlew.bat").write_text("@echo off\n", encoding="utf-8")
+    (app_dir / "android" / "gradle.properties").write_text(
+        "android.builtInKotlin=false\nandroid.newDsl=false\n", encoding="utf-8"
+    )
     manifest = f'''<manifest xmlns:android="{ANDROID_NS}">
     <application android:label="Leo" android:allowBackup="false"
         android:fullBackupContent="@xml/leo_backup_rules"
@@ -122,6 +154,7 @@ class AndroidQualificationContractTests(unittest.TestCase):
         self.assertIn("release", script)
         runner_script = (ROOT / "scripts/prepare_android_runner.sh").read_text(encoding="utf-8")
         self.assertIn("verify_android_runner.py", runner_script)
+        self.assertIn("android/gradle/wrapper/gradle-wrapper.jar", runner_script)
 
     def test_ci_builds_and_uploads_debug_and_release_arm64_apks(self):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
@@ -132,6 +165,9 @@ class AndroidQualificationContractTests(unittest.TestCase):
         app_builder = (ROOT / "scripts/build_android_app.sh").read_text(encoding="utf-8")
         self.assertIn('sha256sum "${CHECKSUM_FILENAMES[@]}"', app_builder)
         self.assertIn("leo-alpha-android-arm64-qualification", workflow)
+        self.assertIn("zipalign", app_builder)
+        self.assertIn("-P 16 -v 4", app_builder)
+        self.assertIn("libsherpa-onnx", (ROOT / "scripts/tests/test_android_qualification_contract.py").read_text(encoding="utf-8"))
 
     def test_android_qualification_job_requires_reproducible_committed_locks(self):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
@@ -143,6 +179,11 @@ class AndroidQualificationContractTests(unittest.TestCase):
         self.assertIn("check_dependency_lockfiles.py", bridge)
         self.assertIn("flutter pub get --enforce-lockfile", bridge)
         self.assertIn("cargo metadata --manifest-path", bridge)
+        self.assertIn("Native Assets hook cratePath", bridge)
+        self.assertIn("native_toolchain_rust must be pinned to 1.1.1", bridge)
+        runner = (ROOT / "scripts/prepare_android_runner.sh").read_text(encoding="utf-8")
+        self.assertIn("android.builtInKotlin=false", runner)
+        self.assertIn("android.newDsl=false", runner)
 
     def test_bootstrap_workflow_validates_generated_locks_before_upload(self):
         workflow = (ROOT / ".github/workflows/prepare_android_bootstrap_files.yml").read_text(encoding="utf-8")
@@ -176,6 +217,24 @@ class AndroidQualificationContractTests(unittest.TestCase):
             with self.assertRaisesRegex(AndroidApkValidationError, "AArch64 ELF"):
                 validate_android_apk(wrong_arch_apk)
 
+
+    def test_apk_validation_rejects_native_libraries_with_4kb_load_alignment(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            apk = Path(temp_dir) / "four-kb-aligned.apk"
+            create_fake_apk(apk, wrong_alignment=True)
+            with self.assertRaisesRegex(AndroidApkValidationError, "not 16 KB aligned"):
+                validate_android_apk(apk)
+
+    def test_apk_validation_rejects_unaligned_transitive_voice_engine_library(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            apk = Path(temp_dir) / "unaligned-sherpa.apk"
+            create_fake_apk(apk, third_party_bad_alignment=True)
+            with self.assertRaisesRegex(
+                AndroidApkValidationError,
+                r"libsherpa-onnx-c-api\.so.*not 16 KB aligned|not 16 KB aligned.*libsherpa-onnx-c-api\.so",
+            ):
+                validate_android_apk(apk)
+
     def test_apk_validation_rejects_bundled_local_model_weights(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             apk = Path(temp_dir) / "bundled-model.apk"
@@ -189,7 +248,55 @@ class AndroidQualificationContractTests(unittest.TestCase):
             checks = validate_android_runner(app_dir)
         self.assertIn("minSdk=28", checks)
         self.assertIn("application backup disabled", checks)
+        self.assertIn("AGP=9.1.0", checks)
+        self.assertIn("Gradle=9.3.1", checks)
+        self.assertIn("legacy KGP/AGP DSL compatibility enabled", checks)
         self.assertIn("NDK=30.0.16248370", checks)
+
+    def test_runner_validation_rejects_corrupt_or_non_executable_gradle_wrapper(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            app_dir = create_runner_fixture(Path(temp_dir))
+            wrapper_jar = app_dir / "android/gradle/wrapper/gradle-wrapper.jar"
+            wrapper_jar.write_bytes(b"not-a-jar")
+            with self.assertRaisesRegex(AndroidRunnerValidationError, "Gradle wrapper JAR is invalid"):
+                validate_android_runner(app_dir)
+
+        if os.name != "nt":
+            with tempfile.TemporaryDirectory() as temp_dir:
+                app_dir = create_runner_fixture(Path(temp_dir))
+                (app_dir / "android/gradlew").chmod(0o644)
+                with self.assertRaisesRegex(AndroidRunnerValidationError, "must retain its executable bit"):
+                    validate_android_runner(app_dir)
+
+    def test_runner_validation_rejects_gradle_too_old_for_agp(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            app_dir = create_runner_fixture(Path(temp_dir))
+            wrapper = app_dir / "android/gradle/wrapper/gradle-wrapper.properties"
+            wrapper.write_text(
+                "distributionUrl=https\\://services.gradle.org/distributions/gradle-9.0.0-bin.zip\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(AndroidRunnerValidationError, r"Gradle 9.3.1\+ is required"):
+                validate_android_runner(app_dir)
+
+    def test_runner_validation_rejects_builtin_kotlin_when_legacy_plugins_exist(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            app_dir = create_runner_fixture(Path(temp_dir))
+            properties = app_dir / "android/gradle.properties"
+            properties.write_text("android.builtInKotlin=true\nandroid.newDsl=false\n", encoding="utf-8")
+            with self.assertRaisesRegex(AndroidRunnerValidationError, "android.builtInKotlin=false"):
+                validate_android_runner(app_dir)
+
+    def test_runner_validation_rejects_agp_below_16kb_packaging_floor(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            app_dir = create_runner_fixture(Path(temp_dir))
+            settings = app_dir / "android/settings.gradle.kts"
+            settings.write_text(
+                'plugins { id("com.android.application") version "8.5.0" apply false }\n',
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(AndroidRunnerValidationError, r"AGP 8.5.1\+"):
+                validate_android_runner(app_dir)
 
     def test_runner_validation_rejects_backup_enabled(self):
         with tempfile.TemporaryDirectory() as temp_dir:

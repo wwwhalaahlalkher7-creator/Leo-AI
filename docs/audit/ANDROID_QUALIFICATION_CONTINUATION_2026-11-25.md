@@ -15,7 +15,7 @@
 
 ## Local validation
 
-- `python -m unittest discover -s scripts/tests -v` — **210/210 passed**.
+- `python -m unittest discover -s scripts/tests -v` — **214/214 passed before the final version/AGP preflight additions**; the updated total is recorded after the final validation run below.
 - `python scripts/check_version.py` — **PASS**, source remains `v0.27.0 / ALPHA`.
 - `python scripts/verify_sources.py` — **PASS**, immutable source archive hashes unchanged.
 - `bash -n scripts/*.sh` — **PASS**.
@@ -45,3 +45,123 @@ Corrected `flutter_rust_bridge.yaml` to use
 same anchor as FRB, and added regression assertions. The remaining output
 paths stay rooted at `base_dir`. This is a source correction only; FRB codegen
 and Android qualification still require a fresh pinned CI run.
+
+
+## Additional FRB resilience fixes — 2026-11-25
+
+A later bootstrap attempt reached code generation but failed with
+`compute_mod_from_rust_path(...): prefix not found`. Its `code_path` showed
+`apps/leo_app/core/bridge/src/frb_generated.rs`, while the Rust module base was
+`core/bridge/src`. FRB resolves `rust_output` relative to `rust_root`; the
+previous value incorrectly escaped the crate. It is now `src/frb_generated.rs`,
+and the shell preflight + regression tests use the same anchor as FRB.
+
+Additional predictable failures addressed in the same pass:
+
+- Pin `cargo-expand 1.0.126` explicitly and pass FRB `--skip-tool-install`,
+  preventing a hidden floating-version installation.
+- Verify all three generated Dart bindings (common, IO, Web), including the
+  IO binding consumed by the Native Assets hook.
+- Compile `leo-bridge` immediately after generation in the bootstrap workflow,
+  so an invalid Rust binding fails before packaging the preparation artifact.
+- Require committed dependency lockfiles in full-stack CI.
+- Export all common Android NDK environment variable aliases for the native
+  asset build hooks.
+
+Local unit tests use mocked Flutter/Cargo/FRB executables to check shell
+argument flow and generated-output checks. They do not substitute for real
+FRB generation or `cargo check`; those remain pending a fresh Actions run.
+
+## Predictive failure review — FRB, Native Assets and Android packaging
+
+The next review expanded beyond the two observed FRB path failures and checked
+all hand-off points from FRB generation through native-asset compilation and APK
+validation.
+
+- `generate_bridge.sh` now verifies that `flutter_rust_bridge`,
+  `flutter_rust_bridge_hooks` and the Rust bridge crate all use FRB `2.13.0`;
+  that the Native Assets hook resolves `cratePath` to the same `core/bridge`
+  crate; that `assetName` names the generated IO binding; and that the crate
+  has both `cdylib` and `staticlib` outputs plus the pinned Android Rust target.
+- The Dart Native Assets dependency is pinned to
+  `native_toolchain_rust 1.1.1`. Version `1.1.0` introduced Android 16 KB page
+  size support; `1.1.1` also fixes rebuild tracking for Cargo manifests,
+  lockfiles, build scripts and toolchain changes. The lockfile checker now
+  rejects an older resolved version.
+- Full-stack CI now waits for `foundation`; Cargo tests, cross-target checks and
+  Clippy use `--locked`. Windows now also verifies the committed lockfiles and
+  resolves Flutter packages with `--enforce-lockfile`.
+- Android setup exports all four NDK environment names accepted by Dart build
+  hooks, including `ANDROID_NDK_LATEST_HOME`.
+- APK validation now inspects every packaged AArch64 ELF library's `PT_LOAD`
+  segments and rejects 4 KB-only alignment. The APK build additionally runs
+  `zipalign -c -P 16 -v 4`, so both ELF segment alignment and APK ZIP alignment
+  are checked before checksums are published.
+
+These guards were added because Android's 16 KB page-size requirement applies
+to native libraries pulled in directly or transitively, not only to Leo's own
+llama.cpp adapter. The Android developer guidance requires checking shared
+library ELF segment alignment as well as APK packaging alignment.
+
+## Validation boundary
+
+The ELF validator is covered by synthetic APK tests, including a deliberate
+4 KB-aligned failure. FRB generation, the Dart Native Assets hook's real Cargo
+build, `zipalign` against a produced APK, and device testing still require the
+pinned GitHub Actions environment. No APK has been generated in this workspace.
+
+
+## Final predictive guards added in this pass
+
+- `generate_bridge.sh` now checks the installed `flutter_rust_bridge_codegen`
+  executable's own reported version before invoking it. Installing a pinned
+  version in CI is not enough if a developer or cached runner has another
+  binary earlier on `PATH`.
+- Android runner validation now requires an explicit Android Gradle Plugin
+  version of at least `8.5.1`, the minimum documented for reliable 16 KB
+  alignment of uncompressed shared libraries. This is checked before APK
+  compilation, in addition to checking the actual APK with `zipalign`.
+- Added regression tests for a mismatched generator and an AGP version below
+  the 16 KB packaging floor.
+
+## Second predictive Android Gradle and transitive-native review — 2026-11-25
+
+A further pass checked the generated Android project hand-off, not just the
+FRB paths and native library alignment:
+
+- The generated runner is now checked for executable `gradlew`, wrapper
+  scripts, a valid wrapper JAR containing `GradleWrapperMain`, and a pinned
+  HTTPS `distributionUrl`. Its Gradle version is compared with the
+  minimum supported by the detected AGP version; the pinned Flutter 3.47.1
+  template is expected to pair AGP 9.1.x with Gradle 9.3.1 or newer.
+- Leo's Android capability plugin still applies
+  `org.jetbrains.kotlin.android` and uses the legacy Android Gradle DSL.
+  Because AGP 9 enables built-in Kotlin by default, runner generation now
+  explicitly writes `android.builtInKotlin=false` and `android.newDsl=false`
+  until the app and every plugin complete their migration. Runner validation
+  fails if either compatibility setting is missing or overridden to `true`.
+- Added a negative APK fixture with a misaligned third-party
+  `libsherpa-onnx-c-api.so`. This proves the APK verifier rejects misalignment
+  in transitive voice-engine libraries, not only Leo's own llama.cpp library.
+  The verifier already enumerates every `.so` under the APK's `lib/` tree.
+
+This review did not upgrade `sherpa_onnx` speculatively. Its upstream 16 KB
+alignment issue was fixed in 2025, and the actual APK gate now remains the
+source of truth for the exact locked native binaries that get packaged.
+
+## Final validation for this pass
+
+- `python -W error::SyntaxWarning -m unittest discover -s scripts/tests -v` —
+  **219/219 passed**.
+- `python scripts/check_version.py` — **PASS**, still `v0.27.0 / ALPHA`.
+- `python scripts/verify_sources.py` — **PASS**, both immutable source hashes
+  remain unchanged.
+- `python -m compileall -q scripts` — **PASS**.
+- `bash -n scripts/*.sh` — **PASS**.
+- PyYAML parsing of both GitHub Actions workflow files — **PASS**.
+
+The environment still does not contain Flutter, Dart, Rust/Cargo, Gradle,
+Android SDK/NDK or `zipalign`. Accordingly, these additional checks prove the
+source-level guard behavior only; they do not claim that the Flutter template,
+Gradle build, Native Assets compilation, APK packaging or a device run has
+succeeded. The source baseline remains `v0.27.0 / ALPHA`.

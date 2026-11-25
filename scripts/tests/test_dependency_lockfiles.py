@@ -53,6 +53,14 @@ PUB_LOCK_TEXT = '''packages:
     dependency: "direct main"
     source: path
     version: "0.12.0"
+  native_toolchain_rust:
+    dependency: transitive
+    description:
+      name: native_toolchain_rust
+      sha256: fake
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.1"
   record:
     dependency: "direct main"
     version: "7.2.0"
@@ -109,6 +117,11 @@ class DependencyLockfileTests(unittest.TestCase):
     def test_rejects_missing_direct_flutter_package(self):
         self.pub.write_text(PUB_LOCK_TEXT.replace("  sherpa_onnx:\n    dependency: \"direct main\"\n    version: \"2.0.1\"\n", ""), encoding="utf-8")
         with self.assertRaisesRegex(lockcheck.LockfileValidationError, "sherpa_onnx"):
+            self.validate_fixture()
+
+    def test_rejects_native_toolchain_without_16kb_page_alignment_support(self):
+        self.pub.write_text(PUB_LOCK_TEXT.replace('version: "1.1.1"', 'version: "1.0.6"'), encoding="utf-8")
+        with self.assertRaisesRegex(lockcheck.LockfileValidationError, "16 KB page-size support"):
             self.validate_fixture()
 
     def test_rejects_untracked_lockfile_outside_bootstrap_mode(self):

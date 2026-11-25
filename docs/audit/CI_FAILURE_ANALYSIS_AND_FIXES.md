@@ -27,18 +27,12 @@ file permissions unchanged.
 
 ### 2. Flutter Rust Bridge path canonicalization
 
-FRB 2.13.0 failed with `prefix not found` in
-`compute_mod_from_rust_path`. The configuration resolved `rust_root` to a
-canonical absolute path, but `rust_output` still contained `../../` segments.
-FRB joins `rust_output` to `base_dir` and then derives a Rust module path by
-comparing it with the canonical crate root. The lexical path and canonical
-path did not share the required prefix.
+FRB 2.13.0 first failed with `Fail to canonicalize .../apps/leo_app/core/bridge`.
+The initial path preflight had modeled `rust_root` against the wrong anchor.
 
-**Correction:** set `base_dir: ../..` from the `apps/leo_app` codegen working
-directory, then express `rust_root`, `rust_output` and `dart_output` relative
-to the repository root without parent traversal. Set `dart_root: .` relative
-to the Flutter package working directory. A preflight in
-`scripts/generate_bridge.sh` checks these roots before starting FRB.
+**Correction:** keep `base_dir: ../..`, `rust_root: ../../core/bridge`, and
+`dart_root: .`. The preflight resolves `rust_root` from the Flutter app
+working directory and validates it against the real `core/bridge` crate.
 
 ### 3. Android SDK setup regression from the earlier run
 
@@ -68,19 +62,177 @@ or APK packaging. This package does not claim that `v0.28.0` has passed Android
 qualification or that any APK has been built.
 
 
-### 4. Flutter Rust Bridge crate-root anchor mismatch (2026-11-25)
+### 4. FRB Rust-output path was still anchored incorrectly (2026-11-25)
 
-The Android bootstrap run passed the local path preflight but FRB 2.13.0 then
-failed while canonicalizing `apps/leo_app/core/bridge`. The log proves that
-`rust_root` is resolved from the Flutter package working directory for this
-configuration; it is not resolved from `base_dir` as the previous preflight
-assumed. This was a real mismatch between the custom preflight and the
-generator, not a dependency-resolution failure.
+After the crate-root correction, FRB 2.13.0 failed in
+`compute_mod_from_rust_path` with:
 
-**Correction:** use `rust_root: ../../core/bridge` so the generator resolves
-the crate to the repository's `core/bridge` directory. Keep
-`rust_output: core/bridge/src/frb_generated.rs` and
-`dart_output: apps/leo_app/lib/src/rust` anchored to `base_dir: ../..`. Update
-the preflight and regression tests to model these distinct anchors. The
-bootstrap workflow should be rerun; actual FRB generation is not claimed until
-that run passes.
+- `code_path=.../apps/leo_app/core/bridge/src/frb_generated.rs`
+- `base_dir=.../core/bridge/src`
+- `prefix not found`
+
+The path in the error proves that FRB joined the configured `rust_output` to
+`rust_root`. The previous value `../../core/bridge/src/frb_generated.rs`
+therefore walked out of the crate and back into an app-relative-looking path.
+The earlier preflight repeated the same mistaken anchor and let it pass.
+
+**Correction:** configure `rust_output: src/frb_generated.rs`. The preflight now
+resolves `rust_output` as `rust_root / rust_output`, and asserts that the
+canonical result is exactly `core/bridge/src/frb_generated.rs`. This is the
+specific correction for the most recent `prefix not found` failure.
+
+### 5. FRB's implicit cargo-expand installation was not reproducible
+
+FRB documentation states that the generator installs `cargo-expand` when it is
+missing. That means a clean runner could download a transitive tool at an
+unfixed version, or fail while installing it, before actual code generation.
+
+**Correction:** both workflows explicitly install `cargo-expand 1.0.126` with
+`--locked`; the generation script verifies that exact version and invokes FRB
+with `--skip-tool-install`. A missing or mismatched tool now fails with a clear
+message before generation instead of triggering a hidden installation.
+
+### 6. Generated target-specific Dart bindings were not checked
+
+The Native Assets hook refers to `frb_generated.io.dart`; checking only the
+common `frb_generated.dart` could allow a partial FRB output to advance into
+Android or Windows packaging.
+
+**Correction:** the generator script and both bootstrap/platform artifact
+checks require the common, IO and Web Dart outputs. The Windows job now checks
+that all three files arrived in the Linux artifact before it builds.
+
+### 7. The bridge crate was not compiled during the bootstrap gate
+
+The one-time bootstrap previously considered the generated file present to be
+enough. A syntactically generated file can still fail to compile against the
+bridge API or the pinned `flutter_rust_bridge` runtime.
+
+**Correction:** after FRB output validation, the bootstrap workflow runs
+`cargo check --package leo-bridge --locked`. Full-stack CI also requires the
+committed Flutter and Cargo lockfiles before code generation. Android native
+asset builds now export `ANDROID_NDK`, `ANDROID_NDK_HOME` and `ANDROID_NDK_ROOT`
+to cover the environment-variable names consumed by different NDK-aware build
+hooks.
+
+## External implementation references
+
+- FRB 2.13 configuration supports a YAML config file and its path-resolution
+  options; the project-specific resolution contract is now tested against the
+  two path errors actually returned by Actions.
+- FRB's official tool-installation guide confirms that `cargo-expand` is
+  automatically installed when missing and documents `--skip-tool-install`.
+- FRB's Native Assets guide confirms that `flutter_rust_bridge_hooks` delegates
+  Rust compilation to `native_toolchain_rust` and requires a crate with static
+  and dynamic library outputs plus pinned Rust targets.
+
+## Validation boundary
+
+The updated source checks script logic and its path contract using unit tests
+and fake tool shims. It does **not** run the real FRB compiler locally because
+this environment lacks Flutter, Dart and Rust toolchains. A successful fresh
+GitHub Actions bootstrap run is still required to confirm real code generation,
+`cargo check`, Android scaffold preparation and lockfile generation. No APK,
+physical-device qualification or `v0.28.0` completion is claimed.
+
+### 8. Native Assets hand-off and Android 16 KB alignment
+
+A path that passes FRB generation can still fail later when the Dart build hook
+tries to compile the Rust crate. The project uses the FRB Native Assets backend;
+its hook references a generated IO Dart binding and a crate path relative to
+the Dart package root. The bridge also needs both dynamic and static library
+outputs and a concrete Rust toolchain containing the Android target.
+
+**Correction:** the FRB preflight now validates the hook's `cratePath` and
+`assetName`, exact FRB version parity across pubspec/Cargo, required crate types,
+and the pinned Android Rust target before it invokes codegen. This catches
+mismatched build-hook paths before Flutter starts a target build.
+
+Android 15+ devices can use 16 KB memory pages. The project now pins
+`native_toolchain_rust 1.1.1` (the 1.1.0 line added 16 KB Android support and
+1.1.1 fixes native rebuild dependency tracking), keeps NDK `30.0.16248370`, and
+exports all NDK environment aliases accepted by Dart hooks. APK verification
+checks every packaged ELF `PT_LOAD` segment for at least 16 KB alignment and
+runs `zipalign -c -P 16 -v 4` for ZIP alignment.
+
+### 9. CI ordering and lockfile drift
+
+The foundation tests previously ran independently from full-stack checks, so a
+foundation failure could still waste a full build. Windows also used a plain
+`flutter pub get`, which could resolve packages differently from the committed
+lockfile.
+
+**Correction:** full-stack now depends on foundation; Cargo test/type-check/
+Clippy commands use `--locked`; Windows validates tracked lockfiles and uses
+`flutter pub get --enforce-lockfile`.
+
+## Predictive validation boundary
+
+The Native Assets path and version checks run in a hermetic shell integration
+test, and the APK verifier has positive and negative ELF-alignment fixtures.
+These checks do not replace real toolchain execution. FRB generation, the
+Native Assets Android Cargo build, CMake/NDK compilation, APK creation,
+`zipalign`, and real-device launch are still gated on a fresh Actions run.
+
+
+### 10. Generator binary drift and AGP packaging floor
+
+A pinned install step does not by itself guarantee that the binary resolved
+from `PATH` is the pinned one; another preinstalled or cached executable can
+win. Also, a runner may compile native ELF files correctly but still package
+uncompressed `.so` files incorrectly if the Android Gradle Plugin is below
+8.5.1.
+
+**Correction:** `generate_bridge.sh` checks the executable's reported FRB
+version before generation. Android runner validation now requires a numeric
+AGP version of at least 8.5.1; the built APK is still independently checked
+with ELF-header verification and `zipalign -P 16`.
+
+### 11. AGP 9 built-in Kotlin / legacy plugin mismatch
+
+Flutter's Android scaffold is generated with AGP 9.x, while Leo's local
+`leo_platform_capabilities` Android module still applies
+`org.jetbrains.kotlin.android` and uses the legacy Gradle DSL. AGP 9 enables
+built-in Kotlin by default; applying the legacy Kotlin Gradle Plugin without
+migrating the app and every plugin can stop Gradle during project
+configuration.
+
+**Correction:** `prepare_android_runner.sh` explicitly sets
+`android.builtInKotlin=false` and `android.newDsl=false`. The runner verifier
+checks both flags, and tests reject an accidentally enabled built-in Kotlin
+mode. This is a compatibility bridge, not the final migration; remove these
+flags only after every Android module and plugin is migrated and tested.
+
+### 12. AGP and Gradle wrapper version drift
+
+A valid AGP version alone is not enough. The Android Gradle Plugin has a
+minimum Gradle wrapper version; for example, AGP 9.1 requires Gradle 9.3.1.
+A stale or partially generated wrapper would otherwise fail later at Gradle
+startup.
+
+**Correction:** the runner verifier now requires executable `gradlew`, the
+wrapper scripts, a valid wrapper JAR containing `GradleWrapperMain`, and a
+numeric HTTPS `distributionUrl`. It checks the Gradle version against a small,
+explicit AGP compatibility table. An unknown AGP line fails closed and asks
+for the compatibility table to be reviewed rather than guessing.
+
+### 13. Misaligned transitive voice-engine native library
+
+Android's 16 KB page-size rule applies to native libraries included by
+third-party SDKs as well as libraries built by Leo. The app's
+`sherpa_onnx` dependency includes Android native binaries, so validating only
+`libleo_llama_backend.so` would leave a predictable gap.
+
+**Correction:** `verify_android_apk.py` checks every `.so` packaged below
+`lib/`, including Sherpa/ONNX libraries. Added a regression APK containing an
+intentionally 4 KB-aligned `libsherpa-onnx-c-api.so`; validation must reject it.
+The production build also retains `zipalign -c -P 16 -v 4` to check APK ZIP
+alignment independently of ELF segment alignment.
+
+## Verification boundary
+
+The new regression tests cover the failure conditions above, including a
+stale Gradle wrapper, AGP 9 built-in Kotlin accidentally enabled, and a
+misaligned third-party `.so`. These are source-level tests with fixtures. They
+do not substitute for the real pinned Flutter/Gradle Android build or a
+16 KB-device smoke test.

@@ -110,7 +110,7 @@ class ArchitectureConfigTests(unittest.TestCase):
         api = (ROOT / "core/bridge/src/api/simple.rs").read_text(encoding="utf-8")
         self.assertIn("base_dir: ../..", bridge)
         self.assertIn("rust_root: ../../core/bridge", bridge)
-        self.assertIn("rust_output: core/bridge/src/frb_generated.rs", bridge)
+        self.assertIn("rust_output: src/frb_generated.rs", bridge)
         self.assertIn("dart_output: apps/leo_app/lib/src/rust", bridge)
         self.assertIn("dart_root: .", bridge)
         self.assertIn('flutter_rust_bridge = "=2.13.0"', cargo)

@@ -29,7 +29,10 @@ jobs:
         run: python -m unittest discover -s scripts/tests -v
 
   full-stack:
+    needs: foundation
     runs-on: ubuntu-latest
+    env:
+      LEO_REQUIRE_LOCKFILES: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -40,6 +43,11 @@ jobs:
           flutter-version: '3.47.1'
           channel: stable
           cache: true
+      - name: Install pinned cargo-expand required by FRB
+        run: cargo install cargo-expand --version 1.0.126 --locked
+      - name: Verify pinned cargo-expand
+        shell: bash
+        run: test "$(cargo expand --version | tail -n 1 | tr -d '\r')" = "cargo-expand 1.0.126"
       - name: Install pinned Flutter Rust Bridge generator
         run: cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked
       - name: Resolve Flutter dependencies and generate typed bridge
@@ -49,6 +57,8 @@ jobs:
         run: |
           test -s core/bridge/src/frb_generated.rs
           test -s apps/leo_app/lib/src/rust/frb_generated.dart
+          test -s apps/leo_app/lib/src/rust/frb_generated.io.dart
+          test -s apps/leo_app/lib/src/rust/frb_generated.web.dart
       - name: Publish generated bridge for platform jobs
         uses: actions/upload-artifact@v4
         with:
@@ -70,13 +80,13 @@ jobs:
       - name: Rust format check
         run: cargo fmt --all -- --check
       - name: Rust unit tests
-        run: cargo test --workspace
+        run: cargo test --workspace --locked
       - name: Android ARM64 Rust type-check
-        run: cargo check --package leo-runtime --target aarch64-linux-android
+        run: cargo check --package leo-runtime --target aarch64-linux-android --locked
       - name: Windows x64 Rust type-check
-        run: cargo check --package leo-runtime --target x86_64-pc-windows-msvc
+        run: cargo check --package leo-runtime --target x86_64-pc-windows-msvc --locked
       - name: Rust Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
   android-app:
     name: Android ARM64 debug + release qualification build
@@ -113,10 +123,19 @@ jobs:
         shell: bash
         run: |
           sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "ndk;30.0.16248370" "cmake;3.22.1" "platform-tools"
-          echo "ANDROID_NDK=$ANDROID_HOME/ndk/30.0.16248370" >> "$GITHUB_ENV"
+          NDK_PATH="$ANDROID_HOME/ndk/30.0.16248370"
+          echo "ANDROID_NDK=$NDK_PATH" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$NDK_PATH" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_ROOT=$NDK_PATH" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_LATEST_HOME=$NDK_PATH" >> "$GITHUB_ENV"
           echo "$ANDROID_HOME/cmake/3.22.1/bin" >> "$GITHUB_PATH"
       - name: Install Ninja and native build tools
         run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Install pinned cargo-expand required by FRB
+        run: cargo install cargo-expand --version 1.0.126 --locked
+      - name: Verify pinned cargo-expand
+        shell: bash
+        run: test "$(cargo expand --version | tail -n 1 | tr -d '\r')" = "cargo-expand 1.0.126"
       - name: Install pinned Flutter Rust Bridge generator
         run: cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked
       - name: Checkout pinned llama.cpp source
@@ -145,8 +164,15 @@ jobs:
     name: Windows x64 debug application + local native runtime
     needs: full-stack
     runs-on: windows-latest
+    env:
+      LEO_REQUIRE_LOCKFILES: '1'
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Require committed reproducible dependency lockfiles
+        run: python scripts/check_dependency_lockfiles.py
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           target: x86_64-pc-windows-msvc
@@ -172,8 +198,10 @@ jobs:
           if (-not (Test-Path 'core/bridge/src/frb_generated.rs')) {
             throw 'Generated Rust bridge file is missing from the Linux codegen artifact.'
           }
-          if (-not (Test-Path 'apps/leo_app/lib/src/rust/frb_generated.dart')) {
-            throw 'Generated Dart bridge file is missing from the Linux codegen artifact.'
+          foreach ($binding in @('frb_generated.dart', 'frb_generated.io.dart', 'frb_generated.web.dart')) {
+            if (-not (Test-Path "apps/leo_app/lib/src/rust/$binding")) {
+              throw "Generated Dart bridge file $binding is missing from the Linux codegen artifact."
+            }
           }
       - name: Prepare Windows runner and resolve Flutter dependencies
         shell: pwsh
@@ -182,8 +210,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Windows runner preparation failed.' }
           Push-Location apps/leo_app
           try {
-            flutter pub get
-            if ($LASTEXITCODE -ne 0) { throw 'Flutter dependency resolution failed.' }
+            flutter pub get --enforce-lockfile
+            if ($LASTEXITCODE -ne 0) { throw 'Flutter dependency lockfile validation failed.' }
           } finally {
             Pop-Location
           }

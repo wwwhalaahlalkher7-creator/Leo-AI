@@ -25,6 +25,7 @@ REQUIRED_PUB_PACKAGES = {
     "flutter_rust_bridge",
     "flutter_rust_bridge_hooks",
     "leo_platform_capabilities",
+    "native_toolchain_rust",
     "record",
     "sherpa_onnx",
 }
@@ -96,11 +97,29 @@ def validate_lockfiles(*, allow_untracked: bool = False) -> list[str]:
     missing_pub = sorted(REQUIRED_PUB_PACKAGES - pub_names)
     _require(
         not missing_pub,
-        "pubspec.lock is missing required direct Flutter packages: " + ", ".join(missing_pub),
+        "pubspec.lock is missing required Flutter packages: " + ", ".join(missing_pub),
+    )
+    native_toolchain_block = re.search(
+        r"(?ms)^  native_toolchain_rust:\n(.*?)(?=^  [A-Za-z0-9_]+:\n|^sdks:\s*$)",
+        pub_text,
+    )
+    _require(native_toolchain_block is not None, "pubspec.lock has no native_toolchain_rust package block.")
+    assert native_toolchain_block is not None
+    native_toolchain_version = re.search(
+        r"(?m)^    version:\s*[\"]?([0-9]+\.[0-9]+\.[0-9]+)[\"]?\s*$",
+        native_toolchain_block.group(1),
+    )
+    _require(native_toolchain_version is not None, "Cannot read native_toolchain_rust version from pubspec.lock.")
+    assert native_toolchain_version is not None
+    version_tuple = tuple(int(part) for part in native_toolchain_version.group(1).split("."))
+    _require(
+        version_tuple >= (1, 1, 0),
+        "native_toolchain_rust >= 1.1.0 is required for Android 16 KB page-size support; "
+        f"lockfile selected {native_toolchain_version.group(1)}.",
     )
     return [
         f"Cargo.lock: {len(cargo_names)} packages; all six Leo workspace crates present",
-        f"apps/leo_app/pubspec.lock: {len(pub_names)} packages; direct native/runtime packages present",
+        f"apps/leo_app/pubspec.lock: {len(pub_names)} packages; native_toolchain_rust {native_toolchain_version.group(1)} and native/runtime packages present",
         "lockfiles are committed" if not allow_untracked else "generated lockfiles validated (bootstrap mode)",
     ]
 

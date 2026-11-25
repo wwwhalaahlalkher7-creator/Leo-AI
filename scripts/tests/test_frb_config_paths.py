@@ -30,19 +30,19 @@ class FlutterRustBridgePathTests(unittest.TestCase):
     def test_base_dir_resolves_to_repository_root(self) -> None:
         self.assertEqual(self.base, ROOT.resolve())
 
-    def test_rust_root_uses_flutter_working_directory_and_output_uses_base_dir(self) -> None:
-        # FRB 2.13 resolves rust_root from dart_root / the app working directory,
-        # while rust_output is resolved against base_dir.
+    def test_rust_output_is_relative_to_the_rust_crate_root(self) -> None:
+        # FRB joins rust_output to rust_root. This distinction prevents the
+        # erroneous apps/leo_app/core/bridge path and module-prefix failure.
         crate_root = (APP / self.values["rust_root"]).resolve()
-        rust_output = (self.base / self.values["rust_output"]).resolve()
+        rust_output = (crate_root / self.values["rust_output"]).resolve()
         self.assertEqual(crate_root, (ROOT / "core" / "bridge").resolve())
-        self.assertTrue(rust_output.is_relative_to(crate_root))
         self.assertEqual(
             rust_output,
             (ROOT / "core" / "bridge" / "src" / "frb_generated.rs").resolve(),
         )
+        self.assertTrue(rust_output.is_relative_to(crate_root / "src"))
         self.assertEqual(self.values["rust_root"], "../../core/bridge")
-        self.assertNotIn("..", Path(self.values["rust_output"]).parts)
+        self.assertEqual(self.values["rust_output"], "src/frb_generated.rs")
 
     def test_dart_output_and_root_resolve_to_flutter_package(self) -> None:
         dart_output = (self.base / self.values["dart_output"]).resolve()
@@ -54,6 +54,22 @@ class FlutterRustBridgePathTests(unittest.TestCase):
             (APP / "lib" / "src" / "rust").resolve(),
         )
 
+    def test_native_assets_hook_matches_the_same_rust_crate_and_io_binding(self) -> None:
+        hook = (APP / "hook" / "build.dart").read_text(encoding="utf-8")
+        manifest = (ROOT / "core" / "bridge" / "Cargo.toml").read_text(encoding="utf-8")
+        pubspec = (APP / "pubspec.yaml").read_text(encoding="utf-8")
+        toolchain = (ROOT / "rust-toolchain.toml").read_text(encoding="utf-8")
+        self.assertIn("cratePath: '../../core/bridge'", hook)
+        self.assertIn("assetName: 'src/rust/frb_generated.io.dart'", hook)
+        self.assertEqual((APP / "../../core/bridge").resolve(), (ROOT / "core/bridge").resolve())
+        self.assertIn('crate-type = ["cdylib", "staticlib", "rlib"]', manifest)
+        self.assertIn('flutter_rust_bridge: 2.13.0', pubspec)
+        self.assertIn('flutter_rust_bridge_hooks: 2.13.0', pubspec)
+        self.assertIn('native_toolchain_rust: 1.1.1', pubspec)
+        self.assertIn('flutter_rust_bridge = "=2.13.0"', manifest)
+        self.assertIn('channel = "1.100.0"', toolchain)
+        self.assertIn('"aarch64-linux-android"', toolchain)
+
     def test_codegen_preflight_and_workflows_use_bash(self) -> None:
         generator = (ROOT / "scripts" / "generate_bridge.sh").read_text(encoding="utf-8")
         android_builder = (ROOT / "scripts" / "build_android_app.sh").read_text(encoding="utf-8")
@@ -62,11 +78,26 @@ class FlutterRustBridgePathTests(unittest.TestCase):
             ROOT / ".github" / "workflows" / "prepare_android_bootstrap_files.yml"
         ).read_text(encoding="utf-8")
         self.assertIn("FRB path contract passed", generator)
+        self.assertIn("FRB joins rust_output to rust_root", generator)
+        self.assertIn("--skip-tool-install", generator)
+        self.assertIn("flutter_rust_bridge_codegen --version", generator)
+        self.assertIn("CODEGEN_VERSION_OUTPUT##* ", generator)
+        self.assertIn('CARGO_EXPAND_VERSION="1.0.126"', generator)
+        self.assertIn("frb_generated.io.dart", generator)
+        self.assertIn("frb_generated.web.dart", generator)
         self.assertIn('bash "${ROOT_DIR}/scripts/prepare_android_runner.sh"', android_builder)
         self.assertIn("run: bash scripts/generate_bridge.sh", ci)
         self.assertIn("run: bash scripts/build_android_app.sh", ci)
         self.assertIn("run: bash scripts/generate_bridge.sh", bootstrap)
         self.assertIn("run: bash scripts/prepare_android_runner.sh", bootstrap)
+        self.assertIn("cargo install cargo-expand --version 1.0.126 --locked", ci)
+        self.assertIn("cargo install cargo-expand --version 1.0.126 --locked", bootstrap)
+        self.assertIn("cargo check --package leo-bridge --locked", bootstrap)
+        self.assertIn("needs: foundation", ci)
+        self.assertIn("cargo test --workspace --locked", ci)
+        self.assertIn("cargo clippy --workspace --all-targets --locked", ci)
+        self.assertIn("ANDROID_NDK_LATEST_HOME", ci)
+        self.assertIn("flutter pub get --enforce-lockfile", ci)
 
 
 if __name__ == "__main__":

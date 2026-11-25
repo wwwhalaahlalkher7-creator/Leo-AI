@@ -27,6 +27,15 @@ cp "${NATIVE_DIR}/libc++_shared.so" "${APP_DIR}/android/app/src/main/jniLibs/arm
 
 cd "${APP_DIR}"
 APK_OUTPUT_DIR="${APP_DIR}/build/app/outputs/flutter-apk"
+ANDROID_SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+ZIPALIGN="${ANDROID_SDK}/build-tools/36.0.0/zipalign"
+if [[ ! -x "${ZIPALIGN}" ]]; then
+  ZIPALIGN="$(command -v zipalign || true)"
+fi
+if [[ -z "${ZIPALIGN}" || ! -x "${ZIPALIGN}" ]]; then
+  echo "ERROR: Android build-tools 36.0.0 zipalign is required for 16 KB APK alignment verification." >&2
+  exit 2
+fi
 CHECKSUM_FILENAMES=()
 for mode in "${BUILD_MODES[@]}"; do
   case "${mode}" in
@@ -39,6 +48,7 @@ for mode in "${BUILD_MODES[@]}"; do
   esac
   apk_path="build/app/outputs/flutter-apk/app-${mode}.apk"
   python3 "${ROOT_DIR}/scripts/verify_android_apk.py" "${apk_path}"
+  "${ZIPALIGN}" -c -P 16 -v 4 "${apk_path}"
   CHECKSUM_FILENAMES+=("app-${mode}.apk")
 done
 (

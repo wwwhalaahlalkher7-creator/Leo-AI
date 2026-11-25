@@ -18,7 +18,7 @@ Baseline: `v0.27.0 / ALPHA`
 - Existing Alpha/Beta/Release meanings and version policy remain authoritative.
 - Existing roadmap remains the source of milestone sequencing (`v0.28.0` Android qualification, `v0.29.0` Windows qualification, `v0.30.0` integration freeze).
 - Existing architecture boundaries, ADRs, capability/permission model, offline-first requirement, and FRB generation script were not replaced.
-- Existing `scripts/generate_bridge.sh` and FRB path contract were retained unchanged.
+- The FRB path contract in `scripts/generate_bridge.sh` was corrected to mirror FRB 2.13 path anchors and is covered by regression tests.
 
 ## Verification performed
 

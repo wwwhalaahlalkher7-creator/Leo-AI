@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import os
 import re
+import stat
 import sys
+import zipfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -47,9 +50,103 @@ def validate_android_runner(app_dir: Path) -> list[str]:
     app_dir = app_dir.resolve()
     android_dir = app_dir / "android"
     gradle_file = android_dir / "app" / "build.gradle.kts"
+    settings_candidates = (android_dir / "settings.gradle.kts", android_dir / "settings.gradle")
+    settings_file = next((path for path in settings_candidates if path.is_file()), None)
     manifest_file = android_dir / "app" / "src" / "main" / "AndroidManifest.xml"
 
     _require(gradle_file.is_file(), "Android app/build.gradle.kts was not generated.")
+    _require(settings_file is not None, "Android settings.gradle(.kts) was not generated.")
+    assert settings_file is not None
+    settings = settings_file.read_text(encoding="utf-8")
+    agp_match = re.search(
+        r"id\s*\(?\s*[\\\"']com\.android\.application[\\\"']\s*\)?\s*version\s*[\\\"'](\d+)\.(\d+)\.(\d+)[\\\"']",
+        settings,
+    )
+    _require(
+        agp_match is not None,
+        "Android Gradle Plugin version must be an explicit numeric version in settings.gradle(.kts).",
+    )
+    assert agp_match is not None
+    agp_version = tuple(int(part) for part in agp_match.groups())
+    _require(
+        agp_version >= (8, 5, 1),
+        "AGP 8.5.1+ is required for reliable 16 KB APK packaging; "
+        f"generated Android project uses {'.'.join(map(str, agp_version))}.",
+    )
+    # Validate the wrapper as well as AGP. A valid AGP version paired with an
+    # older wrapper fails before Gradle reaches project configuration.
+    wrapper_dir = android_dir / "gradle" / "wrapper"
+    wrapper_properties = wrapper_dir / "gradle-wrapper.properties"
+    required_wrapper_files = (
+        android_dir / "gradlew",
+        android_dir / "gradlew.bat",
+        wrapper_dir / "gradle-wrapper.jar",
+        wrapper_properties,
+    )
+    for wrapper_file in required_wrapper_files:
+        _require(wrapper_file.is_file(), f"Generated Gradle wrapper file is missing: {wrapper_file}")
+    if os.name != "nt":
+        wrapper_mode = (android_dir / "gradlew").stat().st_mode
+        _require(
+            bool(wrapper_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)),
+            "Gradle wrapper gradlew must retain its executable bit in source control.",
+        )
+    wrapper_jar = wrapper_dir / "gradle-wrapper.jar"
+    try:
+        with zipfile.ZipFile(wrapper_jar) as jar:
+            _require(jar.testzip() is None, "Gradle wrapper JAR failed its ZIP integrity check.")
+            _require(
+                "org/gradle/wrapper/GradleWrapperMain.class" in jar.namelist(),
+                "Gradle wrapper JAR is missing GradleWrapperMain.class.",
+            )
+    except zipfile.BadZipFile as error:
+        raise AndroidRunnerValidationError(f"Gradle wrapper JAR is invalid: {error}") from error
+    wrapper_text = wrapper_properties.read_text(encoding="utf-8")
+    gradle_match = re.search(
+        r"(?m)^\s*distributionUrl\s*=\s*https\\?:\/\/services\.gradle\.org/distributions/gradle-([0-9]+)\.([0-9]+)\.([0-9]+)-(?:bin|all)\.zip\s*$",
+        wrapper_text,
+    )
+    _require(gradle_match is not None, "Gradle wrapper distributionUrl must pin a numeric Gradle version.")
+    assert gradle_match is not None
+    gradle_version = tuple(int(part) for part in gradle_match.groups())
+    minimum_gradle_by_agp = {
+        (9, 4): (9, 6, 0),
+        (9, 3): (9, 5, 0),
+        (9, 2): (9, 4, 1),
+        (9, 1): (9, 3, 1),
+        (9, 0): (9, 1, 0),
+        (8, 13): (8, 13, 0),
+        (8, 12): (8, 13, 0),
+        (8, 11): (8, 13, 0),
+        (8, 10): (8, 11, 1),
+        (8, 9): (8, 11, 1),
+        (8, 8): (8, 10, 2),
+        (8, 7): (8, 9, 0),
+        (8, 6): (8, 7, 0),
+        (8, 5): (8, 7, 0),
+    }
+    minimum_gradle = minimum_gradle_by_agp.get(agp_version[:2])
+    _require(
+        minimum_gradle is not None,
+        f"No verified Gradle compatibility floor is recorded for AGP {'.'.join(map(str, agp_version))}; update the runner contract.",
+    )
+    assert minimum_gradle is not None
+    _require(
+        gradle_version >= minimum_gradle,
+        f"Gradle {'.'.join(map(str, gradle_version))} is too old for AGP {'.'.join(map(str, agp_version))}; "
+        f"Gradle {'.'.join(map(str, minimum_gradle))}+ is required.",
+    )
+
+    gradle_properties_file = android_dir / "gradle.properties"
+    _require(gradle_properties_file.is_file(), "Android gradle.properties is missing.")
+    gradle_properties = gradle_properties_file.read_text(encoding="utf-8")
+    for key in ("android.builtInKotlin", "android.newDsl"):
+        values = re.findall(rf"(?m)^\s*{re.escape(key)}\s*=\s*(true|false)\s*$", gradle_properties)
+        _require(
+            values and values[-1] == "false",
+            f"{key}=false is required while Leo's Android plugins still use legacy Kotlin/AGP APIs.",
+        )
+
     gradle = gradle_file.read_text(encoding="utf-8")
     _require(
         re.search(r'(?m)^\s*namespace\s*=\s*"ai\.leo\.leo_app"\s*$', gradle)
@@ -169,6 +266,9 @@ def validate_android_runner(app_dir: Path) -> list[str]:
         "compileSdk=36",
         "minSdk=28",
         "namespace/applicationId=ai.leo.leo_app",
+        f"AGP={'.'.join(map(str, agp_version))}",
+        f"Gradle={'.'.join(map(str, gradle_version))}",
+        "legacy KGP/AGP DSL compatibility enabled",
         "NDK=30.0.16248370",
         "application backup disabled",
         "SharedPreferences excluded from cloud/device backup",

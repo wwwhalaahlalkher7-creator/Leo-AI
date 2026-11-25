@@ -39,3 +39,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+dependency_overrides:
+  # 1.1.0+ adds Android 16 KB page-size support; 1.1.1 also tracks Cargo/toolchain
+  # changes when deciding whether to rebuild the native asset.
+  native_toolchain_rust: 1.1.1

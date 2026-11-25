@@ -65,11 +65,21 @@ jobs:
       - name: Resolve Rust workspace and create Cargo.lock
         run: cargo generate-lockfile --manifest-path Cargo.toml
 
+      - name: Install pinned cargo-expand required by FRB
+        run: cargo install cargo-expand --version 1.0.126 --locked
+
+      - name: Verify pinned cargo-expand
+        shell: bash
+        run: test "$(cargo expand --version | tail -n 1 | tr -d '\r')" = "cargo-expand 1.0.126"
+
       - name: Install the pinned Flutter Rust Bridge generator
         run: cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked
 
       - name: Generate typed Rust and Dart bridge sources
         run: bash scripts/generate_bridge.sh
+
+      - name: Compile the generated bridge crate on the host
+        run: cargo check --package leo-bridge --locked
 
       - name: Generate and validate the hardened Android project scaffold
         run: bash scripts/prepare_android_runner.sh
@@ -84,6 +94,8 @@ jobs:
           python scripts/check_dependency_lockfiles.py --allow-untracked
           test -s core/bridge/src/frb_generated.rs
           test -s apps/leo_app/lib/src/rust/frb_generated.dart
+          test -s apps/leo_app/lib/src/rust/frb_generated.io.dart
+          test -s apps/leo_app/lib/src/rust/frb_generated.web.dart
           test -s apps/leo_app/android/app/build.gradle.kts
           test -s apps/leo_app/android/app/src/main/AndroidManifest.xml
           test -s apps/leo_app/android/app/src/main/res/xml/leo_backup_rules.xml
@@ -130,6 +142,8 @@ jobs:
             echo "- Rust: $(rustc --version)"
             echo "- Cargo: $(cargo --version)"
             echo "- Flutter Rust Bridge generator: 2.13.0"
+            echo "- cargo-expand: 1.0.126"
+            echo "- native_toolchain_rust: 1.1.1 (16 KB Android support)"
             echo "- Android runner: generated and validated; no APK was built"
             echo
             echo "## Included files"
@@ -137,7 +151,7 @@ jobs:
             echo "- apps/leo_app/pubspec.lock"
             echo "- Cargo.lock"
             echo "- core/bridge/src/frb_generated.rs"
-            echo "- apps/leo_app/lib/src/rust/ (generated Dart bridge sources)"
+            echo "- apps/leo_app/lib/src/rust/ (common, IO and Web generated Dart bridge sources)"
             echo "- apps/leo_app/android/ (generated Android runner and hardened backup rules)"
             echo "- apps/leo_app/.metadata (when generated)"
             echo
