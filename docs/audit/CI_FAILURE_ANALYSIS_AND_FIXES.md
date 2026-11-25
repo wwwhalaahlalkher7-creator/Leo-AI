@@ -66,3 +66,21 @@ Rust formatting/tests/Clippy, Android ARM64 native compilation, and debug plus
 release APK packaging. The failed runs did not reach Android native compilation
 or APK packaging. This package does not claim that `v0.28.0` has passed Android
 qualification or that any APK has been built.
+
+
+### 4. Flutter Rust Bridge crate-root anchor mismatch (2026-11-25)
+
+The Android bootstrap run passed the local path preflight but FRB 2.13.0 then
+failed while canonicalizing `apps/leo_app/core/bridge`. The log proves that
+`rust_root` is resolved from the Flutter package working directory for this
+configuration; it is not resolved from `base_dir` as the previous preflight
+assumed. This was a real mismatch between the custom preflight and the
+generator, not a dependency-resolution failure.
+
+**Correction:** use `rust_root: ../../core/bridge` so the generator resolves
+the crate to the repository's `core/bridge` directory. Keep
+`rust_output: core/bridge/src/frb_generated.rs` and
+`dart_output: apps/leo_app/lib/src/rust` anchored to `base_dir: ../..`. Update
+the preflight and regression tests to model these distinct anchors. The
+bootstrap workflow should be rerun; actual FRB generation is not claimed until
+that run passes.

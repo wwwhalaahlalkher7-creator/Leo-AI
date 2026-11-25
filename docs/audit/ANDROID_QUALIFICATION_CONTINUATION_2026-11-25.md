@@ -30,3 +30,18 @@ This environment also lacks Flutter, Dart, Cargo/rustc, Android SDK/NDK, Gradle 
 ## Version decision
 
 Do not change `config/VERSION`, `config/BUILD_NUMBER`, `config/RELEASE_CHANNEL`, `pubspec.yaml`, Cargo workspace version or `CHANGELOG.md` for this pass. The v0.28.0 exit criteria require the pinned Android pipeline and two-device acceptance evidence. The project remains `v0.27.0 / ALPHA`.
+
+
+## Bootstrap workflow failure and correction
+
+The first `Prepare Leo Android Bootstrap Files` run successfully resolved
+Flutter and Cargo dependencies but failed in FRB 2.13.0 with:
+`Fail to canonicalize .../apps/leo_app/core/bridge`. The script's earlier
+preflight had validated `rust_root` against `base_dir`, while the generator
+resolved it from the Flutter package working directory.
+
+Corrected `flutter_rust_bridge.yaml` to use
+`rust_root: ../../core/bridge`, updated the generator preflight to use the
+same anchor as FRB, and added regression assertions. The remaining output
+paths stay rooted at `base_dir`. This is a source correction only; FRB codegen
+and Android qualification still require a fresh pinned CI run.

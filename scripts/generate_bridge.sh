@@ -36,12 +36,13 @@ for line_number, line in enumerate(config_path.read_text(encoding="utf-8").split
         raise SystemExit(f"ERROR: Duplicate FRB config key: {key}")
     values[key] = value
 
-# FRB 2.13 uses base_dir as the anchor for rust_root, rust_output and
-# dart_output. In this repository base_dir points from apps/leo_app to root.
+# FRB 2.13 resolves rust_root from the Flutter package working directory
+# (dart_root='.' in this workflow). rust_output and dart_output are anchored
+# to base_dir, which points from apps/leo_app to the repository root.
 required_values = {
     "base_dir": "../..",
     "rust_input": "crate::api",
-    "rust_root": "core/bridge",
+    "rust_root": "../../core/bridge",
     "rust_output": "core/bridge/src/frb_generated.rs",
     "dart_output": "apps/leo_app/lib/src/rust",
     "dart_root": ".",
@@ -60,10 +61,13 @@ if base_dir != repo_root:
         f"ERROR: FRB base_dir must resolve to the repository root: {base_dir}"
     )
 
-crate_root = (base_dir / values["rust_root"]).resolve(strict=True)
+dart_root = (app_dir / values["dart_root"]).resolve(strict=True)
+# The CI failure showed FRB resolving rust_root under apps/leo_app, not
+# under base_dir. Mirror the generator's actual anchoring here so this
+# preflight catches a mismatch instead of validating a different path model.
+crate_root = (dart_root / values["rust_root"]).resolve(strict=True)
 rust_output = (base_dir / values["rust_output"]).resolve()
 dart_output = (base_dir / values["dart_output"]).resolve()
-dart_root = (app_dir / values["dart_root"]).resolve(strict=True)
 
 if crate_root != (repo_root / "core/bridge").resolve(strict=True):
     raise SystemExit(f"ERROR: FRB Rust root resolves outside the expected crate: {crate_root}")

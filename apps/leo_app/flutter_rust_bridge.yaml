@@ -1,8 +1,9 @@
-# Paths other than dart_root are relative to base_dir (the repository root).
+# FRB 2.13 resolves rust_root from the Flutter package working directory.
+# Output paths are anchored to base_dir (the repository root).
 # dart_root is relative to the codegen working directory (apps/leo_app).
 base_dir: ../..
 rust_input: crate::api
-rust_root: core/bridge
+rust_root: ../../core/bridge
 rust_output: core/bridge/src/frb_generated.rs
 dart_output: apps/leo_app/lib/src/rust
 dart_root: .

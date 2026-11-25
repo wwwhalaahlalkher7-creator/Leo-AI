@@ -30,8 +30,10 @@ class FlutterRustBridgePathTests(unittest.TestCase):
     def test_base_dir_resolves_to_repository_root(self) -> None:
         self.assertEqual(self.base, ROOT.resolve())
 
-    def test_rust_root_and_output_share_canonical_prefix(self) -> None:
-        crate_root = (self.base / self.values["rust_root"]).resolve()
+    def test_rust_root_uses_flutter_working_directory_and_output_uses_base_dir(self) -> None:
+        # FRB 2.13 resolves rust_root from dart_root / the app working directory,
+        # while rust_output is resolved against base_dir.
+        crate_root = (APP / self.values["rust_root"]).resolve()
         rust_output = (self.base / self.values["rust_output"]).resolve()
         self.assertEqual(crate_root, (ROOT / "core" / "bridge").resolve())
         self.assertTrue(rust_output.is_relative_to(crate_root))
@@ -39,6 +41,7 @@ class FlutterRustBridgePathTests(unittest.TestCase):
             rust_output,
             (ROOT / "core" / "bridge" / "src" / "frb_generated.rs").resolve(),
         )
+        self.assertEqual(self.values["rust_root"], "../../core/bridge")
         self.assertNotIn("..", Path(self.values["rust_output"]).parts)
 
     def test_dart_output_and_root_resolve_to_flutter_package(self) -> None:
