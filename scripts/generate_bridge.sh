@@ -68,8 +68,8 @@ required_values = {
     "base_dir": "../..",
     "rust_input": "crate::api",
     "rust_root": "../../core/bridge",
-    # FRB resolves rust_output relative to rust_root, not the Flutter app.
-    "rust_output": "src/frb_generated.rs",
+    # FRB resolves rust_output from dart_root (the Flutter package directory).
+    "rust_output": "../../core/bridge/src/frb_generated.rs",
     "dart_output": "apps/leo_app/lib/src/rust",
     "dart_root": ".",
 }
@@ -94,20 +94,24 @@ expected_crate_root = (repo_root / "core/bridge").resolve(strict=True)
 if crate_root != expected_crate_root:
     raise SystemExit(f"ERROR: FRB rust_root resolves to {crate_root}, expected {expected_crate_root}")
 
-# Critical fix: FRB joins rust_output to rust_root, then derives the module
-# path from core/bridge/src. Joining it to APP_DIR created the observed
-# apps/leo_app/core/bridge/src/frb_generated.rs and triggered StripPrefix.
-rust_output = (crate_root / values["rust_output"]).resolve()
+# FRB 2.13 resolves rust_output from dart_root, independently of rust_root.
+# The real runner showed that `src/frb_generated.rs` becomes
+# apps/leo_app/src/frb_generated.rs even though rust_root correctly resolves
+# to core/bridge. Require the fully anchored value to land inside the crate.
+rust_output = (dart_root / values["rust_output"]).resolve()
 expected_rust_output = (crate_root / "src/frb_generated.rs").resolve(strict=False)
 if rust_output != expected_rust_output:
-    raise SystemExit(f"ERROR: FRB rust_output resolves to {rust_output}; expected {expected_rust_output}")
+    raise SystemExit(
+        "ERROR: FRB rust_output must resolve from dart_root to "
+        f"{expected_rust_output}; found {rust_output}."
+    )
 if not rust_output.is_relative_to((crate_root / "src").resolve(strict=True)):
     raise SystemExit("ERROR: FRB rust_output must be inside core/bridge/src.")
 
-dash_output = (base_dir / values["dart_output"]).resolve()
-if dash_output != (app_dir / "lib/src/rust").resolve(strict=False):
-    raise SystemExit(f"ERROR: FRB dart_output resolves to unexpected path: {dash_output}")
-if not dash_output.is_relative_to((app_dir / "lib").resolve(strict=True)):
+dart_output = (base_dir / values["dart_output"]).resolve()
+if dart_output != (app_dir / "lib/src/rust").resolve(strict=False):
+    raise SystemExit(f"ERROR: FRB dart_output resolves to unexpected path: {dart_output}")
+if not dart_output.is_relative_to((app_dir / "lib").resolve(strict=True)):
     raise SystemExit("ERROR: FRB Dart output must be inside apps/leo_app/lib.")
 
 for required in (
@@ -173,7 +177,7 @@ if "aarch64-linux-android" not in toolchain.get("targets", []):
 print(
     "FRB path contract passed: "
     f"base_dir={base_dir}; rust_root={crate_root}; "
-    f"rust_output={rust_output}; dart_output={dash_output}; dart_root={dart_root}; "
+    f"rust_output={rust_output}; dart_output={dart_output}; dart_root={dart_root}; "
     f"native_assets_crate={hook_crate_root}; asset={asset_name_match.group(1)}"
 )
 PY_FRB_PATHS

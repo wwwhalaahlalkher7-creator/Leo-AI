@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class GenerateBridgeBootstrapTests(unittest.TestCase):
-    def test_script_uses_correct_crate_relative_output_and_verifies_all_bindings(self) -> None:
+    def test_script_uses_dart_root_anchored_output_and_verifies_all_bindings(self) -> None:
         with tempfile.TemporaryDirectory(prefix="leo-frb-test-") as temp:
             sandbox = Path(temp)
             repo = sandbox / "repo"
@@ -100,6 +100,31 @@ class GenerateBridgeBootstrapTests(unittest.TestCase):
 
             env = os.environ.copy()
             env["PATH"] = f"{fake_bin}{os.pathsep}{env.get('PATH', '')}"
+            # Regression: the previously shipped `src/frb_generated.rs` value
+            # was interpreted from dart_root and pointed at apps/leo_app/src.
+            # The preflight must reject it before the generator can run.
+            config_path = app / "flutter_rust_bridge.yaml"
+            valid_config = config_path.read_text(encoding="utf-8")
+            bad_config = valid_config.replace(
+                "rust_output: ../../core/bridge/src/frb_generated.rs",
+                "rust_output: src/frb_generated.rs",
+            )
+            self.assertNotEqual(valid_config, bad_config)
+            config_path.write_text(bad_config, encoding="utf-8")
+            result = subprocess.run(
+                ["bash", str(repo / "scripts" / "generate_bridge.sh")],
+                cwd=repo,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 1, msg=result.stdout + result.stderr)
+            self.assertIn("invalid rust_output", result.stderr)
+            self.assertIn("found 'src/frb_generated.rs'", result.stderr)
+            self.assertFalse((app / "src/frb_generated.rs").exists())
+            config_path.write_text(valid_config, encoding="utf-8")
+
             result = subprocess.run(
                 ["bash", str(repo / "scripts" / "generate_bridge.sh")],
                 cwd=repo,

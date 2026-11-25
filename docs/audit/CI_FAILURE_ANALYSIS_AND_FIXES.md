@@ -64,22 +64,26 @@ qualification or that any APK has been built.
 
 ### 4. FRB Rust-output path was still anchored incorrectly (2026-11-25)
 
-After the crate-root correction, FRB 2.13.0 failed in
-`compute_mod_from_rust_path` with:
+The next real bootstrap run got past dependency resolution and the path
+preflight, but FRB 2.13.0 still failed in `compute_mod_from_rust_path` with:
 
-- `code_path=.../apps/leo_app/core/bridge/src/frb_generated.rs`
+- `code_path=.../apps/leo_app/src/frb_generated.rs`
 - `base_dir=.../core/bridge/src`
 - `prefix not found`
 
-The path in the error proves that FRB joined the configured `rust_output` to
-`rust_root`. The previous value `../../core/bridge/src/frb_generated.rs`
-therefore walked out of the crate and back into an app-relative-looking path.
-The earlier preflight repeated the same mistaken anchor and let it pass.
+This log is direct evidence that the configured `rust_output` value
+`src/frb_generated.rs` was resolved from the Dart project root
+(`apps/leo_app`), not from `rust_root`. That produced a generated Rust file
+outside the bridge crate, while FRB was deriving the module path relative to
+`core/bridge/src`.
 
-**Correction:** configure `rust_output: src/frb_generated.rs`. The preflight now
-resolves `rust_output` as `rust_root / rust_output`, and asserts that the
-canonical result is exactly `core/bridge/src/frb_generated.rs`. This is the
-specific correction for the most recent `prefix not found` failure.
+**Correction:** set `rust_output` to
+`../../core/bridge/src/frb_generated.rs`, which resolves from `dart_root: .`
+to the canonical `core/bridge/src/frb_generated.rs`. The preflight now uses
+that same anchor and explicitly rejects the former `apps/leo_app/src` path.
+A hermetic regression test exercises both the failing value and the corrected
+value before allowing the codegen shim to run. Actual FRB generation remains
+to be confirmed by the next GitHub Actions run.
 
 ### 5. FRB's implicit cargo-expand installation was not reproducible
 

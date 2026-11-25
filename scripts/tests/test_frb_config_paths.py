@@ -30,19 +30,19 @@ class FlutterRustBridgePathTests(unittest.TestCase):
     def test_base_dir_resolves_to_repository_root(self) -> None:
         self.assertEqual(self.base, ROOT.resolve())
 
-    def test_rust_output_is_relative_to_the_rust_crate_root(self) -> None:
-        # FRB joins rust_output to rust_root. This distinction prevents the
-        # erroneous apps/leo_app/core/bridge path and module-prefix failure.
+    def test_rust_output_is_resolved_from_dart_root_into_the_rust_crate(self) -> None:
+        # FRB 2.13 resolves rust_output from dart_root. A crate-relative
+        # `src/frb_generated.rs` incorrectly became apps/leo_app/src/... in CI.
         crate_root = (APP / self.values["rust_root"]).resolve()
-        rust_output = (crate_root / self.values["rust_output"]).resolve()
+        dart_root = (APP / self.values["dart_root"]).resolve()
+        rust_output = (dart_root / self.values["rust_output"]).resolve()
+        expected = (ROOT / "core" / "bridge" / "src" / "frb_generated.rs").resolve()
         self.assertEqual(crate_root, (ROOT / "core" / "bridge").resolve())
-        self.assertEqual(
-            rust_output,
-            (ROOT / "core" / "bridge" / "src" / "frb_generated.rs").resolve(),
-        )
+        self.assertEqual(rust_output, expected)
         self.assertTrue(rust_output.is_relative_to(crate_root / "src"))
+        self.assertNotEqual(rust_output, (APP / "src/frb_generated.rs").resolve())
         self.assertEqual(self.values["rust_root"], "../../core/bridge")
-        self.assertEqual(self.values["rust_output"], "src/frb_generated.rs")
+        self.assertEqual(self.values["rust_output"], "../../core/bridge/src/frb_generated.rs")
 
     def test_dart_output_and_root_resolve_to_flutter_package(self) -> None:
         dart_output = (self.base / self.values["dart_output"]).resolve()
@@ -78,7 +78,8 @@ class FlutterRustBridgePathTests(unittest.TestCase):
             ROOT / ".github" / "workflows" / "prepare_android_bootstrap_files.yml"
         ).read_text(encoding="utf-8")
         self.assertIn("FRB path contract passed", generator)
-        self.assertIn("FRB joins rust_output to rust_root", generator)
+        self.assertIn("FRB resolves rust_output from dart_root", generator)
+        self.assertIn('rust_output = (dart_root / values["rust_output"]).resolve()', generator)
         self.assertIn("--skip-fvm-install", generator)
         self.assertIn("generate --help", generator)
         self.assertIn("CODEGEN_GENERATE_HELP", generator)

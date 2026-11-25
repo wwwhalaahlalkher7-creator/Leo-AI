@@ -1,27 +1,18 @@
-Leo-AI FRB base_dir hotfix
+LEO AI — FRB 2.13.0 output path correction
 
-Purpose
-Fixes the false path validation failure in scripts/generate_bridge.sh.
+The latest GitHub Actions failure showed:
+  code_path=apps/leo_app/src/frb_generated.rs
+  base_dir=core/bridge/src
+  prefix not found
 
-Replace
-Copy scripts/generate_bridge.sh from this ZIP into the repository at:
-  scripts/generate_bridge.sh
+FRB resolves rust_output from dart_root (apps/leo_app). Therefore the correct
+configuration is:
+  rust_root: ../../core/bridge
+  rust_output: ../../core/bridge/src/frb_generated.rs
 
-Then commit and push that file to main. No flutter_rust_bridge.yaml change is needed.
+The preflight and regression tests now use this exact anchor and reject the
+former src/frb_generated.rs value. See:
+  docs/audit/FRB_2.13_OUTPUT_PATH_CORRECTION_2026-11-25.md
 
-Root cause
-The current flutter_rust_bridge.yaml sets base_dir: ../.. and declares rust_root,
-rust_output and dart_output relative to that base directory. The previous validator
-incorrectly required paths relative to apps/leo_app and rejected the valid config.
-The replacement validator resolves all paths using base_dir and validates the
-resolved targets instead of imposing the wrong relative strings.
-
-Local validation performed
-- bash -n scripts/generate_bridge.sh: passed
-- FRB path contract with stub Flutter/codegen executables: passed
-- python3 -m unittest discover -s scripts/tests -q: 201 tests passed
-
-Not claimed
-The real flutter_rust_bridge_codegen generate command and Android APK build were
-not executed in this environment. After pushing this replacement, rerun GitHub Actions
-and inspect the next failure, if any.
+Local validation does not replace a real FRB generation run. Re-run
+Prepare Leo Android Bootstrap Files after pushing this correction.

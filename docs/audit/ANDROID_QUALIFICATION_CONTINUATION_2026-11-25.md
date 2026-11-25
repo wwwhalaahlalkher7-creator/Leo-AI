@@ -50,11 +50,20 @@ and Android qualification still require a fresh pinned CI run.
 ## Additional FRB resilience fixes — 2026-11-25
 
 A later bootstrap attempt reached code generation but failed with
-`compute_mod_from_rust_path(...): prefix not found`. Its `code_path` showed
-`apps/leo_app/core/bridge/src/frb_generated.rs`, while the Rust module base was
-`core/bridge/src`. FRB resolves `rust_output` relative to `rust_root`; the
-previous value incorrectly escaped the crate. It is now `src/frb_generated.rs`,
-and the shell preflight + regression tests use the same anchor as FRB.
+`compute_mod_from_rust_path(...): prefix not found`. The first occurrence
+showed an output path under `apps/leo_app/core/bridge`; a subsequent run after
+changing `rust_root` exposed the remaining anchoring mistake more clearly:
+`code_path=apps/leo_app/src/frb_generated.rs` while FRB's Rust module base was
+`core/bridge/src`. The latter proves `rust_output: src/frb_generated.rs` was
+resolved from the Dart project root, not the Rust crate root.
+
+The corrected configuration now sets
+`rust_output: ../../core/bridge/src/frb_generated.rs`, and the preflight
+resolves it from `dart_root: .` to the canonical
+`core/bridge/src/frb_generated.rs`. A regression test deliberately restores
+`src/frb_generated.rs` and confirms the preflight rejects the exact bad path
+before FRB runs. The real generator result remains pending the next Actions
+run; no Android qualification is claimed yet.
 
 Additional predictable failures addressed in the same pass:
 
