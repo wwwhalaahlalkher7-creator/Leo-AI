@@ -193,39 +193,3 @@ of the unsupported flag.
 
 The local tests validate argument selection with a fake generator; a fresh
 GitHub Actions run is still required to confirm actual FRB generation.
-
-## FRB lexical-path canonicalization follow-up — 2026-11-26
-
-The next `Prepare Leo Android Bootstrap Files` attempt showed that the prior
-relative-path correction was incomplete. FRB 2.13.0 reported:
-
-```text
-code_path=".../apps/leo_app/../../core/bridge/src/frb_generated.rs"
-base_dir=".../core/bridge/src"
-prefix not found
-```
-
-The two paths identify the same location after filesystem normalization, but
-they are not the same lexical prefix. The preflight called Python `Path.resolve()`
-and therefore hid the representation mismatch; FRB's module-path calculation
-then attempted a prefix comparison before normalizing `code_path`.
-
-**Correction:** `scripts/generate_bridge.sh` now keeps the checked-in
-`flutter_rust_bridge.yaml` portable and repository-relative, but creates a
-short-lived runtime config for each generation. It replaces `base_dir`,
-`rust_root`, `rust_output`, `dart_output`, and `dart_root` with canonical
-absolute paths, invokes FRB 2.13.0 with `--config-file`, and removes the
-runtime file on exit. This ensures FRB sees the generated Rust file and the
-Rust crate `src` directory in the same absolute path representation. The
-script now preflights both `--config-file` and `--skip-fvm-install` against the
-installed 2.13.0 command help.
-
-The hermetic integration test inspects the actual temporary config passed to
-the mocked generator, verifies every path is absolute and contains no `..`,
-and has the mock generate all Rust/common/IO/Web Dart bindings at those exact
-locations. This checks the path normalization contract without pretending to
-execute the FRB compiler.
-
-The real pinned FRB invocation remains the next GitHub Actions acceptance
-gate. No Android qualification result or APK build is claimed, and the source
-version remains `v0.27.0 / ALPHA`.

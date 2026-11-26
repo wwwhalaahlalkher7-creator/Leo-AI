@@ -12,7 +12,7 @@ use crate::native::engine::{
 };
 use leo_shared::{
     AssistantRequest, ExecutionResult, ExecutionState, MessageRole, RuntimeCapabilities,
-    RuntimeDescriptor, RuntimeEvent, RuntimeKind,
+    RuntimeDescriptor, RuntimeEvent, RuntimeKind, RuntimeState,
 };
 use std::path::Path;
 use std::sync::{Mutex, MutexGuard, OnceLock};

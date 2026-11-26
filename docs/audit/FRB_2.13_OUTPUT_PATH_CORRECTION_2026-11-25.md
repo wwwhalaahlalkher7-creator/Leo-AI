@@ -57,22 +57,3 @@ the hermetic bootstrap test.
   required GitHub Actions confirmation.
 
 Project version remains `v0.27.0 / ALPHA`.
-
-## Follow-up: lexical path versus canonical path — 2026-11-26
-
-A later run proved that `Path.resolve()` in the preflight was not enough. FRB
-received a lexical `code_path` containing `apps/leo_app/../../core/bridge`,
-while its Rust module base was already canonicalized to `core/bridge/src`.
-The filesystem destinations match, but the lexical path does not start with
-the canonical prefix, so `strip_prefix` still fails.
-
-The definitive source-side mitigation is now in `scripts/generate_bridge.sh`:
-create a temporary FRB config containing canonical absolute paths for
-`base_dir`, `rust_root`, `rust_output`, `dart_output` and `dart_root`, then call
-`generate --config-file <temporary-config> --skip-fvm-install`. The checked-in
-YAML remains portable and relative. A hermetic test inspects the temporary
-config passed to the fake generator and rejects paths containing `..`.
-
-This closes the known lexical-path mismatch in the invocation contract, but
-actual FRB 2.13.0 code generation still needs to pass in GitHub Actions before
-the issue can be marked fully resolved.

@@ -853,7 +853,7 @@ mod tests {
 
     #[test]
     fn file_operator_can_propose_only_a_bounded_single_workspace_text_file() {
-        let output = r#"<leo_tool_call>{"version":1,"id":"write_1","name":"workspace.write_file","arguments":{"relative_path":"notes.md","content":"# Notes\nHello"}}</leo_tool_call>"#;
+        let output = r##"<leo_tool_call>{"version":1,"id":"write_1","name":"workspace.write_file","arguments":{"relative_path":"notes.md","content":"# Notes\nHello"}}</leo_tool_call>"##;
         let proposal = extract_agent_tool_proposal(&[succeeded_tool_step("file_operator", output)])
             .unwrap().unwrap();
         assert_eq!(proposal.tool_name, "workspace.write_file");
