@@ -1,4 +1,4 @@
-"""Regression tests for Flutter Rust Bridge path canonicalization."""
+"""Regression tests for Flutter Rust Bridge 2.13 path resolution."""
 from __future__ import annotations
 
 import re
@@ -25,34 +25,32 @@ class FlutterRustBridgePathTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.values = read_simple_yaml(CONFIG)
-        cls.base = (APP / cls.values["base_dir"]).resolve()
+        # FRB 2.13 Config::from_config_file sets base_dir to the config's parent.
+        cls.base = CONFIG.parent.resolve()
 
-    def test_base_dir_resolves_to_repository_root(self) -> None:
-        self.assertEqual(self.base, ROOT.resolve())
+    def test_config_parent_is_the_generator_base_directory(self) -> None:
+        self.assertEqual(self.base, APP.resolve())
+        self.assertNotIn("base_dir", self.values)
 
-    def test_rust_output_is_resolved_from_dart_root_into_the_rust_crate(self) -> None:
-        # FRB 2.13 resolves rust_output from dart_root. A crate-relative
-        # `src/frb_generated.rs` incorrectly became apps/leo_app/src/... in CI.
-        crate_root = (APP / self.values["rust_root"]).resolve()
-        dart_root = (APP / self.values["dart_root"]).resolve()
-        rust_output = (dart_root / self.values["rust_output"]).resolve()
-        expected = (ROOT / "core" / "bridge" / "src" / "frb_generated.rs").resolve()
-        self.assertEqual(crate_root, (ROOT / "core" / "bridge").resolve())
-        self.assertEqual(rust_output, expected)
+    def test_rust_output_uses_canonical_crate_fallback(self) -> None:
+        crate_root = (self.base / self.values["rust_root"]).resolve()
+        expected_crate = (ROOT / "core" / "bridge").resolve()
+        # FRB 2.13 fallback_rust_output_path joins the already canonical
+        # rust_crate_dir with src/frb_generated.rs. No config rust_output is set.
+        rust_output = crate_root / "src" / "frb_generated.rs"
+        expected_output = expected_crate / "src" / "frb_generated.rs"
+        self.assertEqual(crate_root, expected_crate)
+        self.assertEqual(rust_output, expected_output)
+        self.assertNotIn("rust_output", self.values)
+        self.assertNotIn("..", rust_output.parts)
         self.assertTrue(rust_output.is_relative_to(crate_root / "src"))
-        self.assertNotEqual(rust_output, (APP / "src/frb_generated.rs").resolve())
-        self.assertEqual(self.values["rust_root"], "../../core/bridge")
-        self.assertEqual(self.values["rust_output"], "../../core/bridge/src/frb_generated.rs")
 
     def test_dart_output_and_root_resolve_to_flutter_package(self) -> None:
         dart_output = (self.base / self.values["dart_output"]).resolve()
         dart_root = (APP / self.values["dart_root"]).resolve()
         self.assertEqual(dart_root, APP.resolve())
-        self.assertTrue(dart_output.is_relative_to(APP / "lib"))
-        self.assertEqual(
-            dart_output,
-            (APP / "lib" / "src" / "rust").resolve(),
-        )
+        self.assertEqual(self.values["dart_output"], "lib/src/rust")
+        self.assertEqual(dart_output, (APP / "lib" / "src" / "rust").resolve())
 
     def test_native_assets_hook_matches_the_same_rust_crate_and_io_binding(self) -> None:
         hook = (APP / "hook" / "build.dart").read_text(encoding="utf-8")
@@ -78,8 +76,9 @@ class FlutterRustBridgePathTests(unittest.TestCase):
             ROOT / ".github" / "workflows" / "prepare_android_bootstrap_files.yml"
         ).read_text(encoding="utf-8")
         self.assertIn("FRB path contract passed", generator)
-        self.assertIn("FRB resolves rust_output from dart_root", generator)
-        self.assertIn('rust_output = (dart_root / values["rust_output"]).resolve()', generator)
+        self.assertIn("Config::from_config_file overwrites the YAML base_dir", generator)
+        self.assertIn('if "rust_output" in values:', generator)
+        self.assertIn("canonicalized rust_root fallback", generator)
         self.assertIn("--skip-fvm-install", generator)
         self.assertIn("generate --help", generator)
         self.assertIn("CODEGEN_GENERATE_HELP", generator)

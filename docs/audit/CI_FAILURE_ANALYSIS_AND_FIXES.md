@@ -25,7 +25,7 @@ called its child shell scripts as executables.
 call sites. This does not rely on executable file mode and keeps repository
 file permissions unchanged.
 
-### 2. Flutter Rust Bridge path canonicalization
+### 2. Flutter Rust Bridge path canonicalization (initial correction; superseded by section 9)
 
 FRB 2.13.0 first failed with `Fail to canonicalize .../apps/leo_app/core/bridge`.
 The initial path preflight had modeled `rust_root` against the wrong anchor.
@@ -245,3 +245,26 @@ stale Gradle wrapper, AGP 9 built-in Kotlin accidentally enabled, and a
 misaligned third-party `.so`. These are source-level tests with fixtures. They
 do not substitute for the real pinned Flutter/Gradle Android build or a
 16 KB-device smoke test.
+
+
+### 9. FRB 2.13.0 retained lexical parent segments in rust_output (2026-11-26)
+
+The latest bootstrap job `139705151899` failed with
+`code_path=.../apps/leo_app/../../core/bridge/src/frb_generated.rs`,
+`base_dir=.../core/bridge/src`, and `prefix not found`.
+
+The pinned FRB source explains the mismatch: loading a config file sets the
+effective `base_dir` to the config file's parent, overriding the YAML value;
+`rust_root` is then canonicalized, but an explicit `rust_output` is only joined
+and retains `..` path components. FRB later calls `strip_prefix` against the
+canonical Rust `src` directory, which fails on that lexical path.
+
+**Correction:** omit `base_dir` and `rust_output` from the config. FRB's
+fallback derives `src/frb_generated.rs` from the canonicalized `rust_crate_dir`.
+Use `dart_output: lib/src/rust` because the effective config base is
+`apps/leo_app`. The shell preflight and hermetic generator shim now enforce and
+model those exact FRB 2.13.0 rules.
+
+The unit tests validate the configuration contract and mock output generation;
+they do not prove the real generator succeeds. A fresh pinned GitHub Actions
+run remains mandatory before claiming that FRB generation is fixed.

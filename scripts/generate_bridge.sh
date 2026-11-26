@@ -65,12 +65,9 @@ for line_number, line in enumerate(config_path.read_text(encoding="utf-8").split
     values[key] = value
 
 required_values = {
-    "base_dir": "../..",
     "rust_input": "crate::api",
     "rust_root": "../../core/bridge",
-    # FRB resolves rust_output from dart_root (the Flutter package directory).
-    "rust_output": "../../core/bridge/src/frb_generated.rs",
-    "dart_output": "apps/leo_app/lib/src/rust",
+    "dart_output": "lib/src/rust",
     "dart_root": ".",
 }
 for key, expected in required_values.items():
@@ -81,32 +78,40 @@ for key, expected in required_values.items():
             f"expected {expected!r}, found {actual!r}."
         )
 
-base_dir = (app_dir / values["base_dir"]).resolve(strict=True)
-if base_dir != repo_root:
-    raise SystemExit(f"ERROR: FRB base_dir must resolve to repository root: {base_dir}")
+# FRB 2.13.0 Config::from_config_file overwrites the YAML base_dir with the
+# config file's parent directory. Since this config is in apps/leo_app, every
+# relative config path below is interpreted from app_dir.
+base_dir = config_path.parent.resolve(strict=True)
+if base_dir != app_dir:
+    raise SystemExit(f"ERROR: FRB config base directory must be apps/leo_app: {base_dir}")
+
+if "rust_output" in values:
+    raise SystemExit(
+        "ERROR: Omit rust_output from flutter_rust_bridge.yaml. FRB 2.13.0 "
+        "must derive it from the canonicalized rust_root fallback."
+    )
 
 dart_root = (app_dir / values["dart_root"]).resolve(strict=True)
 if dart_root != app_dir:
     raise SystemExit(f"ERROR: FRB dart_root must resolve to the Flutter app: {dart_root}")
 
-crate_root = (dart_root / values["rust_root"]).resolve(strict=True)
+crate_root = (base_dir / values["rust_root"]).resolve(strict=True)
 expected_crate_root = (repo_root / "core/bridge").resolve(strict=True)
 if crate_root != expected_crate_root:
     raise SystemExit(f"ERROR: FRB rust_root resolves to {crate_root}, expected {expected_crate_root}")
 
-# FRB 2.13 resolves rust_output from dart_root, independently of rust_root.
-# The real runner showed that `src/frb_generated.rs` becomes
-# apps/leo_app/src/frb_generated.rs even though rust_root correctly resolves
-# to core/bridge. Require the fully anchored value to land inside the crate.
-rust_output = (dart_root / values["rust_output"]).resolve()
-expected_rust_output = (crate_root / "src/frb_generated.rs").resolve(strict=False)
+# When rust_output is omitted, FRB 2.13.0 uses
+# rust_crate_dir/src/frb_generated.rs. rust_crate_dir was canonicalized above,
+# so this output path has no lexical '..' segments and strip_prefix succeeds.
+rust_output = (crate_root / "src/frb_generated.rs").resolve(strict=False)
+expected_rust_output = (expected_crate_root / "src/frb_generated.rs").resolve(strict=False)
 if rust_output != expected_rust_output:
     raise SystemExit(
-        "ERROR: FRB rust_output must resolve from dart_root to "
+        "ERROR: FRB default rust_output must resolve to "
         f"{expected_rust_output}; found {rust_output}."
     )
 if not rust_output.is_relative_to((crate_root / "src").resolve(strict=True)):
-    raise SystemExit("ERROR: FRB rust_output must be inside core/bridge/src.")
+    raise SystemExit("ERROR: FRB default rust_output must be inside core/bridge/src.")
 
 dart_output = (base_dir / values["dart_output"]).resolve()
 if dart_output != (app_dir / "lib/src/rust").resolve(strict=False):
@@ -176,8 +181,8 @@ if "aarch64-linux-android" not in toolchain.get("targets", []):
 
 print(
     "FRB path contract passed: "
-    f"base_dir={base_dir}; rust_root={crate_root}; "
-    f"rust_output={rust_output}; dart_output={dart_output}; dart_root={dart_root}; "
+    f"config_base_dir={base_dir}; rust_root={crate_root}; "
+    f"canonical_default_rust_output={rust_output}; dart_output={dart_output}; dart_root={dart_root}; "
     f"native_assets_crate={hook_crate_root}; asset={asset_name_match.group(1)}"
 )
 PY_FRB_PATHS

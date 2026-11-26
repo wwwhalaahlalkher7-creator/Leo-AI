@@ -193,3 +193,20 @@ of the unsupported flag.
 
 The local tests validate argument selection with a fake generator; a fresh
 GitHub Actions run is still required to confirm actual FRB generation.
+
+
+## FRB 2.13.0 final path-resolution diagnosis — 2026-11-26
+
+The latest bootstrap run `45759264852` failed before Rust compilation, in
+`compute_mod_from_rust_path`. This supersedes the earlier assumption that
+`rust_output` should be a relative path anchored from `dart_root`. Inspection
+of the pinned FRB 2.13.0 source shows that config loading overrides the YAML
+`base_dir` with the config file's parent, canonicalizes `rust_root`, but leaves
+an explicitly configured `rust_output` lexical. The project now omits
+`base_dir` and `rust_output`, allowing FRB's default output path to be derived
+from the canonical Rust crate directory; `dart_output` is relative to the
+config parent (`lib/src/rust`). A regression test models this fallback.
+
+Only source-level and hermetic tests have been run locally. The next GitHub
+Actions run must verify real FRB generation before `cargo check` and Android
+qualification can be considered unblocked.

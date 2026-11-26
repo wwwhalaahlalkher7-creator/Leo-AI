@@ -1,12 +1,10 @@
-# FRB 2.13 path contract when codegen runs from apps/leo_app:
-# - rust_root and rust_output are resolved from dart_root (the Flutter app).
-# - dart_output is resolved from base_dir (the repository root).
-# Both Rust paths must point to the same canonical bridge crate.
-base_dir: ../..
+# FRB 2.13 derives base_dir from this config file's parent (apps/leo_app).
+# rust_root is canonicalized from that directory. Do not declare the Rust output path:
+# FRB then builds it from the canonical rust_root/src directory, avoiding a
+# lexical ../../ path that fails its internal strip_prefix check.
 rust_input: crate::api
 rust_root: ../../core/bridge
-rust_output: ../../core/bridge/src/frb_generated.rs
-dart_output: apps/leo_app/lib/src/rust
+dart_output: lib/src/rust
 dart_root: .
 type_64bit_int: true
 default_dart_async: true
