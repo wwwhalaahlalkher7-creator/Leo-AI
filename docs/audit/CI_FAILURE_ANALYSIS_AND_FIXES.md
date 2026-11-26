@@ -245,3 +245,23 @@ stale Gradle wrapper, AGP 9 built-in Kotlin accidentally enabled, and a
 misaligned third-party `.so`. These are source-level tests with fixtures. They
 do not substitute for the real pinned Flutter/Gradle Android build or a
 16 KB-device smoke test.
+
+### 14. FRB 2.13.0 lexical path segments surviving resolution
+
+A later run passed the relative path contract but reported a generated Rust
+`code_path` containing `apps/leo_app/../../core/bridge/src/frb_generated.rs`,
+while FRB's module base was already canonicalized to `core/bridge/src`. The
+filesystem targets match after normalization, but FRB's `strip_prefix`
+comparison still fails because the lexical path does not begin with the
+canonical prefix.
+
+**Correction:** keep the checked-in FRB YAML portable, but generate a
+short-lived runtime config containing canonical absolute values for all path
+fields. Invoke the pinned generator through `--config-file`; verify the CLI
+supports both `--config-file` and `--skip-fvm-install`; clean up the runtime
+file on exit. The hermetic integration test checks the exact absolute path
+values passed to the mock generator and verifies all four expected outputs.
+
+The real FRB 2.13.0 generator still needs to pass in GitHub Actions. The
+source-level test is not treated as proof of native generation or Android
+qualification.
