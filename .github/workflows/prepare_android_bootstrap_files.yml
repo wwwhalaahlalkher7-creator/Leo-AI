@@ -1,5 +1,13 @@
 name: Prepare Leo Android Bootstrap Files (Temporary)
 
+# One-time workflow. It generates, validates and packages:
+#   - apps/leo_app/pubspec.lock
+#   - Cargo.lock
+#   - core/bridge/src/frb_generated.rs + apps/leo_app/lib/src/rust/ (FRB 2.13.0 output)
+#   - apps/leo_app/android/ (hardened Android runner scaffold)
+# Download the artifact, copy the files into the repository, commit them, then
+# the regular "Leo CI" workflow can pass its lockfile gate.
+
 on:
   workflow_dispatch:
     inputs:
@@ -17,6 +25,17 @@ permissions:
 concurrency:
   group: leo-android-bootstrap-${{ github.ref }}
   cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: '1'
+  CI: 'true'
+
+defaults:
+  run:
+    # bash with -e and pipefail on every step, so a failure inside a pipe is
+    # never swallowed.
+    shell: bash
 
 jobs:
   prepare-files:
@@ -37,6 +56,12 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           target: aarch64-linux-android,x86_64-pc-windows-msvc
+          # This workflow generates files; it is not a lint gate. The action's
+          # default RUSTFLAGS="-D warnings" would turn harmless warnings from
+          # generated code into failures, and the Rust cache is useless here
+          # because Cargo.lock does not exist yet.
+          rustflags: ''
+          cache: false
 
       - name: Set up pinned Flutter and Dart
         uses: subosito/flutter-action@v2
@@ -46,36 +71,51 @@ jobs:
           cache: true
 
       - name: Verify source milestone and toolchain versions
-        shell: bash
         run: |
-          set -euo pipefail
           python scripts/check_version.py
-          test "$(cat config/VERSION | tr -d '\r\n')" = "v0.27.0"
-          test "$(cat config/RELEASE_CHANNEL | tr -d '\r\n')" = "ALPHA"
+          test "$(tr -d '\r\n' < config/VERSION)" = "v0.27.0"
+          test "$(tr -d '\r\n' < config/RELEASE_CHANNEL)" = "ALPHA"
           grep -Eq '^channel = "1\.100\.0"$' rust-toolchain.toml
           flutter --version
           dart --version
           rustc --version
           cargo --version
+          rustc --version | grep -q '1\.100\.0' || {
+            echo "::error::rustc is not the pinned 1.100.0 toolchain."
+            exit 1
+          }
 
       - name: Resolve Flutter packages and create pubspec.lock
         working-directory: apps/leo_app
-        run: flutter pub get
+        run: |
+          flutter pub get
+          test -s pubspec.lock
 
       - name: Resolve Rust workspace and create Cargo.lock
-        run: cargo generate-lockfile --manifest-path Cargo.toml
+        run: |
+          cargo generate-lockfile --manifest-path Cargo.toml
+          test -s Cargo.lock
 
       - name: Install pinned cargo-expand required by FRB
         run: cargo install cargo-expand --version 1.0.126 --locked
 
       - name: Verify pinned cargo-expand
-        shell: bash
         run: test "$(cargo expand --version | tail -n 1 | tr -d '\r')" = "cargo-expand 1.0.126"
 
       - name: Install the pinned Flutter Rust Bridge generator
         run: cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked
 
+      - name: Verify pinned Flutter Rust Bridge generator
+        run: |
+          out="$(flutter_rust_bridge_codegen --version 2>&1 | tail -n 1 | tr -d '\r')"
+          echo "$out"
+          test "${out##* }" = "2.13.0"
+
       - name: Generate typed Rust and Dart bridge sources
+        env:
+          # cargo-expand needs -Zunpretty=expanded. RUSTC_BOOTSTRAP lets the
+          # pinned stable compiler provide it, so no nightly toolchain is needed.
+          RUSTC_BOOTSTRAP: '1'
         run: bash scripts/generate_bridge.sh
 
       - name: Compile the generated bridge crate on the host
@@ -85,10 +125,7 @@ jobs:
         run: bash scripts/prepare_android_runner.sh
 
       - name: Verify generated files and enforce lockfile reproducibility
-        shell: bash
         run: |
-          set -euo pipefail
-
           test -s apps/leo_app/pubspec.lock
           test -s Cargo.lock
           python scripts/check_dependency_lockfiles.py --allow-untracked
@@ -110,20 +147,19 @@ jobs:
           python scripts/verify_android_runner.py apps/leo_app
 
       - name: Assemble portable preparation bundle
-        shell: bash
         run: |
-          set -euo pipefail
-
           OUT="$RUNNER_TEMP/leo-android-bootstrap-files"
-          mkdir -p "$OUT/apps/leo_app/lib/src" \
-                   "$OUT/apps/leo_app" \
-                   "$OUT/core/bridge/src"
+          ZIP="$RUNNER_TEMP/Leo_Android_Bootstrap_Files_v0.27.0.zip"
+          rm -rf "$OUT" "$ZIP"
+          mkdir -p "$OUT/apps/leo_app/lib/src" "$OUT/core/bridge/src"
 
           cp apps/leo_app/pubspec.lock "$OUT/apps/leo_app/pubspec.lock"
           cp Cargo.lock "$OUT/Cargo.lock"
           cp core/bridge/src/frb_generated.rs "$OUT/core/bridge/src/frb_generated.rs"
           cp -a apps/leo_app/lib/src/rust "$OUT/apps/leo_app/lib/src/rust"
           cp -a apps/leo_app/android "$OUT/apps/leo_app/android"
+
+          # Machine-local or build-only files must never be committed.
           rm -f "$OUT/apps/leo_app/android/local.properties"
           find "$OUT/apps/leo_app/android" -type d \
             \( -name .gradle -o -name build \) -prune -exec rm -rf {} +
@@ -135,8 +171,8 @@ jobs:
           {
             echo "# Leo Android bootstrap preparation"
             echo
-            echo "- Source version: $(cat config/VERSION)"
-            echo "- Release channel: $(cat config/RELEASE_CHANNEL)"
+            echo "- Source version: $(tr -d '\r\n' < config/VERSION)"
+            echo "- Release channel: $(tr -d '\r\n' < config/RELEASE_CHANNEL)"
             echo "- Flutter: $(flutter --version | sed -n '1p')"
             echo "- Dart: $(dart --version 2>&1 | tail -n 1)"
             echo "- Rust: $(rustc --version)"
@@ -164,8 +200,42 @@ jobs:
               | sort -z \
               | xargs -0 sha256sum > SHA256SUMS.txt
           )
-          cd "$RUNNER_TEMP"
-          zip -qr Leo_Android_Bootstrap_Files_v0.27.0.zip leo-android-bootstrap-files
+
+          # zip keeps hidden files (.metadata, android/.gitignore) and the
+          # executable bit of gradlew, which a plain artifact upload would not.
+          (
+            cd "$RUNNER_TEMP"
+            zip -qr "$ZIP" leo-android-bootstrap-files
+          )
+          ls -l "$ZIP"
+
+      - name: Verify the bundle before upload
+        run: |
+          ZIP="$RUNNER_TEMP/Leo_Android_Bootstrap_Files_v0.27.0.zip"
+          CHECK="$RUNNER_TEMP/leo-bundle-check"
+          rm -rf "$CHECK"
+          mkdir -p "$CHECK"
+          unzip -q "$ZIP" -d "$CHECK"
+          cd "$CHECK/leo-android-bootstrap-files"
+
+          sha256sum --check --quiet SHA256SUMS.txt
+          for required in \
+            PREPARATION_REPORT.md \
+            Cargo.lock \
+            apps/leo_app/pubspec.lock \
+            core/bridge/src/frb_generated.rs \
+            apps/leo_app/lib/src/rust/frb_generated.dart \
+            apps/leo_app/lib/src/rust/frb_generated.io.dart \
+            apps/leo_app/lib/src/rust/frb_generated.web.dart \
+            apps/leo_app/android/app/build.gradle.kts \
+            apps/leo_app/android/app/src/main/AndroidManifest.xml \
+            apps/leo_app/android/gradle/wrapper/gradle-wrapper.jar; do
+            test -s "$required" || { echo "::error::Bundle is missing $required"; exit 1; }
+          done
+          if [[ ! -x apps/leo_app/android/gradlew ]]; then
+            echo "::warning::android/gradlew is not executable in the bundle; run chmod +x after copying it."
+          fi
+          echo "Bundle verified: $(find . -type f | wc -l) files"
 
       - name: Upload prepared files for manual integration
         uses: actions/upload-artifact@v4
@@ -174,3 +244,40 @@ jobs:
           path: ${{ runner.temp }}/Leo_Android_Bootstrap_Files_v0.27.0.zip
           if-no-files-found: error
           retention-days: 14
+
+      - name: Collect diagnostics after a failure
+        if: failure()
+        run: |
+          set +e
+          D="$RUNNER_TEMP/leo-diagnostics"
+          mkdir -p "$D"
+          {
+            echo "## versions"
+            flutter --version
+            dart --version
+            rustc --version
+            cargo --version
+            flutter_rust_bridge_codegen --version
+            cargo expand --version
+            echo "## git status"
+            git status --short
+          } > "$D/environment.txt" 2>&1
+          find apps/leo_app/lib/src/rust core/bridge/src apps/leo_app/android \
+            -maxdepth 5 -not -path '*/build/*' -not -path '*/.gradle/*' -print \
+            > "$D/generated-tree.txt" 2>&1
+          cp apps/leo_app/flutter_rust_bridge.yaml "$D/" 2>/dev/null
+          cp apps/leo_app/pubspec.yaml "$D/" 2>/dev/null
+          cp apps/leo_app/pubspec.lock "$D/" 2>/dev/null
+          cp Cargo.lock "$D/" 2>/dev/null
+          cp core/bridge/Cargo.toml "$D/bridge-Cargo.toml" 2>/dev/null
+          exit 0
+
+      - name: Upload diagnostics after a failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: leo-bootstrap-diagnostics
+          path: ${{ runner.temp }}/leo-diagnostics/
+          if-no-files-found: ignore
+          include-hidden-files: true
+          retention-days: 7
