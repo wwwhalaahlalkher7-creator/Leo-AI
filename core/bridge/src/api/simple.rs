@@ -392,7 +392,7 @@ pub fn execute_agent_task(sink: StreamSink<AgentTaskEventDto>, request: AgentTas
 
     match parse_agent_resume_receipt(&request.conversation_context, &task_id, &request.goal) {
         Ok(Some(receipt)) => {
-            let mut pending = receipt.checkpoint;
+            let pending = receipt.checkpoint;
             let Some(proposal) = pending.proposal.clone() else {
                 let _ = emit_agent_task_event(&sink, agent_task_event(
                     "task_failed", &task_id, "", "", 0, "",
@@ -604,10 +604,15 @@ fn decode_agent_checkpoint(
     {
         return Err("صيغة checkpoint غير مدعومة أو تحتوي حقولاً غير متوقعة.".to_owned());
     }
-    let string = |container: &serde_json::Map<String, serde_json::Value>, key: &str| {
+    // A nested fn (not a closure) so the returned &str is explicitly tied to
+    // `container`; closures cannot express this lifetime relationship.
+    fn string<'a>(
+        container: &'a serde_json::Map<String, serde_json::Value>,
+        key: &str,
+    ) -> Result<&'a str, String> {
         container.get(key).and_then(serde_json::Value::as_str)
             .ok_or_else(|| format!("حقل checkpoint {key} غير صالح."))
-    };
+    }
     let task_id = string(object, "task_id")?;
     let goal = string(object, "goal")?;
     let context = string(object, "conversation_context")?;
