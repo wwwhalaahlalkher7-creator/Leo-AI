@@ -72,9 +72,6 @@ class FlutterRustBridgePathTests(unittest.TestCase):
         generator = (ROOT / "scripts" / "generate_bridge.sh").read_text(encoding="utf-8")
         android_builder = (ROOT / "scripts" / "build_android_app.sh").read_text(encoding="utf-8")
         ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-        bootstrap = (
-            ROOT / ".github" / "workflows" / "prepare_android_bootstrap_files.yml"
-        ).read_text(encoding="utf-8")
         self.assertIn("FRB path contract passed", generator)
         self.assertIn("Config::from_config_file overwrites the YAML base_dir", generator)
         self.assertIn('if "rust_output" in values:', generator)
@@ -90,11 +87,7 @@ class FlutterRustBridgePathTests(unittest.TestCase):
         self.assertIn('bash "${ROOT_DIR}/scripts/prepare_android_runner.sh"', android_builder)
         self.assertIn("run: bash scripts/generate_bridge.sh", ci)
         self.assertIn("run: bash scripts/build_android_app.sh", ci)
-        self.assertIn("run: bash scripts/generate_bridge.sh", bootstrap)
-        self.assertIn("run: bash scripts/prepare_android_runner.sh", bootstrap)
         self.assertIn("cargo install cargo-expand --version 1.0.126 --locked", ci)
-        self.assertIn("cargo install cargo-expand --version 1.0.126 --locked", bootstrap)
-        self.assertIn("cargo check --package leo-bridge --locked", bootstrap)
         self.assertIn("needs: foundation", ci)
         self.assertIn("cargo test --workspace --locked", ci)
         self.assertIn("cargo clippy --workspace --all-targets --locked", ci)

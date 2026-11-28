@@ -185,9 +185,14 @@ class AndroidQualificationContractTests(unittest.TestCase):
         self.assertIn("android.builtInKotlin=false", runner)
         self.assertIn("android.newDsl=false", runner)
 
-    def test_bootstrap_workflow_validates_generated_locks_before_upload(self):
-        workflow = (ROOT / ".github/workflows/prepare_android_bootstrap_files.yml").read_text(encoding="utf-8")
-        self.assertIn("check_dependency_lockfiles.py --allow-untracked", workflow)
+    def test_removed_bootstrap_workflow_is_not_required_by_ci(self):
+        # Bootstrap was retired after generated runner files and lockfiles became
+        # part of the normal repository/CI contract. The main CI must not depend
+        # on the deleted one-off workflow.
+        bootstrap = ROOT / ".github/workflows/prepare_android_bootstrap_files.yml"
+        self.assertFalse(bootstrap.exists())
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertNotIn("prepare_android_bootstrap_files.yml", workflow)
 
     def test_apk_validation_accepts_correct_arm64_native_package(self):
         with tempfile.TemporaryDirectory() as temp_dir:

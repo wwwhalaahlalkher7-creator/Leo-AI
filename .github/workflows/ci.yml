@@ -61,15 +61,6 @@ jobs:
           test -s apps/leo_app/lib/src/rust/frb_generated.dart
           test -s apps/leo_app/lib/src/rust/frb_generated.io.dart
           test -s apps/leo_app/lib/src/rust/frb_generated.web.dart
-      - name: Publish generated bridge for platform jobs
-        uses: actions/upload-artifact@v4
-        with:
-          name: leo-frb-generated-bindings
-          path: |
-            core/bridge/src/frb_generated.rs
-            apps/leo_app/lib/src/rust/
-          if-no-files-found: error
-          retention-days: 1
       - name: Format Dart files
         working-directory: apps/leo_app
         run: dart format .
@@ -87,6 +78,18 @@ jobs:
           git commit -m 'style: format Dart sources'
           git push origin "HEAD:${GITHUB_REF_NAME}"
       - name: Verify Dart formatting
+        working-directory: apps/leo_app
+        run: dart format --output=none --set-exit-if-changed .
+      - name: Publish generated bridge for platform jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: leo-frb-generated-bindings
+          path: |
+            core/bridge/src/frb_generated.rs
+            apps/leo_app/lib/src/rust/
+          if-no-files-found: error
+          retention-days: 1
+      - name: Dart format check
         working-directory: apps/leo_app
         run: dart format --output=none --set-exit-if-changed .
       - name: Flutter analyze
