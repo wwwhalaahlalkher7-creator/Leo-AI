@@ -34,16 +34,16 @@ class AgentTaskCheckpointRecord {
   final String? toolResult;
 
   Map<String, Object?> toJson() => {
-        'task_id': taskId,
-        'goal': goal,
-        'session_id': sessionId,
-        'checkpoint': checkpointJson,
-        'state': state.name,
-        'saved_at_utc': savedAtUtc,
-        'tool_call_id': toolCallId,
-        'tool_name': toolName,
-        'tool_result': toolResult,
-      };
+    'task_id': taskId,
+    'goal': goal,
+    'session_id': sessionId,
+    'checkpoint': checkpointJson,
+    'state': state.name,
+    'saved_at_utc': savedAtUtc,
+    'tool_call_id': toolCallId,
+    'tool_name': toolName,
+    'tool_result': toolResult,
+  };
 
   factory AgentTaskCheckpointRecord.fromJson(Map<String, Object?> json) {
     const keys = {
@@ -126,7 +126,7 @@ class _FlutterSecureTextStore implements SecureTextStore {
 /// by the OS-backed secure store and revalidated by Rust on resume.
 class AgentTaskCheckpointStore {
   AgentTaskCheckpointStore({SecureTextStore? secureStore})
-      : _secureStore = secureStore ?? _FlutterSecureTextStore();
+    : _secureStore = secureStore ?? _FlutterSecureTextStore();
 
   static const storageKey = 'leo.agent_task.checkpoints.v1';
   static const maxRecords = 8;
@@ -140,10 +140,12 @@ class AgentTaskCheckpointStore {
   Future<List<AgentTaskCheckpointRecord>> loadPending() async {
     final records = await _readRecords();
     final cutoff = DateTime.now().toUtc().subtract(retention);
-    final fresh = records.where((record) {
-      final savedAt = DateTime.tryParse(record.savedAtUtc)?.toUtc();
-      return savedAt != null && savedAt.isAfter(cutoff);
-    }).toList(growable: false);
+    final fresh = records
+        .where((record) {
+          final savedAt = DateTime.tryParse(record.savedAtUtc)?.toUtc();
+          return savedAt != null && savedAt.isAfter(cutoff);
+        })
+        .toList(growable: false);
     if (fresh.length != records.length) await _writeRecords(fresh);
     return fresh;
   }
@@ -214,7 +216,8 @@ class AgentTaskCheckpointStore {
     }
     final records = await loadPending();
     final index = records.indexWhere((item) => item.taskId == taskId);
-    if (index < 0) throw StateError('No durable checkpoint exists for this task.');
+    if (index < 0)
+      throw StateError('No durable checkpoint exists for this task.');
     final current = records[index];
     if (current.state != AgentTaskCheckpointState.awaitingAction ||
         current.toolCallId != toolCallId ||
@@ -246,10 +249,12 @@ class AgentTaskCheckpointStore {
   }) async {
     final records = await loadPending();
     final index = records.indexWhere((item) => item.taskId == taskId);
-    if (index < 0) throw StateError('No durable checkpoint exists for this task.');
+    if (index < 0)
+      throw StateError('No durable checkpoint exists for this task.');
     final current = records[index];
     if (current.state != AgentTaskCheckpointState.awaitingAction ||
-        current.toolCallId == null || current.toolName == null) {
+        current.toolCallId == null ||
+        current.toolName == null) {
       throw StateError('No interrupted action needs confirmation.');
     }
     final updated = AgentTaskCheckpointRecord(
@@ -285,16 +290,20 @@ class AgentTaskCheckpointStore {
     if (decoded is! List || decoded.length > maxRecords) {
       throw const FormatException('Secure task checkpoint index is invalid.');
     }
-    final records = decoded.map((item) {
-      if (item is! Map<String, dynamic>) {
-        throw const FormatException('Task checkpoint record is invalid.');
-      }
-      return AgentTaskCheckpointRecord.fromJson(item);
-    }).toList(growable: true);
+    final records = decoded
+        .map((item) {
+          if (item is! Map<String, dynamic>) {
+            throw const FormatException('Task checkpoint record is invalid.');
+          }
+          return AgentTaskCheckpointRecord.fromJson(item);
+        })
+        .toList(growable: true);
     final ids = <String>{};
     for (final record in records) {
       if (!ids.add(record.taskId)) {
-        throw const FormatException('Duplicate task checkpoint IDs were found.');
+        throw const FormatException(
+          'Duplicate task checkpoint IDs were found.',
+        );
       }
     }
     return records;
@@ -308,13 +317,19 @@ class AgentTaskCheckpointStore {
     for (final record in records) {
       _validateRecord(record);
       if (!ids.add(record.taskId)) {
-        throw const FormatException('Duplicate task checkpoint IDs were found.');
+        throw const FormatException(
+          'Duplicate task checkpoint IDs were found.',
+        );
       }
     }
-    final encoded = jsonEncode(records.map((record) => record.toJson()).toList());
+    final encoded = jsonEncode(
+      records.map((record) => record.toJson()).toList(),
+    );
     final bytes = utf8.encode(encoded).length;
     if (bytes > maxStoredBytes) {
-      throw const FormatException('Pending tasks exceed the secure storage budget.');
+      throw const FormatException(
+        'Pending tasks exceed the secure storage budget.',
+      );
     }
     if (records.isEmpty) {
       await _secureStore.delete(key: storageKey);
@@ -361,10 +376,14 @@ class AgentTaskCheckpointStore {
     final state = decoded['state'];
     final proposal = decoded['proposal'];
     if (state == 'running' && proposal != null) {
-      throw const FormatException('A running checkpoint cannot contain a pending action.');
+      throw const FormatException(
+        'A running checkpoint cannot contain a pending action.',
+      );
     }
     if (state == 'awaiting_action' && proposal is! Map<String, dynamic>) {
-      throw const FormatException('An action checkpoint is missing its proposal.');
+      throw const FormatException(
+        'An action checkpoint is missing its proposal.',
+      );
     }
     if (state != 'running' && state != 'awaiting_action') {
       throw const FormatException('Unknown native checkpoint state.');
@@ -378,7 +397,9 @@ class AgentTaskCheckpointStore {
         !RegExp(r'^[A-Za-z0-9_.-]{1,128}$').hasMatch(record.sessionId) ||
         utf8.encode(record.checkpointJson).length > maxCheckpointBytes ||
         (record.toolResult?.length ?? 0) > maxResultCharacters) {
-      throw const FormatException('Task checkpoint record exceeds a safety limit.');
+      throw const FormatException(
+        'Task checkpoint record exceeds a safety limit.',
+      );
     }
     final savedAt = DateTime.tryParse(record.savedAtUtc);
     if (savedAt == null || !savedAt.isUtc) {
@@ -390,8 +411,13 @@ class AgentTaskCheckpointStore {
     }
     if (record.toolName != null &&
         !const {
-          'files.read_selected', 'workspace.write_file', 'email.compose', 'phone.dial',
-          'messages.compose', 'web.open', 'app.launch',
+          'files.read_selected',
+          'workspace.write_file',
+          'email.compose',
+          'phone.dial',
+          'messages.compose',
+          'web.open',
+          'app.launch',
         }.contains(record.toolName)) {
       throw const FormatException('Task checkpoint tool name is invalid.');
     }
@@ -399,29 +425,46 @@ class AgentTaskCheckpointStore {
     if (decoded is! Map<String, dynamic> ||
         decoded['task_id'] != record.taskId ||
         decoded['goal'] != record.goal ||
-        (decoded['state'] != 'running' && decoded['state'] != 'awaiting_action')) {
-      throw const FormatException('Task checkpoint record does not match its payload.');
+        (decoded['state'] != 'running' &&
+            decoded['state'] != 'awaiting_action')) {
+      throw const FormatException(
+        'Task checkpoint record does not match its payload.',
+      );
     }
     final proposal = decoded['proposal'];
     if (record.state == AgentTaskCheckpointState.running &&
-        (decoded['state'] != 'running' || proposal != null ||
-            record.toolCallId != null || record.toolName != null || record.toolResult != null)) {
-      throw const FormatException('Running checkpoint contains an external action.');
+        (decoded['state'] != 'running' ||
+            proposal != null ||
+            record.toolCallId != null ||
+            record.toolName != null ||
+            record.toolResult != null)) {
+      throw const FormatException(
+        'Running checkpoint contains an external action.',
+      );
     }
     if (record.state != AgentTaskCheckpointState.running) {
-      if (decoded['state'] != 'awaiting_action' || proposal is! Map<String, dynamic> ||
-          proposal['call_id'] != record.toolCallId || proposal['tool_name'] != record.toolName) {
-        throw const FormatException('Action checkpoint metadata does not match its proposal.');
+      if (decoded['state'] != 'awaiting_action' ||
+          proposal is! Map<String, dynamic> ||
+          proposal['call_id'] != record.toolCallId ||
+          proposal['tool_name'] != record.toolName) {
+        throw const FormatException(
+          'Action checkpoint metadata does not match its proposal.',
+        );
       }
     }
-    if (record.state == AgentTaskCheckpointState.awaitingAction && record.toolResult != null) {
-      throw const FormatException('An unconfirmed action cannot contain a result.');
+    if (record.state == AgentTaskCheckpointState.awaitingAction &&
+        record.toolResult != null) {
+      throw const FormatException(
+        'An unconfirmed action cannot contain a result.',
+      );
     }
     if (record.toolResult != null && record.toolResult!.trim().isEmpty) {
       throw const FormatException('A saved action result cannot be empty.');
     }
     if (record.state == AgentTaskCheckpointState.readyToResume &&
-        (record.toolCallId == null || record.toolName == null || record.toolResult == null ||
+        (record.toolCallId == null ||
+            record.toolName == null ||
+            record.toolResult == null ||
             record.toolResult!.trim().isEmpty)) {
       throw const FormatException('Ready-to-resume checkpoint is incomplete.');
     }

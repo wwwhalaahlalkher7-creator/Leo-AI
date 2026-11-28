@@ -52,10 +52,12 @@ class FlutterRustBridgeAssistantRuntimeClient
         requestId: request.requestId,
         conversationId: request.conversationId,
         messages: request.messages
-            .map((message) => rust_api.ChatMessageInputDto(
-                  role: message.role,
-                  content: message.content,
-                ))
+            .map(
+              (message) => rust_api.ChatMessageInputDto(
+                role: message.role,
+                content: message.content,
+              ),
+            )
             .toList(growable: false),
         maxNewTokens: request.maxNewTokens,
         temperature: request.temperature,
@@ -72,10 +74,7 @@ class FlutterRustBridgeAssistantRuntimeClient
         yield RuntimeEvent(type, text: event.text);
       }
     } catch (error) {
-      yield RuntimeEvent(
-        RuntimeEventType.failed,
-        text: _friendlyError(error),
-      );
+      yield RuntimeEvent(RuntimeEventType.failed, text: _friendlyError(error));
     }
   }
 

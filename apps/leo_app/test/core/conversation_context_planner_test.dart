@@ -25,7 +25,10 @@ void main() {
       const RuntimeInputMessage(role: 'system', content: 'Core policy'),
       RuntimeInputMessage(role: 'user', content: 'Old question ${'a' * 120}'),
       const RuntimeInputMessage(role: 'assistant', content: 'Old answer'),
-      RuntimeInputMessage(role: 'user', content: 'Middle question ${'b' * 120}'),
+      RuntimeInputMessage(
+        role: 'user',
+        content: 'Middle question ${'b' * 120}',
+      ),
       const RuntimeInputMessage(role: 'assistant', content: 'Middle answer'),
       const RuntimeInputMessage(role: 'user', content: 'Newest request'),
       const RuntimeInputMessage(role: 'assistant', content: 'Tool proposal'),
@@ -35,18 +38,43 @@ void main() {
     final plan = planner.plan(messages, inputBudgetTokens: 200);
 
     expect(plan.compacted, isTrue);
-    expect(plan.messages.first.content, ConversationContextPlanner.compactionNotice);
+    expect(
+      plan.messages.first.content,
+      ConversationContextPlanner.compactionNotice,
+    );
     expect(
       plan.messages.where((item) => item.role == 'system').last.content,
       'Core policy',
     );
-    expect(plan.messages.any((item) => item.content == 'Newest request'), isTrue);
-    expect(plan.messages.any((item) => item.content == 'Tool proposal'), isTrue);
+    expect(
+      plan.messages.any((item) => item.content == 'Newest request'),
+      isTrue,
+    );
+    expect(
+      plan.messages.any((item) => item.content == 'Tool proposal'),
+      isTrue,
+    );
     expect(plan.messages.any((item) => item.content == 'Tool output'), isTrue);
-    expect(plan.messages.any((item) => item.content == 'Middle question ${'b' * 120}'), isFalse);
-    expect(plan.messages.any((item) => item.content == 'Old question ${'a' * 120}'), isFalse);
-    expect(plan.messages.any((item) => item.content == ConversationContextPlanner.compactionNotice), isTrue);
-    expect(plan.estimatedInputTokens, lessThanOrEqualTo(plan.inputBudgetTokens));
+    expect(
+      plan.messages.any(
+        (item) => item.content == 'Middle question ${'b' * 120}',
+      ),
+      isFalse,
+    );
+    expect(
+      plan.messages.any((item) => item.content == 'Old question ${'a' * 120}'),
+      isFalse,
+    );
+    expect(
+      plan.messages.any(
+        (item) => item.content == ConversationContextPlanner.compactionNotice,
+      ),
+      isTrue,
+    );
+    expect(
+      plan.estimatedInputTokens,
+      lessThanOrEqualTo(plan.inputBudgetTokens),
+    );
   });
 
   test('prefers the newest complete historical turn over older turns', () {
@@ -62,8 +90,14 @@ void main() {
     final plan = planner.plan(messages, inputBudgetTokens: 205);
 
     expect(plan.compacted, isTrue);
-    expect(plan.messages.any((item) => item.content.startsWith('Recent ')), isTrue);
-    expect(plan.messages.any((item) => item.content.startsWith('Old ')), isFalse);
+    expect(
+      plan.messages.any((item) => item.content.startsWith('Recent ')),
+      isTrue,
+    );
+    expect(
+      plan.messages.any((item) => item.content.startsWith('Old ')),
+      isFalse,
+    );
   });
 
   test('preserves first goal when it fits after recent turns', () {
@@ -72,7 +106,10 @@ void main() {
       const RuntimeInputMessage(role: 'user', content: 'Initial project goal'),
       const RuntimeInputMessage(role: 'assistant', content: 'Acknowledged'),
       RuntimeInputMessage(role: 'user', content: 'Old context ${'m' * 300}'),
-      RuntimeInputMessage(role: 'assistant', content: 'Old response ${'n' * 300}'),
+      RuntimeInputMessage(
+        role: 'assistant',
+        content: 'Old response ${'n' * 300}',
+      ),
       const RuntimeInputMessage(role: 'user', content: 'Recent request'),
     ];
 
@@ -80,8 +117,14 @@ void main() {
 
     expect(plan.compacted, isTrue);
     expect(plan.keptFirstGoal, isTrue);
-    expect(plan.messages.any((item) => item.content == 'Initial project goal'), isTrue);
-    expect(plan.messages.any((item) => item.content.startsWith('Old context')), isFalse);
+    expect(
+      plan.messages.any((item) => item.content == 'Initial project goal'),
+      isTrue,
+    );
+    expect(
+      plan.messages.any((item) => item.content.startsWith('Old context')),
+      isFalse,
+    );
   });
 
   test('does not silently discard an oversized current request', () {

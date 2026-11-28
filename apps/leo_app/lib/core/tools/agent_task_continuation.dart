@@ -37,7 +37,9 @@ class AgentTaskContinuationReceipt {
       throw const FormatException('Invalid continuation tool-call ID.');
     }
     if (!allowedTools.contains(toolName)) {
-      throw const FormatException('Tool is not allowed in a continuation receipt.');
+      throw const FormatException(
+        'Tool is not allowed in a continuation receipt.',
+      );
     }
     if (result.length > maxResultCharacters) {
       throw const FormatException('Continuation result is too large.');
@@ -46,9 +48,13 @@ class AgentTaskContinuationReceipt {
     if (checkpoint['task_id'] != taskId ||
         checkpoint['state'] != 'awaiting_action' ||
         checkpoint['proposal'] is! Map<String, dynamic> ||
-        (checkpoint['proposal'] as Map<String, dynamic>)['call_id'] != toolCallId ||
-        (checkpoint['proposal'] as Map<String, dynamic>)['tool_name'] != toolName) {
-      throw const FormatException('Checkpoint does not match the successful tool result.');
+        (checkpoint['proposal'] as Map<String, dynamic>)['call_id'] !=
+            toolCallId ||
+        (checkpoint['proposal'] as Map<String, dynamic>)['tool_name'] !=
+            toolName) {
+      throw const FormatException(
+        'Checkpoint does not match the successful tool result.',
+      );
     }
 
     final payload = jsonEncode({
@@ -71,7 +77,9 @@ class AgentTaskContinuationReceipt {
   static String encodeRestore({required String checkpointJson}) {
     final checkpoint = _decodeCheckpoint(checkpointJson);
     if (checkpoint['state'] != 'running' || checkpoint['proposal'] != null) {
-      throw const FormatException('Only a running reasoning checkpoint can be restored this way.');
+      throw const FormatException(
+        'Only a running reasoning checkpoint can be restored this way.',
+      );
     }
     final payload = jsonEncode({'version': 1, 'checkpoint': checkpoint});
     if (utf8.encode(payload).length > maxEnvelopeBytes) {

@@ -3,6 +3,10 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from dart_source import flat  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -19,11 +23,11 @@ class VerifiedWorkflowLearningContractTests(unittest.TestCase):
 
     def test_source_skill_identity_and_version_are_bound_to_the_run(self):
         service = self.read("apps/leo_app/lib/core/skills/skill_learning_service.dart")
-        self.assertIn("candidate.id == run.skillId", service)
-        self.assertIn("candidate.version == run.skillVersion", service)
-        self.assertIn("entry.value.instruction == sourceSkill!.steps[entry.key]", service)
-        self.assertIn("!sourceSkill.isValidated", service)
-        self.assertIn("LeoSkillStatus.active, LeoSkillStatus.disabled", service)
+        self.assertIn(flat("candidate.id == run.skillId"), flat(service))
+        self.assertIn(flat("candidate.version == run.skillVersion"), flat(service))
+        self.assertIn(flat("entry.value.instruction == sourceSkill!.steps[entry.key]"), flat(service))
+        self.assertIn(flat("!sourceSkill.isValidated"), flat(service))
+        self.assertIn(flat("LeoSkillStatus.active, LeoSkillStatus.disabled"), flat(service))
 
     def test_learning_input_is_data_minimized_and_excludes_sensitive_operational_data(self):
         service = self.read("apps/leo_app/lib/core/skills/skill_learning_service.dart")
@@ -86,8 +90,8 @@ class VerifiedWorkflowLearningContractTests(unittest.TestCase):
 
     def test_derived_proposal_ui_is_available_only_for_verified_runs(self):
         library = self.read("apps/leo_app/lib/features/skills/skill_library_page.dart")
-        self.assertIn("run.status == LeoSkillRunStatus.verified && widget.runtime != null", library)
-        self.assertIn("proposeFromVerifiedRun(run.taskId)", library)
+        self.assertIn(flat("run.status == LeoSkillRunStatus.verified && widget.runtime != null"), flat(library))
+        self.assertIn(flat("proposeFromVerifiedRun(run.taskId)"), flat(library))
 
 
 if __name__ == "__main__":

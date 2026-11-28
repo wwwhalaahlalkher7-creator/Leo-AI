@@ -22,18 +22,19 @@ class RuntimeBenchmarkRecord {
   final bool succeeded;
 
   Map<String, Object?> toJson() => <String, Object?>{
-        'timestamp_utc': timestampUtc.toUtc().toIso8601String(),
-        'elapsed_ms': elapsedMilliseconds,
-        'output_characters': outputCharacters,
-        'resident_bytes': residentBytes,
-        'peak_resident_bytes': peakResidentBytes,
-        'platform': platform,
-        'succeeded': succeeded,
-      };
+    'timestamp_utc': timestampUtc.toUtc().toIso8601String(),
+    'elapsed_ms': elapsedMilliseconds,
+    'output_characters': outputCharacters,
+    'resident_bytes': residentBytes,
+    'peak_resident_bytes': peakResidentBytes,
+    'platform': platform,
+    'succeeded': succeeded,
+  };
 
   factory RuntimeBenchmarkRecord.fromJson(Map<String, dynamic> json) {
     return RuntimeBenchmarkRecord(
-      timestampUtc: DateTime.tryParse(json['timestamp_utc'] as String? ?? '')?.toUtc() ??
+      timestampUtc:
+          DateTime.tryParse(json['timestamp_utc'] as String? ?? '')?.toUtc() ??
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
       elapsedMilliseconds: json['elapsed_ms'] as int? ?? 0,
       outputCharacters: json['output_characters'] as int? ?? 0,
@@ -56,12 +57,12 @@ class RuntimeBenchmarkSummary {
   });
 
   const RuntimeBenchmarkSummary.empty()
-      : sampleCount = 0,
-        medianLatencyMilliseconds = 0,
-        p95LatencyMilliseconds = 0,
-        averageOutputCharactersPerSecond = 0,
-        maximumPeakResidentBytes = 0,
-        successRatePercent = 0;
+    : sampleCount = 0,
+      medianLatencyMilliseconds = 0,
+      p95LatencyMilliseconds = 0,
+      averageOutputCharactersPerSecond = 0,
+      maximumPeakResidentBytes = 0,
+      successRatePercent = 0;
 
   final int sampleCount;
   final int medianLatencyMilliseconds;
@@ -102,7 +103,9 @@ class RuntimeBenchmarkStore {
           records.add(RuntimeBenchmarkRecord.fromJson(item));
         }
       }
-      return List<RuntimeBenchmarkRecord>.unmodifiable(records.take(maximumRecords));
+      return List<RuntimeBenchmarkRecord>.unmodifiable(
+        records.take(maximumRecords),
+      );
     } on FormatException {
       return const [];
     } on TypeError {
@@ -118,9 +121,17 @@ class RuntimeBenchmarkStore {
         record.residentBytes < 0 ||
         record.peakResidentBytes < 0 ||
         record.platform.length > 16 ||
-        !<String>{'android', 'windows', 'linux', 'macos', 'ios', 'unknown'}
-            .contains(record.platform)) {
-      throw ArgumentError('Runtime benchmark values are outside the safe range.');
+        !<String>{
+          'android',
+          'windows',
+          'linux',
+          'macos',
+          'ios',
+          'unknown',
+        }.contains(record.platform)) {
+      throw ArgumentError(
+        'Runtime benchmark values are outside the safe range.',
+      );
     }
     final preferences = await SharedPreferences.getInstance();
     if (!(preferences.getBool(enabledKey) ?? false)) return;
@@ -129,7 +140,8 @@ class RuntimeBenchmarkStore {
       records.removeAt(0);
     }
     String encoded = jsonEncode(records.map((item) => item.toJson()).toList());
-    while (utf8.encode(encoded).length > maximumSerializedBytes && records.length > 1) {
+    while (utf8.encode(encoded).length > maximumSerializedBytes &&
+        records.length > 1) {
       records.removeAt(0);
       encoded = jsonEncode(records.map((item) => item.toJson()).toList());
     }
@@ -140,13 +152,17 @@ class RuntimeBenchmarkStore {
   Future<RuntimeBenchmarkSummary> summary() async {
     final records = await readRecords();
     if (records.isEmpty) return const RuntimeBenchmarkSummary.empty();
-    final latencies = records.map((item) => item.elapsedMilliseconds).toList()..sort();
+    final latencies = records.map((item) => item.elapsedMilliseconds).toList()
+      ..sort();
     final median = latencies.length.isOdd
         ? latencies[latencies.length ~/ 2]
         : ((latencies[(latencies.length ~/ 2) - 1] +
-                latencies[latencies.length ~/ 2]) /
-            2).round();
-    final p95Index = ((latencies.length * 0.95).ceil().clamp(1, latencies.length)).toInt() - 1;
+                      latencies[latencies.length ~/ 2]) /
+                  2)
+              .round();
+    final p95Index =
+        ((latencies.length * 0.95).ceil().clamp(1, latencies.length)).toInt() -
+        1;
     // Failed/cancelled requests remain in latency and success-rate samples,
     // but must not inflate the output-throughput metric.
     final completedRecords = records.where((item) => item.succeeded).toList();
@@ -161,16 +177,16 @@ class RuntimeBenchmarkStore {
     final successful = completedRecords.length;
     final maxPeak = records.fold<int>(
       0,
-      (maximum, item) => item.peakResidentBytes > maximum
-          ? item.peakResidentBytes
-          : maximum,
+      (maximum, item) =>
+          item.peakResidentBytes > maximum ? item.peakResidentBytes : maximum,
     );
     return RuntimeBenchmarkSummary(
       sampleCount: records.length,
       medianLatencyMilliseconds: median,
       p95LatencyMilliseconds: latencies[p95Index],
-      averageOutputCharactersPerSecond:
-          totalSeconds > 0 ? totalCharacters / totalSeconds : 0,
+      averageOutputCharactersPerSecond: totalSeconds > 0
+          ? totalCharacters / totalSeconds
+          : 0,
       maximumPeakResidentBytes: maxPeak,
       successRatePercent: successful * 100 / records.length,
     );

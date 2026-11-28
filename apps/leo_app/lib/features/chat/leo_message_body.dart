@@ -24,12 +24,13 @@ class LeoMessageBody extends StatelessWidget {
         final plain = text.substring(cursor, match.start);
         if (plain.trim().isNotEmpty) children.add(_markdown(context, plain));
       }
-      final tex = (match.group(1) ??
-              match.group(2) ??
-              match.group(3) ??
-              match.group(4) ??
-              '')
-          .trim();
+      final tex =
+          (match.group(1) ??
+                  match.group(2) ??
+                  match.group(3) ??
+                  match.group(4) ??
+                  '')
+              .trim();
       if (tex.isNotEmpty) {
         final isDisplay = match.group(1) != null || match.group(2) != null;
         children.add(
@@ -91,8 +92,10 @@ class _LeoCodeBlockBuilder extends MarkdownElementBuilder {
   @override
   Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
     final code = element.textContent;
-    final language = (element.attributes['class'] ?? '')
-        .replaceFirst('language-', '');
+    final language = (element.attributes['class'] ?? '').replaceFirst(
+      'language-',
+      '',
+    );
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(vertical: 8),

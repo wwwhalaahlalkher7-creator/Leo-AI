@@ -17,7 +17,7 @@ import 'wav_encoder.dart';
 
 class LeoVoiceService {
   LeoVoiceService({VoicePackStore? packStore})
-      : _packStore = packStore ?? VoicePackStore();
+    : _packStore = packStore ?? VoicePackStore();
 
   static const int sampleRate = 16000;
   static const int maximumRecordingSeconds = 30;
@@ -68,7 +68,9 @@ class LeoVoiceService {
     _ensureNotDisposed();
     if (_recording) return;
     if (_transcribing) {
-      throw const VoiceEngineException('ينتظر Leo اكتمال تحويل التسجيل السابق.');
+      throw const VoiceEngineException(
+        'ينتظر Leo اكتمال تحويل التسجيل السابق.',
+      );
     }
     final generation = ++_captureGeneration;
 
@@ -98,12 +100,16 @@ class LeoVoiceService {
         final permitted = await recorder.hasPermission();
         _ensureCaptureGeneration(generation);
         if (!permitted) {
-          throw const VoicePermissionException('لم يتم منح Leo صلاحية استخدام الميكروفون.');
+          throw const VoicePermissionException(
+            'لم يتم منح Leo صلاحية استخدام الميكروفون.',
+          );
         }
       }
       const encoder = AudioEncoder.pcm16bits;
       if (!await recorder.isEncoderSupported(encoder)) {
-        throw const VoiceEngineException('تسجيل PCM16 غير مدعوم على هذا الجهاز.');
+        throw const VoiceEngineException(
+          'تسجيل PCM16 غير مدعوم على هذا الجهاز.',
+        );
       }
       _ensureCaptureGeneration(generation);
       final stream = await recorder.startStream(
@@ -163,7 +169,9 @@ class LeoVoiceService {
     }
     final availableSamples = bytes.length ~/ 2;
     final remainingSamples = _maximumSamples - _sampleCount;
-    final count = availableSamples < remainingSamples ? availableSamples : remainingSamples;
+    final count = availableSamples < remainingSamples
+        ? availableSamples
+        : remainingSamples;
     if (count <= 0) {
       _maximumDurationReached = true;
       return;
@@ -191,11 +199,15 @@ class LeoVoiceService {
       _ensureCaptureGeneration(generation);
     } catch (error) {
       if (error is VoiceCaptureCancelledException) rethrow;
-      _setVadFallback('تعذر فحص نموذج اكتشاف نهاية الكلام؛ سيبقى الإيقاف يدوياً. $error');
+      _setVadFallback(
+        'تعذر فحص نموذج اكتشاف نهاية الكلام؛ سيبقى الإيقاف يدوياً. $error',
+      );
       return;
     }
     if (!status.voiceActivityDetectionReady) {
-      _setVadFallback('نموذج اكتشاف نهاية الكلام غير مثبت أو غير سليم؛ سيبقى الإيقاف يدوياً.');
+      _setVadFallback(
+        'نموذج اكتشاف نهاية الكلام غير مثبت أو غير سليم؛ سيبقى الإيقاف يدوياً.',
+      );
       return;
     }
     try {
@@ -204,7 +216,10 @@ class LeoVoiceService {
       final detector = sherpa.VoiceActivityDetector(
         config: sherpa.VadModelConfig(
           sileroVad: sherpa.SileroVadModelConfig(
-            model: p.join(status.voiceActivityDetectionDirectory, 'silero_vad.onnx'),
+            model: p.join(
+              status.voiceActivityDetectionDirectory,
+              'silero_vad.onnx',
+            ),
             threshold: 0.5,
             minSilenceDuration: 0.8,
             minSpeechDuration: 0.25,
@@ -228,7 +243,9 @@ class LeoVoiceService {
       _vadActive = true;
     } catch (error) {
       if (error is VoiceCaptureCancelledException) rethrow;
-      _setVadFallback('تعذر تحميل نموذج اكتشاف الكلام؛ سيبقى الإيقاف يدوياً. $error');
+      _setVadFallback(
+        'تعذر تحميل نموذج اكتشاف الكلام؛ سيبقى الإيقاف يدوياً. $error',
+      );
       _disposeVad();
     }
   }
@@ -251,7 +268,9 @@ class LeoVoiceService {
         _drainVadSegments(vad);
       }
     } catch (error) {
-      _setVadFallback('تعطل اكتشاف نهاية الكلام؛ يمكنك إيقاف التسجيل يدوياً. $error');
+      _setVadFallback(
+        'تعطل اكتشاف نهاية الكلام؛ يمكنك إيقاف التسجيل يدوياً. $error',
+      );
       _vadActive = false;
       _vadFrames.clear();
       _vadStopScheduled = false;
@@ -272,7 +291,10 @@ class LeoVoiceService {
     final callback = _onVadSpeechEnded;
     if (callback != null) {
       scheduleMicrotask(() {
-        if (_recording && _vadActive && _vadStopScheduled && !_finishingCapture) {
+        if (_recording &&
+            _vadActive &&
+            _vadStopScheduled &&
+            !_finishingCapture) {
           callback();
         }
       });
@@ -299,7 +321,9 @@ class LeoVoiceService {
 
   /// Stops recording, runs local Qwen3-ASR off the UI isolate and returns text.
   /// The result is inserted into the composer; it is never sent automatically.
-  Future<String> stopAndTranscribe({bool reachedMaximumDuration = false}) async {
+  Future<String> stopAndTranscribe({
+    bool reachedMaximumDuration = false,
+  }) async {
     _ensureNotDisposed();
     if (reachedMaximumDuration) _maximumDurationReached = true;
     if (!_recording || _recorder == null) {
@@ -319,11 +343,15 @@ class LeoVoiceService {
       _ensureCaptureGeneration(generation);
       await _recordSubscription?.cancel();
       if (_recordingError != null) {
-        throw VoiceEngineException('حدث خطأ أثناء استقبال الصوت: $_recordingError');
+        throw VoiceEngineException(
+          'حدث خطأ أثناء استقبال الصوت: $_recordingError',
+        );
       }
 
       if (_sampleCount < minimumRecordingSamples) {
-        throw const VoiceEngineException('التسجيل قصير جداً. تحدث لمدة ربع ثانية على الأقل.');
+        throw const VoiceEngineException(
+          'التسجيل قصير جداً. تحدث لمدة ربع ثانية على الأقل.',
+        );
       }
 
       final status = await _packStore.inspect();
@@ -437,7 +465,9 @@ class LeoVoiceService {
       throw const VoiceEngineException('لا يوجد نص مناسب لتحويله إلى صوت.');
     }
     if (speechText.length > 3000) {
-      throw const VoiceEngineException('النص طويل جداً للتشغيل الصوتي. حدد جزءاً أقصر.');
+      throw const VoiceEngineException(
+        'النص طويل جداً للتشغيل الصوتي. حدد جزءاً أقصر.',
+      );
     }
 
     final status = await _packStore.inspect();
@@ -455,7 +485,9 @@ class LeoVoiceService {
       playbackDirectory.path,
       'leo-tts-${DateTime.now().microsecondsSinceEpoch}-$generation.wav',
     );
-    final language = RegExp(r'[\u0600-\u06FF]').hasMatch(speechText) ? 'ar' : 'en';
+    final language = RegExp(r'[\u0600-\u06FF]').hasMatch(speechText)
+        ? 'ar'
+        : 'en';
 
     try {
       await _synthesizeInWorker(
@@ -470,8 +502,9 @@ class LeoVoiceService {
       final playback = Completer<void>();
       _playbackCompleter = playback;
       _activePlaybackGeneration = generation;
-      _playerCompleteSubscription ??=
-          player.onPlayerComplete.listen((_) => _completeCurrentPlayback());
+      _playerCompleteSubscription ??= player.onPlayerComplete.listen(
+        (_) => _completeCurrentPlayback(),
+      );
       await player.play(DeviceFileSource(wavPath));
       await playback.future;
     } finally {
@@ -513,9 +546,12 @@ class LeoVoiceService {
   String _prepareSpeechText(String source) {
     var text = source
         .replaceAll(RegExp(r'```[\s\S]*?```'), ' مقطع برمجي. ')
-        .replaceAll(RegExp(r'`([^`]+)`'), ' $1 ')
+        .replaceAllMapped(RegExp(r'`([^`]+)`'), (match) => ' ${match[1]} ')
         .replaceAll(RegExp(r'!\[([^\]]*)\]\([^)]*\)'), ' ')
-        .replaceAll(RegExp(r'\[([^\]]+)\]\([^)]*\)'), r'$1')
+        .replaceAllMapped(
+          RegExp(r'\[([^\]]+)\]\([^)]*\)'),
+          (match) => match[1] ?? '',
+        )
         .replaceAll(RegExp(r'^\s{0,3}#{1,6}\s*', multiLine: true), '')
         .replaceAll(RegExp(r'[*_~]{1,3}'), '')
         .replaceAll(RegExp(r'\$\$[\s\S]*?\$\$'), ' معادلة رياضية. ')
@@ -635,9 +671,12 @@ class LeoVoiceService {
       final stage = outcome['stage'] as String? ?? 'unknown';
       final detail = outcome['error']?.toString() ?? 'سبب غير معروف';
       final message = switch (stage) {
-        'native_runtime' => 'تعذر تحميل مكتبة محرك الصوت الأصلية. تحقق من تثبيت نسخة التطبيق المطابقة للنظام. $detail',
-        'model_load' => 'تعذر تحميل نموذج التعرف. افحص ملفات الحزمة وبصماتها ثم أعد استيرادها عند الحاجة. $detail',
-        'inference' => 'فشل تحليل التسجيل بالنموذج. قد تكون الذاكرة غير كافية أو الملف الصوتي غير مناسب. $detail',
+        'native_runtime' =>
+          'تعذر تحميل مكتبة محرك الصوت الأصلية. تحقق من تثبيت نسخة التطبيق المطابقة للنظام. $detail',
+        'model_load' =>
+          'تعذر تحميل نموذج التعرف. افحص ملفات الحزمة وبصماتها ثم أعد استيرادها عند الحاجة. $detail',
+        'inference' =>
+          'فشل تحليل التسجيل بالنموذج. قد تكون الذاكرة غير كافية أو الملف الصوتي غير مناسب. $detail',
         _ => 'فشل تشغيل محرك التعرف على الكلام. $detail',
       };
       throw VoiceEngineException(message);
@@ -678,9 +717,15 @@ class LeoVoiceService {
           sherpa.OfflineTtsConfig(
             model: sherpa.OfflineTtsModelConfig(
               supertonic: sherpa.OfflineTtsSupertonicModelConfig(
-                durationPredictor: p.join(modelDirectory, 'duration_predictor.int8.onnx'),
+                durationPredictor: p.join(
+                  modelDirectory,
+                  'duration_predictor.int8.onnx',
+                ),
                 textEncoder: p.join(modelDirectory, 'text_encoder.int8.onnx'),
-                vectorEstimator: p.join(modelDirectory, 'vector_estimator.int8.onnx'),
+                vectorEstimator: p.join(
+                  modelDirectory,
+                  'vector_estimator.int8.onnx',
+                ),
                 vocoder: p.join(modelDirectory, 'vocoder.int8.onnx'),
                 ttsJson: p.join(modelDirectory, 'tts.json'),
                 unicodeIndexer: p.join(modelDirectory, 'unicode_indexer.bin'),
@@ -721,7 +766,9 @@ class LeoVoiceService {
           ),
         );
         if (audio.samples.isEmpty || audio.sampleRate <= 0) {
-          throw const VoiceEngineException('لم ينتج محرك الصوت ملفاً صوتياً صالحاً.');
+          throw const VoiceEngineException(
+            'لم ينتج محرك الصوت ملفاً صوتياً صالحاً.',
+          );
         }
         await writeMonoPcm16Wav(
           path: outputPath,
@@ -760,9 +807,12 @@ class LeoVoiceService {
       final stage = outcome['stage'] as String? ?? 'unknown';
       final detail = outcome['error']?.toString() ?? 'سبب غير معروف';
       final message = switch (stage) {
-        'native_runtime' => 'تعذر تحميل مكتبة الصوت الأصلية على هذا النظام. $detail',
-        'model_load' => 'تعذر تحميل نموذج توليد الصوت. افحص ملفاته وسجل السلامة ثم أعد استيراده. $detail',
-        'inference' => 'فشل توليد الصوت. قد تكون الذاكرة غير كافية أو إعدادات النموذج غير متوافقة. $detail',
+        'native_runtime' =>
+          'تعذر تحميل مكتبة الصوت الأصلية على هذا النظام. $detail',
+        'model_load' =>
+          'تعذر تحميل نموذج توليد الصوت. افحص ملفاته وسجل السلامة ثم أعد استيراده. $detail',
+        'inference' =>
+          'فشل توليد الصوت. قد تكون الذاكرة غير كافية أو إعدادات النموذج غير متوافقة. $detail',
         _ => 'فشل تشغيل محرك تحويل النص إلى كلام. $detail',
       };
       throw VoiceEngineException(message);
@@ -781,9 +831,12 @@ class LeoVoiceService {
           inferenceMilliseconds: outcome['inference_ms'] as int? ?? 0,
           processPeakRssBytes: outcome['process_peak_rss_bytes'] as int? ?? 0,
           engineVersion: outcome['engine_version'] as String? ?? 'غير متاح',
-          onnxRuntimeVersion: outcome['onnxruntime_version'] as String? ?? 'غير متاح',
+          onnxRuntimeVersion:
+              outcome['onnxruntime_version'] as String? ?? 'غير متاح',
           completedAtUtc: DateTime.now().toUtc(),
-          errorStage: outcome['ok'] == true ? null : outcome['stage'] as String?,
+          errorStage: outcome['ok'] == true
+              ? null
+              : outcome['stage'] as String?,
         ),
       );
     } catch (_) {
@@ -821,7 +874,7 @@ class VoiceEngineException implements Exception {
 
 class VoiceCaptureCancelledException extends VoiceEngineException {
   const VoiceCaptureCancelledException()
-      : super('أُلغي التسجيل قبل اكتمال تحويله.');
+    : super('أُلغي التسجيل قبل اكتمال تحويله.');
 }
 
 class VoicePermissionException extends VoiceEngineException {

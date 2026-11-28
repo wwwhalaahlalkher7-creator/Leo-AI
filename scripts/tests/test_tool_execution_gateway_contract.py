@@ -4,6 +4,10 @@ import re
 import unittest
 from pathlib import Path
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from dart_source import flat  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -50,9 +54,9 @@ class ToolExecutionGatewayContractTests(unittest.TestCase):
             "composeMessage(", "openUrl(", "launchAndroidApp(", "launchWindowsApp(",
         )
         for call in required_calls:
-            self.assertIn(call, self.gateway)
-        self.assertNotIn("MethodChannel(", self.gateway)
-        self.assertIn("await _capabilities.platformName", self.gateway)
+            self.assertIn(flat(call), flat(self.gateway))
+        self.assertNotIn(flat("MethodChannel("), flat(self.gateway))
+        self.assertIn(flat("await _capabilities.platformName"), flat(self.gateway))
 
     def test_permission_and_action_approval_remain_owned_by_capability_hub(self):
         for marker in ("_showConsent(", "_showActionApproval(", "checkOsPermission(", "requestOsPermission("):

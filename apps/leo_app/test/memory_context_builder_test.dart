@@ -8,15 +8,15 @@ LeoMemoryEntry entry({
   bool active = true,
   String content = 'يفضل المستخدم العمل دون خدمات مدفوعة',
 }) => LeoMemoryEntry(
-      id: id,
-      kind: LeoMemoryKind.personal,
-      content: content,
-      tags: const ['تفضيلات'],
-      createdAtUtc: '2026-11-15T00:00:00Z',
-      updatedAtUtc: '2026-11-15T00:00:00Z',
-      userApproved: approved,
-      active: active,
-    );
+  id: id,
+  kind: LeoMemoryKind.personal,
+  content: content,
+  tags: const ['تفضيلات'],
+  createdAtUtc: '2026-11-15T00:00:00Z',
+  updatedAtUtc: '2026-11-15T00:00:00Z',
+  userApproved: approved,
+  active: active,
+);
 
 void main() {
   const builder = MemoryContextBuilder();

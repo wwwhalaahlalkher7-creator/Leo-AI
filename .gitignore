@@ -59,3 +59,8 @@ third_party/llama.cpp/
 *.sqlite3
 *.sqlite3-wal
 *.sqlite3-shm
+
+# Python caches and IDE project files
+__pycache__/
+*.py[cod]
+*.iml

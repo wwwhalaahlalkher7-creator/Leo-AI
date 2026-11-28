@@ -5,13 +5,17 @@ import 'package:leo_app/core/skills/skill_repository.dart';
 import 'package:leo_app/features/skills/skill_library_page.dart';
 
 void main() {
-  testWidgets('skill library explains its safety boundary and empty state', (tester) async {
-    await tester.pumpWidget(const MaterialApp(
-      home: Directionality(
-        textDirection: TextDirection.rtl,
-        child: SkillLibraryPage(repository: _EmptySkillRepository()),
+  testWidgets('skill library explains its safety boundary and empty state', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Directionality(
+          textDirection: TextDirection.rtl,
+          child: SkillLibraryPage(repository: _EmptySkillRepository()),
+        ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('مهارات Leo'), findsOneWidget);
@@ -46,7 +50,10 @@ class _EmptySkillRepository implements SkillRepository {
   Future<LeoSkill> disable(String skillId) => throw UnimplementedError();
 
   @override
-  Future<List<LeoSkill>> findApplicable(String request, {int limit = 2}) async => const [];
+  Future<List<LeoSkill>> findApplicable(
+    String request, {
+    int limit = 2,
+  }) async => const [];
 
   @override
   Future<List<LeoSkill>> list() async => const [];

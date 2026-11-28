@@ -22,7 +22,9 @@ void main() {
     expect(find.text('المحرك غير مربوط'), findsOneWidget);
   });
 
-  testWidgets('the initial chat suggestions can fill the composer', (tester) async {
+  testWidgets('the initial chat suggestions can fill the composer', (
+    tester,
+  ) async {
     await tester.pumpWidget(const LeoApp());
     await tester.pumpAndSettle();
 
@@ -33,7 +35,9 @@ void main() {
     expect(input.controller!.text, 'اشرح لي النهايات خطوة بخطوة');
   });
 
-  testWidgets('chat sends requests through an injected streaming runtime', (tester) async {
+  testWidgets('chat sends requests through an injected streaming runtime', (
+    tester,
+  ) async {
     final runtime = _StreamingTestRuntime();
     await tester.pumpWidget(
       MaterialApp(
@@ -57,7 +61,9 @@ void main() {
     expect(runtime.requests.single.messages.last.content, 'رسالة اختبار');
   });
 
-  testWidgets('only active validated skills enter transient chat context', (tester) async {
+  testWidgets('only active validated skills enter transient chat context', (
+    tester,
+  ) async {
     final runtime = _StreamingTestRuntime();
     final preferences = await SharedPreferences.getInstance();
     final chatRepository = ChatRepository(preferences);
@@ -82,20 +88,25 @@ void main() {
 
     final request = runtime.requests.single;
     expect(
-      request.messages.any((message) =>
-          message.role == 'system' &&
-          message.content.contains('<leo_skill_guidance>')),
+      request.messages.any(
+        (message) =>
+            message.role == 'system' &&
+            message.content.contains('<leo_skill_guidance>'),
+      ),
       isTrue,
     );
     final savedMessages = chatRepository.loadSessions().single.messages;
     expect(
-      savedMessages.every((message) =>
-          !message.content.contains('<leo_skill_guidance>')),
+      savedMessages.every(
+        (message) => !message.content.contains('<leo_skill_guidance>'),
+      ),
       isTrue,
     );
   });
 
-  testWidgets('skill library is reachable from the chat header', (tester) async {
+  testWidgets('skill library is reachable from the chat header', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Directionality(
@@ -136,7 +147,6 @@ class _StreamingTestRuntime implements AssistantRuntimeClient {
   Future<void> cancel(String requestId) async {}
 }
 
-
 class _EmptyMemoryRepository implements MemoryRepository {
   @override
   Future<LeoMemoryEntry> approve(String memoryId) =>
@@ -146,10 +156,16 @@ class _EmptyMemoryRepository implements MemoryRepository {
   Future<bool> delete(String memoryId) => Future.error(UnimplementedError());
 
   @override
-  Future<List<LeoMemoryEntry>> list({bool includePending = true, int limit = 200}) async => const [];
+  Future<List<LeoMemoryEntry>> list({
+    bool includePending = true,
+    int limit = 200,
+  }) async => const [];
 
   @override
-  Future<List<LeoMemorySearchHit>> search(String query, {int limit = 5}) async => const [];
+  Future<List<LeoMemorySearchHit>> search(
+    String query, {
+    int limit = 5,
+  }) async => const [];
 
   @override
   Future<LeoMemoryEntry> propose({
@@ -186,10 +202,10 @@ class _EmptyMemoryRepository implements MemoryRepository {
   }) => Future.error(UnimplementedError());
 }
 
-
 class _EmptySkillRepository implements SkillRepository {
   @override
-  Future<LeoSkill> activate(String skillId) => Future.error(UnimplementedError());
+  Future<LeoSkill> activate(String skillId) =>
+      Future.error(UnimplementedError());
 
   @override
   Future<LeoSkill> createProposal({
@@ -207,10 +223,14 @@ class _EmptySkillRepository implements SkillRepository {
   Future<bool> delete(String skillId) => Future.error(UnimplementedError());
 
   @override
-  Future<LeoSkill> disable(String skillId) => Future.error(UnimplementedError());
+  Future<LeoSkill> disable(String skillId) =>
+      Future.error(UnimplementedError());
 
   @override
-  Future<List<LeoSkill>> findApplicable(String request, {int limit = 2}) async => const [];
+  Future<List<LeoSkill>> findApplicable(
+    String request, {
+    int limit = 2,
+  }) async => const [];
 
   @override
   Future<List<LeoSkill>> list() async => const [];
@@ -232,33 +252,36 @@ class _EmptySkillRepository implements SkillRepository {
   }) => Future.error(UnimplementedError());
 
   @override
-  Future<LeoSkill> validate(String skillId) => Future.error(UnimplementedError());
+  Future<LeoSkill> validate(String skillId) =>
+      Future.error(UnimplementedError());
 }
-
 
 class _ActiveSkillRepository extends _EmptySkillRepository {
   @override
-  Future<List<LeoSkill>> findApplicable(String request, {int limit = 2}) async => [
-        const LeoSkill(
-          id: 'skill-files',
-          name: 'تنظيم الملفات الدراسية',
-          description: 'خطوات لترتيب الملفات حسب المادة والفصل.',
-          triggers: ['رتب ملفاتي الدراسية'],
-          instructions: 'اعرض خطة قبل تغيير أي ملف.',
-          steps: ['استكشف الملفات.', 'اقترح هيكل المجلدات.', 'انتظر الموافقة.'],
-          testCases: [],
-          requiredCapabilities: ['files.read', 'files.write'],
-          status: LeoSkillStatus.active,
-          version: '0.1.0',
-          createdAtUtc: '2026-11-15T00:00:00Z',
-          updatedAtUtc: '2026-11-15T00:00:00Z',
-          history: [],
-          validationReport: LeoSkillValidationReport(
-            checkedAtUtc: '2026-11-15T00:00:00Z',
-            passed: true,
-            checks: [],
-            disclaimer: 'Preflight only',
-          ),
-        ),
-      ];
+  Future<List<LeoSkill>> findApplicable(
+    String request, {
+    int limit = 2,
+  }) async => [
+    const LeoSkill(
+      id: 'skill-files',
+      name: 'تنظيم الملفات الدراسية',
+      description: 'خطوات لترتيب الملفات حسب المادة والفصل.',
+      triggers: ['رتب ملفاتي الدراسية'],
+      instructions: 'اعرض خطة قبل تغيير أي ملف.',
+      steps: ['استكشف الملفات.', 'اقترح هيكل المجلدات.', 'انتظر الموافقة.'],
+      testCases: [],
+      requiredCapabilities: ['files.read', 'files.write'],
+      status: LeoSkillStatus.active,
+      version: '0.1.0',
+      createdAtUtc: '2026-11-15T00:00:00Z',
+      updatedAtUtc: '2026-11-15T00:00:00Z',
+      history: [],
+      validationReport: LeoSkillValidationReport(
+        checkedAtUtc: '2026-11-15T00:00:00Z',
+        passed: true,
+        checks: [],
+        disclaimer: 'Preflight only',
+      ),
+    ),
+  ];
 }

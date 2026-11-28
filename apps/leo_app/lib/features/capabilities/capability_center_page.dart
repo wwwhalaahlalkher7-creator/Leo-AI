@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/capabilities/capability_repository.dart';
 
 class CapabilityCenterPage extends StatefulWidget {
-  const CapabilityCenterPage({super.key, this.repository}) ;
+  const CapabilityCenterPage({super.key, this.repository});
 
   final CapabilityRepository? repository;
 
@@ -37,8 +37,8 @@ class _CapabilityCenterPageState extends State<CapabilityCenterPage> {
       final platform = Platform.isWindows
           ? 'windows'
           : Platform.isAndroid
-              ? 'android'
-              : 'unsupported';
+          ? 'android'
+          : 'unsupported';
       final values = await _repository.list(platform);
       final grants = await _repository.listPermissions();
       if (!mounted) return;
@@ -68,7 +68,8 @@ class _CapabilityCenterPageState extends State<CapabilityCenterPage> {
   }
 
   Future<void> _revoke(LeoPermissionRecord record) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('إيقاف إذن Leo؟'),
@@ -112,99 +113,101 @@ class _CapabilityCenterPageState extends State<CapabilityCenterPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? _ErrorPanel(message: _error!, onRetry: _load)
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+          ? _ErrorPanel(message: _error!, onRetry: _load)
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                children: [
+                  const _NoticeCard(),
+                  const SizedBox(height: 18),
+                  Row(
                     children: [
-                      const _NoticeCard(),
-                      const SizedBox(height: 18),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'قدرات $_platform',
-                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-                            ),
+                      Expanded(
+                        child: Text(
+                          'قدرات $_platform',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
                           ),
-                          Chip(label: Text(_platform.toUpperCase())),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      for (final capability in _capabilities)
-                        _CapabilityTile(
-                          capability: capability,
-                          record: _recordFor(capability),
-                          onRevoke: _recordFor(capability)?.granted == true
-                              ? () => _revoke(_recordFor(capability)!)
-                              : null,
                         ),
-                      const SizedBox(height: 24),
-                      const Text(
-                        'سجل الأذونات',
-                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
                       ),
-                      const SizedBox(height: 8),
-                      if (_permissions.isEmpty)
-                        const _EmptyPermissions()
-                      else
-                        for (final record in _permissions)
-                          Card(
-                            child: ListTile(
-                              leading: Icon(
-                                record.granted
-                                    ? Icons.verified_user_outlined
-                                    : Icons.block_outlined,
-                                color: record.granted
-                                    ? Colors.greenAccent
-                                    : Colors.orangeAccent,
-                              ),
-                              title: Text(record.capabilityId),
-                              subtitle: Text(
-                                '${record.scope}\n${record.granted ? 'مسموح داخل Leo' : 'مرفوض أو ملغى'}',
-                              ),
-                              isThreeLine: true,
-                              trailing: record.granted
-                                  ? IconButton(
-                                      tooltip: 'إلغاء إذن Leo',
-                                      onPressed: () => _revoke(record),
-                                      icon: const Icon(Icons.remove_circle_outline),
-                                    )
-                                  : const Icon(Icons.do_not_disturb_on_outlined),
-                            ),
-                          ),
+                      Chip(label: Text(_platform.toUpperCase())),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  for (final capability in _capabilities)
+                    _CapabilityTile(
+                      capability: capability,
+                      record: _recordFor(capability),
+                      onRevoke: _recordFor(capability)?.granted == true
+                          ? () => _revoke(_recordFor(capability)!)
+                          : null,
+                    ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'سجل الأذونات',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  if (_permissions.isEmpty)
+                    const _EmptyPermissions()
+                  else
+                    for (final record in _permissions)
+                      Card(
+                        child: ListTile(
+                          leading: Icon(
+                            record.granted
+                                ? Icons.verified_user_outlined
+                                : Icons.block_outlined,
+                            color: record.granted
+                                ? Colors.greenAccent
+                                : Colors.orangeAccent,
+                          ),
+                          title: Text(record.capabilityId),
+                          subtitle: Text(
+                            '${record.scope}\n${record.granted ? 'مسموح داخل Leo' : 'مرفوض أو ملغى'}',
+                          ),
+                          isThreeLine: true,
+                          trailing: record.granted
+                              ? IconButton(
+                                  tooltip: 'إلغاء إذن Leo',
+                                  onPressed: () => _revoke(record),
+                                  icon: const Icon(Icons.remove_circle_outline),
+                                )
+                              : const Icon(Icons.do_not_disturb_on_outlined),
+                        ),
+                      ),
+                ],
+              ),
+            ),
     );
   }
 }
-
 
 class _NoticeCard extends StatelessWidget {
   const _NoticeCard();
 
   @override
   Widget build(BuildContext context) => Card(
-        color: const Color(0xFF18263A),
-        child: const Padding(
-          padding: EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.shield_outlined, color: Color(0xFF9BB0FF)),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'لا يطلب Leo صلاحيات عند التشغيل الأول. عند تنفيذ مهمة تحتاج إلى قدرة معينة، سيشرح سبب الطلب ويطلب موافقتك أولاً، ثم يطلب إذن النظام عند الحاجة. الموافقة على استخدام القدرة لا تعني الموافقة التلقائية على إرسال رسالة أو حذف ملف أو تنفيذ إجراء حساس.',
-                  style: TextStyle(height: 1.55),
-                ),
-              ),
-            ],
+    color: const Color(0xFF18263A),
+    child: const Padding(
+      padding: EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.shield_outlined, color: Color(0xFF9BB0FF)),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'لا يطلب Leo صلاحيات عند التشغيل الأول. عند تنفيذ مهمة تحتاج إلى قدرة معينة، سيشرح سبب الطلب ويطلب موافقتك أولاً، ثم يطلب إذن النظام عند الحاجة. الموافقة على استخدام القدرة لا تعني الموافقة التلقائية على إرسال رسالة أو حذف ملف أو تنفيذ إجراء حساس.',
+              style: TextStyle(height: 1.55),
+            ),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }
 
 class _CapabilityTile extends StatelessWidget {
@@ -225,10 +228,10 @@ class _CapabilityTile extends StatelessWidget {
     final status = !ready
         ? 'غير مفعّلة بعد'
         : granted
-            ? 'إذن Leo مفعّل'
-            : record != null
-                ? 'لم يُمنح أو تم إلغاؤه'
-                : 'يُطلب عند أول استخدام';
+        ? 'إذن Leo مفعّل'
+        : record != null
+        ? 'لم يُمنح أو تم إلغاؤه'
+        : 'يُطلب عند أول استخدام';
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -243,19 +246,15 @@ class _CapabilityTile extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
-                Chip(
-                  label: Text(status),
-                  visualDensity: VisualDensity.compact,
-                ),
+                Chip(label: Text(status), visualDensity: VisualDensity.compact),
               ],
             ),
             Text(capability.description, style: const TextStyle(height: 1.45)),
             const SizedBox(height: 7),
             Text(
               'المعرّف: ${capability.id}  •  مستوى الخطورة: ${capability.risk.name}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF9EADC3),
-                  ),
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: const Color(0xFF9EADC3)),
             ),
             if (onRevoke != null)
               Align(
@@ -278,22 +277,22 @@ class _EmptyPermissions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              const Icon(Icons.lock_outline, size: 30, color: Color(0xFF9BB0FF)),
-              const SizedBox(height: 8),
-              const Text('لم يمنح Leo أي أذونات بعد.'),
-              const SizedBox(height: 4),
-              Text(
-                'ستظهر هنا الأذونات التي وافقت عليها عند استخدامها.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          const Icon(Icons.lock_outline, size: 30, color: Color(0xFF9BB0FF)),
+          const SizedBox(height: 8),
+          const Text('لم يمنح Leo أي أذونات بعد.'),
+          const SizedBox(height: 4),
+          Text(
+            'ستظهر هنا الأذونات التي وافقت عليها عند استخدامها.',
+            style: Theme.of(context).textTheme.bodySmall,
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }
 
 class _ErrorPanel extends StatelessWidget {
@@ -304,20 +303,23 @@ class _ErrorPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 36),
-              const SizedBox(height: 10),
-              const Text('تعذر تحميل قدرات الجهاز.'),
-              const SizedBox(height: 6),
-              Text(message, textAlign: TextAlign.center),
-              const SizedBox(height: 14),
-              FilledButton.tonal(onPressed: onRetry, child: const Text('إعادة المحاولة')),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline, size: 36),
+          const SizedBox(height: 10),
+          const Text('تعذر تحميل قدرات الجهاز.'),
+          const SizedBox(height: 6),
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 14),
+          FilledButton.tonal(
+            onPressed: onRetry,
+            child: const Text('إعادة المحاولة'),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }

@@ -15,6 +15,11 @@
 - The native generation reserve is a fixed 96 MiB check after the model is loaded. It does not prove that the operating system can satisfy every later allocation, and Android/Linux available-memory reporting can differ from per-process/cgroup limits.
 - The pending-cancellation handshake and context changes are source-implemented. Rust/Dart/Flutter/FRB tests, APK/EXE builds and physical long-chat/interruption/low-memory tests still require the pinned CI toolchains and devices.
 
+### Fixed
+- Fixed an invalid Dart string (`' $1 '`) in the speech text preparation of `leo_voice_service.dart` that stopped `dart format` and compilation. Inline-code and Markdown-link text now use `replaceAllMapped`, so the captured text is kept exactly.
+- Applied `dart format` (Dart 3.13.1, the CI version) to the whole Flutter app and its tests so the CI format gate passes.
+- Contract tests that inspect Dart source now compare formatting-independent text (`scripts/tests/dart_source.py`), so future `dart format` runs do not break them.
+
 ## v0.26.0 — ALPHA
 
 ### Added

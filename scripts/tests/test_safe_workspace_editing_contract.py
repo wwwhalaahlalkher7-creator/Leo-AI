@@ -4,6 +4,10 @@ import json
 import unittest
 from pathlib import Path
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from dart_source import flat  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -48,10 +52,10 @@ class SafeWorkspaceEditingContractTests(unittest.TestCase):
 
     def test_protocol_scopes_workspace_write_to_file_operator_and_exact_schema(self):
         protocol = read("apps/leo_app/lib/core/tools/tool_call_protocol.dart")
-        self.assertIn("'file_operator' => name == 'files.read_selected' || name == 'files.open_selected' || name == 'workspace.write_file'", protocol)
-        self.assertIn("'workspace.write_file' => const {'relative_path', 'content'}", protocol)
-        self.assertIn("WorkspaceWritePolicy.validate", protocol)
-        self.assertIn("maxPayloadBytes = 40 * 1024", protocol)
+        self.assertIn(flat("'file_operator' => name == 'files.read_selected' || name == 'files.open_selected' || name == 'workspace.write_file'"), flat(protocol))
+        self.assertIn(flat("'workspace.write_file' => const {'relative_path', 'content'}"), flat(protocol))
+        self.assertIn(flat("WorkspaceWritePolicy.validate"), flat(protocol))
+        self.assertIn(flat("maxPayloadBytes = 40 * 1024"), flat(protocol))
 
     def test_capability_hub_orders_folder_pick_preview_and_user_approval_before_apply(self):
         service = read("apps/leo_app/lib/core/capabilities/capability_hub_service.dart")

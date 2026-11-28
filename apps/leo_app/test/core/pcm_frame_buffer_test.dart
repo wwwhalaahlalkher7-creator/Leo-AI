@@ -8,8 +8,12 @@ void main() {
   group('PcmFrameBuffer', () {
     test('joins irregular chunks into ordered fixed-size frames', () {
       final buffer = PcmFrameBuffer(frameSize: 512);
-      final first = Float32List.fromList(List<double>.generate(300, (i) => i.toDouble()));
-      final second = Float32List.fromList(List<double>.generate(700, (i) => (i + 300).toDouble()));
+      final first = Float32List.fromList(
+        List<double>.generate(300, (i) => i.toDouble()),
+      );
+      final second = Float32List.fromList(
+        List<double>.generate(700, (i) => (i + 300).toDouble()),
+      );
 
       final firstFrames = buffer.add(first);
       expect(firstFrames, isEmpty);
@@ -22,7 +26,11 @@ void main() {
       expect(secondFrames.single.last, 511);
       expect(buffer.pendingSamples, 488);
 
-      final finalFrames = buffer.add(Float32List.fromList(List<double>.generate(24, (i) => (i + 1000).toDouble())));
+      final finalFrames = buffer.add(
+        Float32List.fromList(
+          List<double>.generate(24, (i) => (i + 1000).toDouble()),
+        ),
+      );
       expect(finalFrames, hasLength(1));
       expect(finalFrames.single.first, 512);
       expect(finalFrames.single.last, 1023);

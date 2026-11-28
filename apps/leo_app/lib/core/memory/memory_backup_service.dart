@@ -35,25 +35,36 @@ class MemoryBackupService {
 
   Future<List<int>> exportEncrypted(String passphrase) async {
     _validatePassphrase(passphrase);
-    final entries = await _repository.list(includePending: true, limit: maxEntries + 1);
+    final entries = await _repository.list(
+      includePending: true,
+      limit: maxEntries + 1,
+    );
     if (entries.length > maxEntries) {
-      throw const FormatException('تحتوي الذاكرة على سجلات أكثر من حد النسخ الاحتياطي.');
+      throw const FormatException(
+        'تحتوي الذاكرة على سجلات أكثر من حد النسخ الاحتياطي.',
+      );
     }
     final payload = <String, Object?>{
       'format': format,
       'version': schemaVersion,
       'createdAtUtc': DateTime.now().toUtc().toIso8601String(),
-      'records': entries.map((entry) => <String, Object?>{
-        'kind': entry.kind.name,
-        'content': entry.content,
-        'tags': entry.tags,
-        'createdAtUtc': entry.createdAtUtc,
-        // Approval/active state and source paths are intentionally omitted.
-      }).toList(growable: false),
+      'records': entries
+          .map(
+            (entry) => <String, Object?>{
+              'kind': entry.kind.name,
+              'content': entry.content,
+              'tags': entry.tags,
+              'createdAtUtc': entry.createdAtUtc,
+              // Approval/active state and source paths are intentionally omitted.
+            },
+          )
+          .toList(growable: false),
     };
     final clearBytes = utf8.encode(jsonEncode(payload));
     if (clearBytes.length > maxBackupBytes) {
-      throw const FormatException('حجم بيانات الذاكرة أكبر من حد ملف النسخة الاحتياطية.');
+      throw const FormatException(
+        'حجم بيانات الذاكرة أكبر من حد ملف النسخة الاحتياطية.',
+      );
     }
     final salt = _randomBytes(16);
     final derivedKey = await _deriveKey(passphrase, salt);
@@ -103,7 +114,9 @@ class MemoryBackupService {
       secretKey: derivedKey,
     );
     if (clear.length > maxBackupBytes) {
-      throw const FormatException('محتوى النسخة الاحتياطية أكبر من الحد المسموح.');
+      throw const FormatException(
+        'محتوى النسخة الاحتياطية أكبر من الحد المسموح.',
+      );
     }
     final payload = jsonDecode(utf8.decode(clear));
     if (payload is! Map<String, dynamic> ||
@@ -114,7 +127,9 @@ class MemoryBackupService {
     }
     final records = payload['records'] as List;
     if (records.length > maxEntries) {
-      throw const FormatException('تحتوي النسخة الاحتياطية على سجلات أكثر من الحد المسموح.');
+      throw const FormatException(
+        'تحتوي النسخة الاحتياطية على سجلات أكثر من الحد المسموح.',
+      );
     }
 
     var proposed = 0;
@@ -130,12 +145,19 @@ class MemoryBackupService {
       final tagsValue = raw['tags'];
       final createdAtValue = raw['createdAtUtc'];
       final kind = kindName is String
-          ? LeoMemoryKind.values.where((value) => value.name == kindName).firstOrNull
+          ? LeoMemoryKind.values
+                .where((value) => value.name == kindName)
+                .firstOrNull
           : null;
-      if (kind == null || content is! String || content.trim().isEmpty ||
-          content.runes.length > maxContentCharacters || tagsValue is! List ||
-          tagsValue.length > 20 || tagsValue.any((tag) => tag is! String) ||
-          createdAtValue is! String || DateTime.tryParse(createdAtValue) == null) {
+      if (kind == null ||
+          content is! String ||
+          content.trim().isEmpty ||
+          content.runes.length > maxContentCharacters ||
+          tagsValue is! List ||
+          tagsValue.length > 20 ||
+          tagsValue.any((tag) => tag is! String) ||
+          createdAtValue is! String ||
+          DateTime.tryParse(createdAtValue) == null) {
         invalid++;
         continue;
       }
@@ -191,7 +213,9 @@ class MemoryBackupService {
     if (passphrase.runes.length < 12 ||
         utf8.encode(passphrase).length > 256 ||
         passphrase.trim() != passphrase) {
-      throw const FormatException('يجب أن تتكون كلمة مرور النسخة من 12 محرفاً على الأقل، دون مسافات طرفية.');
+      throw const FormatException(
+        'يجب أن تتكون كلمة مرور النسخة من 12 محرفاً على الأقل، دون مسافات طرفية.',
+      );
     }
   }
 }

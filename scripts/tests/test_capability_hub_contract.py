@@ -5,6 +5,10 @@ import re
 import unittest
 from pathlib import Path
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from dart_source import flat  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -136,13 +140,13 @@ class CapabilityHubContractTests(unittest.TestCase):
 
     def test_url_and_message_arguments_are_bounded_before_native_handoff(self):
         service = (ROOT / "apps/leo_app/lib/core/capabilities/capability_hub_service.dart").read_text(encoding="utf-8")
-        self.assertIn("url.length > 2048", service)
-        self.assertIn("parsed.userInfo.isNotEmpty", service)
-        self.assertIn("body.length > 4096", service)
-        self.assertIn("subject.length > 998 || body.length > 8192", service)
-        self.assertIn("_containsUnsafeTextControl(body)", service)
-        self.assertIn("mailto.length > 100000", service)
-        self.assertIn("externalEffect: true", service)
+        self.assertIn(flat("url.length > 2048"), flat(service))
+        self.assertIn(flat("parsed.userInfo.isNotEmpty"), flat(service))
+        self.assertIn(flat("body.length > 4096"), flat(service))
+        self.assertIn(flat("subject.length > 998 || body.length > 8192"), flat(service))
+        self.assertIn(flat("_containsUnsafeTextControl(body)"), flat(service))
+        self.assertIn(flat("mailto.length > 100000"), flat(service))
+        self.assertIn(flat("externalEffect: true"), flat(service))
 
     def test_provider_preference_is_os_first_and_ui_automation_last(self):
         capability = (ROOT / "core/capabilities/src/lib.rs").read_text(encoding="utf-8")

@@ -12,7 +12,11 @@ Uint8List encodeMonoPcm16Wav({
     throw ArgumentError.value(samples.length, 'samples', 'Must not be empty.');
   }
   if (sampleRate < 8000 || sampleRate > 192000) {
-    throw ArgumentError.value(sampleRate, 'sampleRate', 'Must be between 8 kHz and 192 kHz.');
+    throw ArgumentError.value(
+      sampleRate,
+      'sampleRate',
+      'Must be between 8 kHz and 192 kHz.',
+    );
   }
 
   final dataLength = samples.length * 2;
@@ -25,7 +29,7 @@ Uint8List encodeMonoPcm16Wav({
   bytes.setRange(0, 4, const [0x52, 0x49, 0x46, 0x46]); // RIFF
   data.setUint32(4, 36 + dataLength, Endian.little);
   bytes.setRange(8, 12, const [0x57, 0x41, 0x56, 0x45]); // WAVE
-  bytes.setRange(12, 16, const [0x66, 0x6D, 0x74, 0x20]); // fmt 
+  bytes.setRange(12, 16, const [0x66, 0x6D, 0x74, 0x20]); // fmt
   data.setUint32(16, 16, Endian.little);
   data.setUint16(20, 1, Endian.little); // PCM
   data.setUint16(22, 1, Endian.little); // mono

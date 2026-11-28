@@ -43,20 +43,24 @@ class MemoryIntelligenceService {
       if (prior.isEmpty) continue;
       final similarity = _jaccard(candidate, prior);
       if (similarity >= duplicateThreshold) {
-        findings.add(MemoryReviewFinding(
-          kind: MemoryFindingKind.duplicate,
-          existing: entry,
-          similarity: similarity,
-          explanation: 'توجد ذاكرة معتمدة متشابهة بدرجة عالية.',
-        ));
+        findings.add(
+          MemoryReviewFinding(
+            kind: MemoryFindingKind.duplicate,
+            existing: entry,
+            similarity: similarity,
+            explanation: 'توجد ذاكرة معتمدة متشابهة بدرجة عالية.',
+          ),
+        );
       } else if (similarity >= conflictThreshold &&
           candidatePolarity != _polarity(entry.content)) {
-        findings.add(MemoryReviewFinding(
-          kind: MemoryFindingKind.possibleContradiction,
-          existing: entry,
-          similarity: similarity,
-          explanation: 'قد تتعارض المعلومة الجديدة مع ذاكرة موجودة؛ راجع السياق قبل اعتمادها.',
-        ));
+        findings.add(
+          MemoryReviewFinding(
+            kind: MemoryFindingKind.possibleContradiction,
+            existing: entry,
+            similarity: similarity,
+            explanation: 'قد تتعارض المعلومة الجديدة مع ذاكرة موجودة؛ راجع السياق قبل اعتمادها.',
+          ),
+        );
       }
     }
     findings.sort((a, b) => b.similarity.compareTo(a.similarity));
@@ -93,8 +97,34 @@ class MemoryIntelligenceService {
   }
 
   static const _stopWords = <String>{
-    'من', 'في', 'على', 'عن', 'الى', 'إلى', 'هذا', 'هذه', 'ذلك', 'تلك',
-    'مع', 'هو', 'هي', 'انا', 'أنا', 'انت', 'أنت', 'the', 'and', 'for',
-    'with', 'from', 'that', 'this', 'are', 'was', 'were', 'have', 'has',
+    'من',
+    'في',
+    'على',
+    'عن',
+    'الى',
+    'إلى',
+    'هذا',
+    'هذه',
+    'ذلك',
+    'تلك',
+    'مع',
+    'هو',
+    'هي',
+    'انا',
+    'أنا',
+    'انت',
+    'أنت',
+    'the',
+    'and',
+    'for',
+    'with',
+    'from',
+    'that',
+    'this',
+    'are',
+    'was',
+    'were',
+    'have',
+    'has',
   };
 }

@@ -68,7 +68,10 @@ class _FlutterMemoryKeyStore implements MemoryKeyStore {
 }
 
 abstract interface class MemoryRepository {
-  Future<List<LeoMemoryEntry>> list({bool includePending = true, int limit = 200});
+  Future<List<LeoMemoryEntry>> list({
+    bool includePending = true,
+    int limit = 200,
+  });
   Future<List<LeoMemorySearchHit>> search(String query, {int limit = 5});
   Future<LeoMemoryEntry> propose({
     required LeoMemoryKind kind,
@@ -102,9 +105,9 @@ class LocalMemoryRepository implements MemoryRepository {
   LocalMemoryRepository({
     Future<Directory> Function()? supportDirectoryProvider,
     MemoryKeyStore? keyStore,
-  })  : _supportDirectoryProvider =
-            supportDirectoryProvider ?? getApplicationSupportDirectory,
-        _keyStore = keyStore ?? _FlutterMemoryKeyStore();
+  }) : _supportDirectoryProvider =
+           supportDirectoryProvider ?? getApplicationSupportDirectory,
+       _keyStore = keyStore ?? _FlutterMemoryKeyStore();
 
   static const keyStorageName = 'leo.memory.encryption_key.v1';
   static const pendingKeyStorageName = 'leo.memory.encryption_key.pending.v1';
@@ -128,7 +131,9 @@ class LocalMemoryRepository implements MemoryRepository {
   Future<List<int>> _decodeKey(String value) async {
     final bytes = base64Decode(value);
     if (bytes.length != 32) {
-      throw const FormatException('مفتاح تشفير الذاكرة غير صالح؛ لم يتم تغييره تلقائياً.');
+      throw const FormatException(
+        'مفتاح تشفير الذاكرة غير صالح؛ لم يتم تغييره تلقائياً.',
+      );
     }
     return bytes;
   }
@@ -171,14 +176,20 @@ class LocalMemoryRepository implements MemoryRepository {
             // Do not overwrite either key or the database when neither works.
           }
         }
-        throw StateError('تعذر استعادة مفتاح الذاكرة؛ احتفظ بملف النسخة الاحتياطية ولا تحذف بيانات التطبيق.');
+        throw StateError(
+          'تعذر استعادة مفتاح الذاكرة؛ احتفظ بملف النسخة الاحتياطية ولا تحذف بيانات التطبيق.',
+        );
       }
     }
     if (active != null) return _decodeKey(active);
 
-    final status = await rust_api.memoryStorageStatus(databasePath: databasePath);
+    final status = await rust_api.memoryStorageStatus(
+      databasePath: databasePath,
+    );
     if (status == 'encrypted') {
-      throw StateError('قاعدة الذاكرة مشفرة لكن مفتاحها غير موجود في التخزين الآمن. لن يتم إنشاء مفتاح بديل حتى لا تفقد بياناتك.');
+      throw StateError(
+        'قاعدة الذاكرة مشفرة لكن مفتاحها غير موجود في التخزين الآمن. لن يتم إنشاء مفتاح بديل حتى لا تفقد بياناتك.',
+      );
     }
     final key = _newKey();
     await _keyStore.write(key: keyStorageName, value: base64Encode(key));
@@ -188,10 +199,10 @@ class LocalMemoryRepository implements MemoryRepository {
   Future<T> _withDatabase<T>(
     Future<T> Function(String databasePath, List<int> encryptionKey) operation,
   ) => _serialize(() async {
-        final databasePath = await _databasePath();
-        final encryptionKey = await _loadOrCreateKey(databasePath);
-        return operation(databasePath, encryptionKey);
-      });
+    final databasePath = await _databasePath();
+    final encryptionKey = await _loadOrCreateKey(databasePath);
+    return operation(databasePath, encryptionKey);
+  });
 
   /// Reads do not recreate a fresh database/key immediately after the user
   /// explicitly erased memory. A legacy plaintext database still proceeds to
@@ -200,16 +211,18 @@ class LocalMemoryRepository implements MemoryRepository {
   Future<T?> _withExistingDatabase<T>(
     Future<T> Function(String databasePath, List<int> encryptionKey) operation,
   ) => _serialize(() async {
-        final databasePath = await _databasePath();
-        final active = await _keyStore.read(key: keyStorageName);
-        final pending = await _keyStore.read(key: pendingKeyStorageName);
-        final status = await rust_api.memoryStorageStatus(databasePath: databasePath);
-        if (status == 'empty' && active == null && pending == null) {
-          return null;
-        }
-        final encryptionKey = await _loadOrCreateKey(databasePath);
-        return operation(databasePath, encryptionKey);
-      });
+    final databasePath = await _databasePath();
+    final active = await _keyStore.read(key: keyStorageName);
+    final pending = await _keyStore.read(key: pendingKeyStorageName);
+    final status = await rust_api.memoryStorageStatus(
+      databasePath: databasePath,
+    );
+    if (status == 'empty' && active == null && pending == null) {
+      return null;
+    }
+    final encryptionKey = await _loadOrCreateKey(databasePath);
+    return operation(databasePath, encryptionKey);
+  });
 
   Future<T> _serialize<T>(Future<T> Function() action) {
     final operation = _databaseQueue.then((_) => action());
@@ -223,7 +236,10 @@ class LocalMemoryRepository implements MemoryRepository {
     int limit = 200,
   }) async {
     await _initializeBridge();
-    final entries = await _withExistingDatabase((databasePath, encryptionKey) async {
+    final entries = await _withExistingDatabase((
+      databasePath,
+      encryptionKey,
+    ) async {
       final values = await rust_api.memoryList(
         databasePath: databasePath,
         encryptionKey: encryptionKey,
@@ -240,17 +256,24 @@ class LocalMemoryRepository implements MemoryRepository {
     final normalizedQuery = query.trim();
     if (normalizedQuery.isEmpty) return const [];
     await _initializeBridge();
-    final hits = await _withExistingDatabase((databasePath, encryptionKey) async {
+    final hits = await _withExistingDatabase((
+      databasePath,
+      encryptionKey,
+    ) async {
       final values = await rust_api.memorySearch(
         databasePath: databasePath,
         encryptionKey: encryptionKey,
         query: normalizedQuery,
         limit: limit,
       );
-      return values.map((hit) => LeoMemorySearchHit(
-        entry: _fromDto(hit.entry),
-        score: hit.score,
-      )).toList(growable: false);
+      return values
+          .map(
+            (hit) => LeoMemorySearchHit(
+              entry: _fromDto(hit.entry),
+              score: hit.score,
+            ),
+          )
+          .toList(growable: false);
     });
     return hits ?? const <LeoMemorySearchHit>[];
   }
@@ -304,26 +327,30 @@ class LocalMemoryRepository implements MemoryRepository {
   @override
   Future<LeoMemoryEntry> approve(String memoryId) async {
     await _initializeBridge();
-    return _withDatabase((databasePath, encryptionKey) async => _fromDto(
-      await rust_api.memoryApprove(
-        databasePath: databasePath,
-        encryptionKey: encryptionKey,
-        memoryId: memoryId,
+    return _withDatabase(
+      (databasePath, encryptionKey) async => _fromDto(
+        await rust_api.memoryApprove(
+          databasePath: databasePath,
+          encryptionKey: encryptionKey,
+          memoryId: memoryId,
+        ),
       ),
-    ));
+    );
   }
 
   @override
   Future<LeoMemoryEntry> setActive(String memoryId, bool active) async {
     await _initializeBridge();
-    return _withDatabase((databasePath, encryptionKey) async => _fromDto(
-      await rust_api.memorySetActive(
-        databasePath: databasePath,
-        encryptionKey: encryptionKey,
-        memoryId: memoryId,
-        active: active,
+    return _withDatabase(
+      (databasePath, encryptionKey) async => _fromDto(
+        await rust_api.memorySetActive(
+          databasePath: databasePath,
+          encryptionKey: encryptionKey,
+          memoryId: memoryId,
+          active: active,
+        ),
       ),
-    ));
+    );
   }
 
   @override
@@ -334,27 +361,30 @@ class LocalMemoryRepository implements MemoryRepository {
     String? sourceReference,
   }) async {
     await _initializeBridge();
-    return _withDatabase((databasePath, encryptionKey) async => _fromDto(
-      await rust_api.memoryUpdateApproved(
-        databasePath: databasePath,
-        encryptionKey: encryptionKey,
-        memoryId: memoryId,
-        content: content,
-        tags: tags,
-        sourceReference: sourceReference,
+    return _withDatabase(
+      (databasePath, encryptionKey) async => _fromDto(
+        await rust_api.memoryUpdateApproved(
+          databasePath: databasePath,
+          encryptionKey: encryptionKey,
+          memoryId: memoryId,
+          content: content,
+          tags: tags,
+          sourceReference: sourceReference,
+        ),
       ),
-    ));
+    );
   }
 
   @override
   Future<bool> delete(String memoryId) async {
     await _initializeBridge();
-    return _withDatabase((databasePath, encryptionKey) async =>
-        rust_api.memoryDelete(
-          databasePath: databasePath,
-          encryptionKey: encryptionKey,
-          memoryId: memoryId,
-        ));
+    return _withDatabase(
+      (databasePath, encryptionKey) async => rust_api.memoryDelete(
+        databasePath: databasePath,
+        encryptionKey: encryptionKey,
+        memoryId: memoryId,
+      ),
+    );
   }
 
   @override
@@ -383,33 +413,38 @@ class LocalMemoryRepository implements MemoryRepository {
     await _initializeBridge();
     return _serialize(() async {
       final databasePath = await _databasePath();
-      final erased = await rust_api.memoryEraseDatabase(databasePath: databasePath);
+      final erased = await rust_api.memoryEraseDatabase(
+        databasePath: databasePath,
+      );
       if (!erased) return false;
       await _keyStore.delete(key: pendingKeyStorageName);
       await _keyStore.delete(key: keyStorageName);
-      final fileAbsent = !File(databasePath).existsSync() &&
+      final fileAbsent =
+          !File(databasePath).existsSync() &&
           !File('$databasePath-wal').existsSync() &&
           !File('$databasePath-shm').existsSync() &&
           !File('$databasePath-journal').existsSync();
       final keysAbsent =
           await _keyStore.read(key: pendingKeyStorageName) == null &&
           await _keyStore.read(key: keyStorageName) == null;
-      final state = await rust_api.memoryStorageStatus(databasePath: databasePath);
+      final state = await rust_api.memoryStorageStatus(
+        databasePath: databasePath,
+      );
       return fileAbsent && keysAbsent && state == 'empty';
     });
   }
 
   LeoMemoryEntry _fromDto(rust_api.MemoryEntryDto dto) => LeoMemoryEntry(
-        id: dto.id,
-        kind: LeoMemoryKind.values.byName(dto.kind),
-        content: dto.content,
-        tags: List.unmodifiable(dto.tags),
-        createdAtUtc: dto.createdAtUtc,
-        updatedAtUtc: dto.updatedAtUtc,
-        userApproved: dto.userApproved,
-        active: dto.active,
-        sourceReference: dto.sourceReference,
-      );
+    id: dto.id,
+    kind: LeoMemoryKind.values.byName(dto.kind),
+    content: dto.content,
+    tags: List.unmodifiable(dto.tags),
+    createdAtUtc: dto.createdAtUtc,
+    updatedAtUtc: dto.updatedAtUtc,
+    userApproved: dto.userApproved,
+    active: dto.active,
+    sourceReference: dto.sourceReference,
+  );
 
   String _newMemoryId() => 'memory-${DateTime.now().microsecondsSinceEpoch}';
 }

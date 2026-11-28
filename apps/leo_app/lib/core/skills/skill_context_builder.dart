@@ -13,8 +13,9 @@ class SkillContextBuilder {
 
   String? build(List<LeoSkill> skills) {
     final eligible = skills
-        .where((skill) =>
-            skill.status == LeoSkillStatus.active && skill.isValidated)
+        .where(
+          (skill) => skill.status == LeoSkillStatus.active && skill.isValidated,
+        )
         .take(maxSkills)
         .toList(growable: false);
     if (eligible.isEmpty) return null;

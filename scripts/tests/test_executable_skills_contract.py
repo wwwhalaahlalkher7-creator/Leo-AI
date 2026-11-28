@@ -3,6 +3,10 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from dart_source import flat  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -25,11 +29,11 @@ class ExecutableSkillsContractTests(unittest.TestCase):
     def test_only_current_active_validated_skill_version_can_execute(self):
         service = self.read("apps/leo_app/lib/core/skills/skill_execution_service.dart")
         chat = self.read("apps/leo_app/lib/features/chat/chat_page.dart")
-        self.assertIn("skill.status != LeoSkillStatus.active || !skill.isValidated", service)
-        self.assertIn("skill.id != run.skillId || skill.version != run.skillVersion", service)
-        self.assertIn("latestSkill.status != LeoSkillStatus.active", chat)
-        self.assertIn("latestSkill.version != selectedSkill.version", chat)
-        self.assertIn("_confirmSkillExecution(selectedSkill)", chat)
+        self.assertIn(flat("skill.status != LeoSkillStatus.active || !skill.isValidated"), flat(service))
+        self.assertIn(flat("skill.id != run.skillId || skill.version != run.skillVersion"), flat(service))
+        self.assertIn(flat("latestSkill.status != LeoSkillStatus.active"), flat(chat))
+        self.assertIn(flat("latestSkill.version != selectedSkill.version"), flat(chat))
+        self.assertIn(flat("_confirmSkillExecution(selectedSkill)"), flat(chat))
 
     def test_skill_contract_is_untrusted_and_does_not_grant_capabilities(self):
         service = self.read("apps/leo_app/lib/core/skills/skill_execution_service.dart")

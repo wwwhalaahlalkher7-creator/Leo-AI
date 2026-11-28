@@ -32,7 +32,8 @@ class MemoryContextBuilder {
       final remaining = maxTotalCharacters - buffer.length;
       if (remaining <= 0) break;
       final content = _truncate(entry.content, maxCharactersPerMemory);
-      final line = '- [${entry.kind.name}] ${entry.tags.join(', ')}: $content\n';
+      final line =
+          '- [${entry.kind.name}] ${entry.tags.join(', ')}: $content\n';
       if (line.length > remaining) {
         final allowed = remaining - 2;
         if (allowed > 20) buffer.write('${line.substring(0, allowed)}…\n');

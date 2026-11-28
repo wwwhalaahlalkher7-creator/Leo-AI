@@ -84,7 +84,8 @@ class _ModelLibraryPageState extends State<ModelLibraryPage> {
         .replaceAll(RegExp(r'[^a-z0-9_-]+'), '-')
         .replaceAll(RegExp(r'-{2,}'), '-')
         .replaceAll(RegExp(r'^[-_]+|[-_]+$'), '');
-    final modelId = '${slug.isEmpty ? 'local-model' : slug}-${DateTime.now().millisecondsSinceEpoch}';
+    final modelId =
+        '${slug.isEmpty ? 'local-model' : slug}-${DateTime.now().millisecondsSinceEpoch}';
 
     await _runOperation(() async {
       final root = await _modelRoot();
@@ -99,7 +100,9 @@ class _ModelLibraryPageState extends State<ModelLibraryPage> {
         supportedPlatforms: const <String>[],
         importedAtUtc: DateTime.now().toUtc().toIso8601String(),
       );
-      _showMessage('تم استيراد ${imported.displayName} والتحقق من سلامة الملف.');
+      _showMessage(
+        'تم استيراد ${imported.displayName} والتحقق من سلامة الملف.',
+      );
       await _refresh();
     });
   }
@@ -110,10 +113,13 @@ class _ModelLibraryPageState extends State<ModelLibraryPage> {
       _showMessage('انتظر انتهاء التوليد الحالي قبل تحميل نموذج آخر.');
       return;
     }
-    final contextChoices =
-        ModelResourcePolicy.supportedContextChoices(model.contextLength);
+    final contextChoices = ModelResourcePolicy.supportedContextChoices(
+      model.contextLength,
+    );
     if (contextChoices.isEmpty) {
-      _showMessage('السياق الذي يعلنه ملف GGUF أقل من الحد الأدنى المدعوم في Leo (512 رمزاً).');
+      _showMessage(
+        'السياق الذي يعلنه ملف GGUF أقل من الحد الأدنى المدعوم في Leo (512 رمزاً).',
+      );
       return;
     }
 
@@ -225,7 +231,11 @@ class _ModelLibraryPageState extends State<ModelLibraryPage> {
   }
 
   Future<void> _runOperation(Future<void> Function() operation) async {
-    if (mounted) setState(() { _working = true; _error = null; });
+    if (mounted)
+      setState(() {
+        _working = true;
+        _error = null;
+      });
     try {
       await operation();
     } catch (error) {
@@ -286,30 +296,43 @@ class _ModelLibraryPageState extends State<ModelLibraryPage> {
                     const Expanded(
                       child: Text(
                         'مكتبة النماذج',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                    Text('${_models.length}', style: const TextStyle(color: Colors.white60)),
+                    Text(
+                      '${_models.length}',
+                      style: const TextStyle(color: Colors.white60),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 if (_models.isEmpty)
                   const _EmptyModels()
                 else
-                  ..._models.map((model) => _ModelCard(
-                        model: model,
-                        isActive: _activeModelId == model.id,
-                        busy: _working,
-                        canLoad: (diagnostics?.nativeEngineAvailable ?? false) &&
-                            !(diagnostics?.generationActive ?? false),
-                        sizeLabel: _formatBytes(model.fileSizeBytes),
-                        onLoad: () => _loadModel(model),
-                        onRemove: () => _removeModel(model),
-                      )),
+                  ..._models.map(
+                    (model) => _ModelCard(
+                      model: model,
+                      isActive: _activeModelId == model.id,
+                      busy: _working,
+                      canLoad:
+                          (diagnostics?.nativeEngineAvailable ?? false) &&
+                          !(diagnostics?.generationActive ?? false),
+                      sizeLabel: _formatBytes(model.fileSizeBytes),
+                      onLoad: () => _loadModel(model),
+                      onRemove: () => _removeModel(model),
+                    ),
+                  ),
                 const SizedBox(height: 14),
                 const Text(
                   'تُحفظ النماذج داخل مساحة Leo الخاصة على الجهاز. لا يجري تنزيلها أو رفعها إلى خادم.',
-                  style: TextStyle(color: Colors.white54, height: 1.5, fontSize: 12),
+                  style: TextStyle(
+                    color: Colors.white54,
+                    height: 1.5,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
@@ -345,7 +368,10 @@ class _RuntimeCard extends StatelessWidget {
                 const Icon(Icons.memory_rounded, color: Color(0xFF9BB0FF)),
                 const SizedBox(width: 9),
                 const Expanded(
-                  child: Text('محرك Leo المحلي', style: TextStyle(fontWeight: FontWeight.w700)),
+                  child: Text(
+                    'محرك Leo المحلي',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
                 _StatusBadge(available: state?.nativeEngineAvailable ?? false),
               ],
@@ -356,10 +382,13 @@ class _RuntimeCard extends StatelessWidget {
               style: const TextStyle(color: Colors.white70, height: 1.5),
             ),
             if (state != null && state.nativeEngineVersion != null)
-              Text('llama.cpp ${state.nativeEngineVersion}',
-                  style: const TextStyle(color: Colors.white54, fontSize: 12)),
+              Text(
+                'llama.cpp ${state.nativeEngineVersion}',
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
             if (state != null &&
-                (state.residentBytes > BigInt.zero || state.peakResidentBytes > BigInt.zero)) ...[
+                (state.residentBytes > BigInt.zero ||
+                    state.peakResidentBytes > BigInt.zero)) ...[
               const SizedBox(height: 8),
               Text(
                 'ذاكرة عملية Leo: ${_formatByteCount(state.residentBytes)} حالياً • '
@@ -373,19 +402,25 @@ class _RuntimeCard extends StatelessWidget {
             ],
             if (state?.modelLoaded ?? false) ...[
               const SizedBox(height: 12),
-              const Text('يوجد نموذج محمّل في الذاكرة.',
-                  style: TextStyle(color: Color(0xFF9DE6B4))),
+              const Text(
+                'يوجد نموذج محمّل في الذاكرة.',
+                style: TextStyle(color: Color(0xFF9DE6B4)),
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 children: [
                   OutlinedButton.icon(
-                    onPressed: busy || (state?.generationActive ?? false) ? null : onClearContext,
+                    onPressed: busy || (state?.generationActive ?? false)
+                        ? null
+                        : onClearContext,
                     icon: const Icon(Icons.cleaning_services_outlined),
                     label: const Text('تفريغ سياق المحادثة'),
                   ),
                   OutlinedButton.icon(
-                    onPressed: busy || (state?.generationActive ?? false) ? null : onUnload,
+                    onPressed: busy || (state?.generationActive ?? false)
+                        ? null
+                        : onUnload,
                     icon: const Icon(Icons.eject_rounded),
                     label: const Text('تفريغ النموذج'),
                   ),
@@ -449,11 +484,14 @@ class _RuntimeBenchmarkCardState extends State<_RuntimeBenchmarkCard> {
   }
 
   Future<void> _clear() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('مسح قياسات الأداء؟'),
-            content: const Text('سيحذف Leo سجلات الأداء المحلية المحفوظة على هذا الجهاز.'),
+            content: const Text(
+              'سيحذف Leo سجلات الأداء المحلية المحفوظة على هذا الجهاز.',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
@@ -488,7 +526,10 @@ class _RuntimeBenchmarkCardState extends State<_RuntimeBenchmarkCard> {
                 const Icon(Icons.speed_rounded, color: Color(0xFF9BB0FF)),
                 const SizedBox(width: 9),
                 const Expanded(
-                  child: Text('قياسات أداء المحرك', style: TextStyle(fontWeight: FontWeight.w700)),
+                  child: Text(
+                    'قياسات أداء المحرك',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
                 IconButton(
                   tooltip: 'تحديث القياسات',
@@ -502,30 +543,54 @@ class _RuntimeBenchmarkCardState extends State<_RuntimeBenchmarkCard> {
               value: _enabled,
               onChanged: _loading ? null : _setEnabled,
               title: const Text('تفعيل جمع القياسات محلياً'),
-              subtitle: const Text('معطّل افتراضياً؛ لا يحفظ المطالبات أو الإجابات أو أسماء النماذج.'),
+              subtitle: const Text(
+                'معطّل افتراضياً؛ لا يحفظ المطالبات أو الإجابات أو أسماء النماذج.',
+              ),
             ),
             if (_loading)
               const LinearProgressIndicator()
             else if (summary.sampleCount == 0)
-              const Text('لا توجد عينات مسجلة بعد.', style: TextStyle(color: Colors.white60))
+              const Text(
+                'لا توجد عينات مسجلة بعد.',
+                style: TextStyle(color: Colors.white60),
+              )
             else ...[
               const Divider(color: Colors.white12),
-              _MetricLine(label: 'عدد العينات', value: '${summary.sampleCount}'),
-              _MetricLine(label: 'وسيط زمن المحاولة', value: '${summary.medianLatencyMilliseconds} ms'),
-              _MetricLine(label: 'P95 لزمن المحاولة', value: '${summary.p95LatencyMilliseconds} ms'),
+              _MetricLine(
+                label: 'عدد العينات',
+                value: '${summary.sampleCount}',
+              ),
+              _MetricLine(
+                label: 'وسيط زمن المحاولة',
+                value: '${summary.medianLatencyMilliseconds} ms',
+              ),
+              _MetricLine(
+                label: 'P95 لزمن المحاولة',
+                value: '${summary.p95LatencyMilliseconds} ms',
+              ),
               _MetricLine(
                 label: 'متوسط سرعة الإخراج',
-                value: '${summary.averageOutputCharactersPerSecond.toStringAsFixed(1)} حرف/ث',
+                value:
+                    '${summary.averageOutputCharactersPerSecond.toStringAsFixed(1)} حرف/ث',
               ),
               _MetricLine(
                 label: 'أعلى ذروة لذاكرة العملية',
-                value: _formatByteCount(BigInt.from(summary.maximumPeakResidentBytes)),
+                value: _formatByteCount(
+                  BigInt.from(summary.maximumPeakResidentBytes),
+                ),
               ),
-              _MetricLine(label: 'معدل اكتمال التوليد', value: '${summary.successRatePercent.toStringAsFixed(1)}%'),
+              _MetricLine(
+                label: 'معدل اكتمال التوليد',
+                value: '${summary.successRatePercent.toStringAsFixed(1)}%',
+              ),
               const SizedBox(height: 4),
               const Text(
                 'سرعة الإخراج محسوبة بالأحرف لا بالرموز (Tokens). قياس الذاكرة يشمل عملية Leo كاملة، وليس أوزان النموذج وحدها.',
-                style: TextStyle(color: Colors.white54, fontSize: 11, height: 1.4),
+                style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 11,
+                  height: 1.4,
+                ),
               ),
               Align(
                 alignment: AlignmentDirectional.centerEnd,
@@ -551,14 +616,22 @@ class _MetricLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          children: [
-            Expanded(child: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12))),
-            Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
-          ],
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
         ),
-      );
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+        ),
+      ],
+    ),
+  );
 }
 
 class _ModelCard extends StatelessWidget {
@@ -592,26 +665,38 @@ class _ModelCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.model_training_rounded, color: Color(0xFF9BB0FF)),
+                const Icon(
+                  Icons.model_training_rounded,
+                  color: Color(0xFF9BB0FF),
+                ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(model.displayName,
-                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  child: Text(
+                    model.displayName,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
-                if (isActive) const _StatusBadge(available: true, label: 'محمّل'),
+                if (isActive)
+                  const _StatusBadge(available: true, label: 'محمّل'),
               ],
             ),
             const SizedBox(height: 8),
-            Text('$sizeLabel • سياق معلن ${model.contextLength} Token',
-                style: const TextStyle(color: Colors.white60, fontSize: 12)),
+            Text(
+              '$sizeLabel • سياق معلن ${model.contextLength} Token',
+              style: const TextStyle(color: Colors.white60, fontSize: 12),
+            ),
             if (model.architecture != null)
-              Text('Architecture: ${model.architecture}',
-                  style: const TextStyle(color: Colors.white54, fontSize: 11)),
+              Text(
+                'Architecture: ${model.architecture}',
+                style: const TextStyle(color: Colors.white54, fontSize: 11),
+              ),
             if (model.sha256 != null)
-              Text('SHA-256: ${model.sha256}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white38, fontSize: 10)),
+              Text(
+                'SHA-256: ${model.sha256}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white38, fontSize: 10),
+              ),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
@@ -651,8 +736,10 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(30),
         border: Border.all(color: color.withValues(alpha: .35)),
       ),
-      child: Text(label ?? (available ? 'متاح' : 'غير متاح'),
-          style: TextStyle(color: color, fontSize: 11)),
+      child: Text(
+        label ?? (available ? 'متاح' : 'غير متاح'),
+        style: TextStyle(color: color, fontSize: 11),
+      ),
     );
   }
 }
@@ -663,14 +750,14 @@ class _ErrorPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xFF3A2025),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF7C3A45)),
-        ),
-        child: Text(message, style: const TextStyle(color: Color(0xFFFFC3C8))),
-      );
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: const Color(0xFF3A2025),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: const Color(0xFF7C3A45)),
+    ),
+    child: Text(message, style: const TextStyle(color: Color(0xFFFFC3C8))),
+  );
 }
 
 class _EmptyModels extends StatelessWidget {
@@ -678,25 +765,26 @@ class _EmptyModels extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 28),
-        decoration: BoxDecoration(
-          color: const Color(0xFF101A29),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF27364D)),
+    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 28),
+    decoration: BoxDecoration(
+      color: const Color(0xFF101A29),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: const Color(0xFF27364D)),
+    ),
+    child: const Column(
+      children: [
+        Icon(Icons.folder_open_rounded, size: 36, color: Colors.white38),
+        SizedBox(height: 10),
+        Text('لم تضف نموذجاً محلياً بعد.'),
+        SizedBox(height: 5),
+        Text(
+          'استورد ملف GGUF من جهازك للبدء.',
+          style: TextStyle(color: Colors.white54, fontSize: 12),
         ),
-        child: const Column(
-          children: [
-            Icon(Icons.folder_open_rounded, size: 36, color: Colors.white38),
-            SizedBox(height: 10),
-            Text('لم تضف نموذجاً محلياً بعد.'),
-            SizedBox(height: 5),
-            Text('استورد ملف GGUF من جهازك للبدء.',
-                style: TextStyle(color: Colors.white54, fontSize: 12)),
-          ],
-        ),
-      );
+      ],
+    ),
+  );
 }
-
 
 class _ModelLoadDialog extends StatefulWidget {
   const _ModelLoadDialog({
@@ -745,8 +833,10 @@ class _ModelLoadDialogState extends State<_ModelLoadDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.model.displayName,
-                style: const TextStyle(fontWeight: FontWeight.w700)),
+            Text(
+              widget.model.displayName,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 14),
             const Text('حجم سياق المحادثة'),
             const SizedBox(height: 4),
@@ -754,10 +844,12 @@ class _ModelLoadDialogState extends State<_ModelLoadDialog> {
               isExpanded: true,
               value: _contextTokens,
               items: widget.contextChoices
-                  .map((value) => DropdownMenuItem<int>(
-                        value: value,
-                        child: Text('$value Token'),
-                      ))
+                  .map(
+                    (value) => DropdownMenuItem<int>(
+                      value: value,
+                      child: Text('$value Token'),
+                    ),
+                  )
                   .toList(growable: false),
               onChanged: (value) {
                 if (value != null) setState(() => _contextTokens = value);
@@ -770,12 +862,16 @@ class _ModelLoadDialogState extends State<_ModelLoadDialog> {
               isExpanded: true,
               value: _threads,
               items: threadChoices
-                  .map((value) => DropdownMenuItem<int>(
-                        value: value,
-                        child: Text(value == widget.recommendedThreads
+                  .map(
+                    (value) => DropdownMenuItem<int>(
+                      value: value,
+                      child: Text(
+                        value == widget.recommendedThreads
                             ? '$value (موصى به)'
-                            : '$value'),
-                      ))
+                            : '$value',
+                      ),
+                    ),
+                  )
                   .toList(growable: false),
               onChanged: (value) {
                 if (value != null) setState(() => _threads = value);
@@ -792,8 +888,10 @@ class _ModelLoadDialogState extends State<_ModelLoadDialog> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('تقدير الذاكرة المطلوبة',
-                      style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  const Text(
+                    'تقدير الذاكرة المطلوبة',
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     _formatByteCount(requiredMemory),
@@ -806,7 +904,11 @@ class _ModelLoadDialogState extends State<_ModelLoadDialog> {
                   const SizedBox(height: 5),
                   const Text(
                     'يشمل حجم ملف GGUF وهامش 12.5% واحتياطياً أساسياً 384 MiB و128 MiB لكل 2048 رمزاً من السياق.',
-                    style: TextStyle(color: Colors.white54, fontSize: 10, height: 1.4),
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 10,
+                      height: 1.4,
+                    ),
                   ),
                 ],
               ),
@@ -814,7 +916,11 @@ class _ModelLoadDialogState extends State<_ModelLoadDialog> {
             const SizedBox(height: 10),
             const Text(
               'هذا تقدير أولي وليس قراءة للذاكرة المتاحة حالياً. سيعيد المحرك فحص الذاكرة الفعلية قبل التحميل، وقد يرفض العملية إذا لم تكن كافية.',
-              style: TextStyle(color: Colors.white60, fontSize: 11, height: 1.45),
+              style: TextStyle(
+                color: Colors.white60,
+                fontSize: 11,
+                height: 1.45,
+              ),
             ),
           ],
         ),

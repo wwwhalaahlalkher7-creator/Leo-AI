@@ -49,10 +49,10 @@ class FileSkillRepository implements SkillRepository {
     Future<Directory> Function()? supportDirectoryProvider,
     Directory? rootDirectory,
   }) : _supportDirectoryProvider =
-            supportDirectoryProvider ??
-            (rootDirectory == null
-                ? getApplicationSupportDirectory
-                : (() async => rootDirectory!));
+           supportDirectoryProvider ??
+           (rootDirectory == null
+               ? getApplicationSupportDirectory
+               : (() async => rootDirectory!));
 
   final Future<Directory> Function() _supportDirectoryProvider;
   Future<void> _tail = Future<void>.value();
@@ -133,10 +133,10 @@ class FileSkillRepository implements SkillRepository {
 
   @override
   Future<List<LeoSkill>> list() => _serialized(() async {
-        final skills = await _readAll();
-        skills.sort((a, b) => b.updatedAtUtc.compareTo(a.updatedAtUtc));
-        return List.unmodifiable(skills);
-      });
+    final skills = await _readAll();
+    skills.sort((a, b) => b.updatedAtUtc.compareTo(a.updatedAtUtc));
+    return List.unmodifiable(skills);
+  });
 
   @override
   Future<LeoSkill> createProposal({
@@ -148,42 +148,41 @@ class FileSkillRepository implements SkillRepository {
     required List<LeoSkillTestCase> testCases,
     required List<String> requiredCapabilities,
     String? sourceTaskId,
-  }) =>
-      _serialized(() async {
-        final skills = await _readAll();
-        if (skills.length >= _maxSkills) {
-          throw StateError('وصلت مكتبة Leo إلى الحد الأقصى للمهارات.');
-        }
-        final cleanSourceTaskId = _cleanOptional(sourceTaskId);
-        if (cleanSourceTaskId != null &&
-            cleanSourceTaskId.startsWith('verified-run:') &&
-            skills.any((item) => item.sourceTaskId == cleanSourceTaskId)) {
-          throw StateError('تم إنشاء اقتراح مسبقاً من تشغيل سير العمل هذا.');
-        }
-        final now = DateTime.now().toUtc().toIso8601String();
-        final skill = LeoSkill(
-          id: 'skill-${DateTime.now().microsecondsSinceEpoch}',
-          name: name.trim(),
-          description: description.trim(),
-          triggers: _cleanList(triggers),
-          instructions: instructions.trim(),
-          steps: _cleanList(steps),
-          testCases: testCases,
-          requiredCapabilities: _cleanList(requiredCapabilities),
-          status: LeoSkillStatus.proposed,
-          version: '0.1.0',
-          createdAtUtc: now,
-          updatedAtUtc: now,
-          history: const [],
-          sourceTaskId: cleanSourceTaskId,
-        );
-        if (skills.any((item) => item.id == skill.id)) {
-          throw StateError('تعذر إنشاء معرف فريد للمهارة.');
-        }
-        skills.add(skill);
-        await _writeAll(skills);
-        return skill;
-      });
+  }) => _serialized(() async {
+    final skills = await _readAll();
+    if (skills.length >= _maxSkills) {
+      throw StateError('وصلت مكتبة Leo إلى الحد الأقصى للمهارات.');
+    }
+    final cleanSourceTaskId = _cleanOptional(sourceTaskId);
+    if (cleanSourceTaskId != null &&
+        cleanSourceTaskId.startsWith('verified-run:') &&
+        skills.any((item) => item.sourceTaskId == cleanSourceTaskId)) {
+      throw StateError('تم إنشاء اقتراح مسبقاً من تشغيل سير العمل هذا.');
+    }
+    final now = DateTime.now().toUtc().toIso8601String();
+    final skill = LeoSkill(
+      id: 'skill-${DateTime.now().microsecondsSinceEpoch}',
+      name: name.trim(),
+      description: description.trim(),
+      triggers: _cleanList(triggers),
+      instructions: instructions.trim(),
+      steps: _cleanList(steps),
+      testCases: testCases,
+      requiredCapabilities: _cleanList(requiredCapabilities),
+      status: LeoSkillStatus.proposed,
+      version: '0.1.0',
+      createdAtUtc: now,
+      updatedAtUtc: now,
+      history: const [],
+      sourceTaskId: cleanSourceTaskId,
+    );
+    if (skills.any((item) => item.id == skill.id)) {
+      throw StateError('تعذر إنشاء معرف فريد للمهارة.');
+    }
+    skills.add(skill);
+    await _writeAll(skills);
+    return skill;
+  });
 
   @override
   Future<LeoSkill> updateProposal({
@@ -196,205 +195,223 @@ class FileSkillRepository implements SkillRepository {
     required List<LeoSkillTestCase> testCases,
     required List<String> requiredCapabilities,
     required String changeSummary,
-  }) =>
-      _serialized(() async {
-        final skills = await _readAll();
-        final index = skills.indexWhere((item) => item.id == skillId);
-        if (index < 0) throw StateError('لم يتم العثور على المهارة.');
-        final existing = skills[index];
-        if (existing.status == LeoSkillStatus.active) {
-          throw StateError('أوقف المهارة قبل إنشاء إصدار جديد منها.');
-        }
-        if (existing.status == LeoSkillStatus.rejected) {
-          throw StateError('لا يمكن تعديل اقتراح مرفوض؛ أنشئ مهارة جديدة.');
-        }
-        final now = DateTime.now().toUtc().toIso8601String();
-        final snapshot = LeoSkillVersionSnapshot(
-          version: existing.version,
-          instructions: existing.instructions,
-          changeSummary: changeSummary.trim().isEmpty
-              ? 'نسخة محفوظة قبل التعديل'
-              : changeSummary.trim(),
-          createdAtUtc: now,
-        );
-        final nextVersion = _nextMinorVersion(existing.version);
-        final updated = existing.copyWith(
-          name: name.trim(),
-          description: description.trim(),
-          triggers: _cleanList(triggers),
-          instructions: instructions.trim(),
-          steps: _cleanList(steps),
-          testCases: testCases,
-          requiredCapabilities: _cleanList(requiredCapabilities),
-          status: LeoSkillStatus.proposed,
-          version: nextVersion,
-          updatedAtUtc: now,
-          history: [...existing.history, snapshot],
-          clearValidation: true,
-        );
-        skills[index] = updated;
-        await _writeAll(skills);
-        return updated;
-      });
+  }) => _serialized(() async {
+    final skills = await _readAll();
+    final index = skills.indexWhere((item) => item.id == skillId);
+    if (index < 0) throw StateError('لم يتم العثور على المهارة.');
+    final existing = skills[index];
+    if (existing.status == LeoSkillStatus.active) {
+      throw StateError('أوقف المهارة قبل إنشاء إصدار جديد منها.');
+    }
+    if (existing.status == LeoSkillStatus.rejected) {
+      throw StateError('لا يمكن تعديل اقتراح مرفوض؛ أنشئ مهارة جديدة.');
+    }
+    final now = DateTime.now().toUtc().toIso8601String();
+    final snapshot = LeoSkillVersionSnapshot(
+      version: existing.version,
+      instructions: existing.instructions,
+      changeSummary: changeSummary.trim().isEmpty
+          ? 'نسخة محفوظة قبل التعديل'
+          : changeSummary.trim(),
+      createdAtUtc: now,
+    );
+    final nextVersion = _nextMinorVersion(existing.version);
+    final updated = existing.copyWith(
+      name: name.trim(),
+      description: description.trim(),
+      triggers: _cleanList(triggers),
+      instructions: instructions.trim(),
+      steps: _cleanList(steps),
+      testCases: testCases,
+      requiredCapabilities: _cleanList(requiredCapabilities),
+      status: LeoSkillStatus.proposed,
+      version: nextVersion,
+      updatedAtUtc: now,
+      history: [...existing.history, snapshot],
+      clearValidation: true,
+    );
+    skills[index] = updated;
+    await _writeAll(skills);
+    return updated;
+  });
 
   @override
   Future<LeoSkill> validate(String skillId) => _serialized(() async {
-        final skills = await _readAll();
-        final index = skills.indexWhere((item) => item.id == skillId);
-        if (index < 0) throw StateError('لم يتم العثور على المهارة.');
-        final existing = skills[index];
-        if (existing.status == LeoSkillStatus.rejected) {
-          throw StateError('لا يمكن فحص مهارة مرفوضة. أنشئ اقتراحاً جديداً.');
-        }
-        final report = _validateSkill(existing);
-        final updated = existing.copyWith(
-          status: LeoSkillStatus.testing,
-          validationReport: report,
-          updatedAtUtc: DateTime.now().toUtc().toIso8601String(),
-        );
-        skills[index] = updated;
-        await _writeAll(skills);
-        return updated;
-      });
+    final skills = await _readAll();
+    final index = skills.indexWhere((item) => item.id == skillId);
+    if (index < 0) throw StateError('لم يتم العثور على المهارة.');
+    final existing = skills[index];
+    if (existing.status == LeoSkillStatus.rejected) {
+      throw StateError('لا يمكن فحص مهارة مرفوضة. أنشئ اقتراحاً جديداً.');
+    }
+    final report = _validateSkill(existing);
+    final updated = existing.copyWith(
+      status: LeoSkillStatus.testing,
+      validationReport: report,
+      updatedAtUtc: DateTime.now().toUtc().toIso8601String(),
+    );
+    skills[index] = updated;
+    await _writeAll(skills);
+    return updated;
+  });
 
   @override
   Future<LeoSkill> activate(String skillId) => _serialized(() async {
-        final skills = await _readAll();
-        final index = skills.indexWhere((item) => item.id == skillId);
-        if (index < 0) throw StateError('لم يتم العثور على المهارة.');
-        final skill = skills[index];
-        final activatable = skill.status == LeoSkillStatus.testing ||
-            skill.status == LeoSkillStatus.disabled;
-        if (!activatable || !skill.isValidated) {
-          throw StateError('يجب اجتياز الفحص المبدئي قبل اعتماد المهارة.');
-        }
-        final updated = skill.copyWith(
-          status: LeoSkillStatus.active,
-          updatedAtUtc: DateTime.now().toUtc().toIso8601String(),
-        );
-        skills[index] = updated;
-        await _writeAll(skills);
-        return updated;
-      });
+    final skills = await _readAll();
+    final index = skills.indexWhere((item) => item.id == skillId);
+    if (index < 0) throw StateError('لم يتم العثور على المهارة.');
+    final skill = skills[index];
+    final activatable =
+        skill.status == LeoSkillStatus.testing ||
+        skill.status == LeoSkillStatus.disabled;
+    if (!activatable || !skill.isValidated) {
+      throw StateError('يجب اجتياز الفحص المبدئي قبل اعتماد المهارة.');
+    }
+    final updated = skill.copyWith(
+      status: LeoSkillStatus.active,
+      updatedAtUtc: DateTime.now().toUtc().toIso8601String(),
+    );
+    skills[index] = updated;
+    await _writeAll(skills);
+    return updated;
+  });
 
   @override
   Future<LeoSkill> disable(String skillId) => _setStatus(
-        skillId,
-        LeoSkillStatus.disabled,
-        allowed: const {LeoSkillStatus.active},
-      );
+    skillId,
+    LeoSkillStatus.disabled,
+    allowed: const {LeoSkillStatus.active},
+  );
 
   @override
   Future<LeoSkill> reject(String skillId) => _setStatus(
-        skillId,
-        LeoSkillStatus.rejected,
-        allowed: const {LeoSkillStatus.proposed, LeoSkillStatus.testing},
-      );
+    skillId,
+    LeoSkillStatus.rejected,
+    allowed: const {LeoSkillStatus.proposed, LeoSkillStatus.testing},
+  );
 
   Future<LeoSkill> _setStatus(
     String skillId,
     LeoSkillStatus status, {
     required Set<LeoSkillStatus> allowed,
-  }) =>
-      _serialized(() async {
-        final skills = await _readAll();
-        final index = skills.indexWhere((item) => item.id == skillId);
-        if (index < 0) throw StateError('لم يتم العثور على المهارة.');
-        final existing = skills[index];
-        if (!allowed.contains(existing.status)) {
-          throw StateError('لا يمكن تغيير حالة المهارة من ${existing.status.name}.');
-        }
-        final updated = existing.copyWith(
-          status: status,
-          updatedAtUtc: DateTime.now().toUtc().toIso8601String(),
-        );
-        skills[index] = updated;
-        await _writeAll(skills);
-        return updated;
-      });
+  }) => _serialized(() async {
+    final skills = await _readAll();
+    final index = skills.indexWhere((item) => item.id == skillId);
+    if (index < 0) throw StateError('لم يتم العثور على المهارة.');
+    final existing = skills[index];
+    if (!allowed.contains(existing.status)) {
+      throw StateError(
+        'لا يمكن تغيير حالة المهارة من ${existing.status.name}.',
+      );
+    }
+    final updated = existing.copyWith(
+      status: status,
+      updatedAtUtc: DateTime.now().toUtc().toIso8601String(),
+    );
+    skills[index] = updated;
+    await _writeAll(skills);
+    return updated;
+  });
 
   @override
   Future<bool> delete(String skillId) => _serialized(() async {
-        final skills = await _readAll();
-        final originalLength = skills.length;
-        skills.removeWhere((item) => item.id == skillId);
-        if (skills.length == originalLength) return false;
-        await _writeAll(skills);
-        return true;
-      });
+    final skills = await _readAll();
+    final originalLength = skills.length;
+    skills.removeWhere((item) => item.id == skillId);
+    if (skills.length == originalLength) return false;
+    await _writeAll(skills);
+    return true;
+  });
 
   @override
-  Future<List<LeoSkill>> findApplicable(String request, {int limit = 2}) =>
-      _serialized(() async {
-        if (limit < 1 || limit > 5) {
-          throw ArgumentError.value(limit, 'limit', 'must be between 1 and 5');
+  Future<List<LeoSkill>> findApplicable(
+    String request, {
+    int limit = 2,
+  }) => _serialized(() async {
+    if (limit < 1 || limit > 5) {
+      throw ArgumentError.value(limit, 'limit', 'must be between 1 and 5');
+    }
+    final query = _normalize(request);
+    if (query.isEmpty) return const [];
+    final queryTokens = query
+        .split(' ')
+        .where((token) => token.length > 1)
+        .toSet();
+    final scored = <({LeoSkill skill, double score})>[];
+    for (final skill in await _readAll()) {
+      if (skill.status != LeoSkillStatus.active || !skill.isValidated) continue;
+      var score = 0.0;
+      for (final trigger in skill.triggers) {
+        final normalizedTrigger = _normalize(trigger);
+        if (normalizedTrigger.isNotEmpty &&
+            (query.contains(normalizedTrigger) ||
+                normalizedTrigger.contains(query))) {
+          score += 4.0;
         }
-        final query = _normalize(request);
-        if (query.isEmpty) return const [];
-        final queryTokens = query.split(' ').where((token) => token.length > 1).toSet();
-        final scored = <({LeoSkill skill, double score})>[];
-        for (final skill in await _readAll()) {
-          if (skill.status != LeoSkillStatus.active || !skill.isValidated) continue;
-          var score = 0.0;
-          for (final trigger in skill.triggers) {
-            final normalizedTrigger = _normalize(trigger);
-            if (normalizedTrigger.isNotEmpty &&
-                (query.contains(normalizedTrigger) || normalizedTrigger.contains(query))) {
-              score += 4.0;
-            }
-            final triggerTokens = normalizedTrigger
-                .split(' ')
-                .where((token) => token.length > 1)
-                .toSet();
-            score += queryTokens.intersection(triggerTokens).length * 0.9;
-          }
-          final metadataTokens = _normalize('${skill.name} ${skill.description}')
-              .split(' ')
-              .where((token) => token.length > 1)
-              .toSet();
-          score += queryTokens.intersection(metadataTokens).length * 0.35;
-          if (score >= 0.9) scored.add((skill: skill, score: score));
-        }
-        scored.sort((a, b) {
-          final byScore = b.score.compareTo(a.score);
-          return byScore != 0
-              ? byScore
-              : b.skill.updatedAtUtc.compareTo(a.skill.updatedAtUtc);
-        });
-        return scored.take(limit).map((item) => item.skill).toList(growable: false);
-      });
+        final triggerTokens = normalizedTrigger
+            .split(' ')
+            .where((token) => token.length > 1)
+            .toSet();
+        score += queryTokens.intersection(triggerTokens).length * 0.9;
+      }
+      final metadataTokens = _normalize('${skill.name} ${skill.description}')
+          .split(' ')
+          .where((token) => token.length > 1)
+          .toSet();
+      score += queryTokens.intersection(metadataTokens).length * 0.35;
+      if (score >= 0.9) scored.add((skill: skill, score: score));
+    }
+    scored.sort((a, b) {
+      final byScore = b.score.compareTo(a.score);
+      return byScore != 0
+          ? byScore
+          : b.skill.updatedAtUtc.compareTo(a.skill.updatedAtUtc);
+    });
+    return scored.take(limit).map((item) => item.skill).toList(growable: false);
+  });
 
   LeoSkillValidationReport _validateSkill(LeoSkill skill) {
     final checks = <LeoSkillValidationCheck>[];
-    void add(String id, String title, bool passed, String details,
-        {bool blocking = true}) {
-      checks.add(LeoSkillValidationCheck(
-        id: id,
-        title: title,
-        passed: passed,
-        blocking: blocking,
-        details: details,
-      ));
+    void add(
+      String id,
+      String title,
+      bool passed,
+      String details, {
+      bool blocking = true,
+    }) {
+      checks.add(
+        LeoSkillValidationCheck(
+          id: id,
+          title: title,
+          passed: passed,
+          blocking: blocking,
+          details: details,
+        ),
+      );
     }
 
     add(
       'metadata',
       'البيانات الأساسية',
-      skill.name.length >= 2 && skill.name.length <= 80 &&
-          skill.description.length >= 10 && skill.description.length <= 240,
+      skill.name.length >= 2 &&
+          skill.name.length <= 80 &&
+          skill.description.length >= 10 &&
+          skill.description.length <= 240,
       'اسم المهارة ووصفها يجب أن يكونا واضحين وضمن الحدود المحددة.',
     );
     add(
       'triggers',
       'عبارات الاستدعاء',
-      skill.triggers.isNotEmpty && skill.triggers.length <= 12 &&
+      skill.triggers.isNotEmpty &&
+          skill.triggers.length <= 12 &&
           skill.triggers.every((item) => item.length >= 2 && item.length <= 80),
       'أضف من عبارة إلى 12 عبارة تصف متى تكون المهارة مناسبة.',
     );
     add(
       'procedure',
       'خطوات الإجراء',
-      skill.steps.length >= 2 && skill.steps.length <= 30 &&
+      skill.steps.length >= 2 &&
+          skill.steps.length <= 30 &&
           skill.steps.every((item) => item.length >= 4 && item.length <= 400),
       'يجب أن تتضمن المهارة من خطوتين إلى 30 خطوة واضحة.',
     );
@@ -407,13 +424,17 @@ class FileSkillRepository implements SkillRepository {
     add(
       'examples',
       'أمثلة الاختبار',
-      skill.testCases.isNotEmpty && skill.testCases.length <= 10 &&
-          skill.testCases.every((item) =>
-              item.input.trim().length >= 5 &&
-              item.expectedOutcome.trim().length >= 5),
+      skill.testCases.isNotEmpty &&
+          skill.testCases.length <= 10 &&
+          skill.testCases.every(
+            (item) =>
+                item.input.trim().length >= 5 &&
+                item.expectedOutcome.trim().length >= 5,
+          ),
       'أضف من مثال إلى 10 أمثلة، لكل مثال طلب ونتيجة متوقعة.',
     );
-    final allGuidance = '${skill.instructions}\n${skill.steps.join('\n')}'.toLowerCase();
+    final allGuidance = '${skill.instructions}\n${skill.steps.join('\n')}'
+        .toLowerCase();
     final riskyAction = RegExp(
       r'\b(delete|remove|send|transfer|purchase|pay|format|shutdown)\b|احذف|حذف|إرسال|ارسل|أرسل|تحويل|شراء|ادفع|تهيئة|إيقاف التشغيل',
     ).hasMatch(allGuidance);
@@ -426,13 +447,17 @@ class FileSkillRepository implements SkillRepository {
       !riskyAction || approvalMentioned,
       'الإجراءات الحساسة يجب أن تشترط موافقة المستخدم لكل عملية مؤثرة.',
     );
-    final negativeSafetyStatements = allGuidance.replaceAll(
-      RegExp(r'(?:do not|never)\s+bypass\s+(?:the )?(?:permission|approval|safety)'),
-      '',
-    ).replaceAll(
-      RegExp(r'(?:لا|عدم|ممنوع)\s+تجاوز\s+(?:الصلاحيات|الموافقة|الحماية)'),
-      '',
-    );
+    final negativeSafetyStatements = allGuidance
+        .replaceAll(
+          RegExp(
+            r'(?:do not|never)\s+bypass\s+(?:the )?(?:permission|approval|safety)',
+          ),
+          '',
+        )
+        .replaceAll(
+          RegExp(r'(?:لا|عدم|ممنوع)\s+تجاوز\s+(?:الصلاحيات|الموافقة|الحماية)'),
+          '',
+        );
     final bypassAttempt = RegExp(
       r'ignore (all )?(safety|permissions|approvals)|bypass (the )?(permission|approval|safety)|تجاوز (الصلاحيات|الموافقة|الحماية)|تجاهل (الصلاحيات|الموافقة|الأمان)',
     ).hasMatch(negativeSafetyStatements);
@@ -446,8 +471,10 @@ class FileSkillRepository implements SkillRepository {
       'capabilities',
       'إعلان القدرات المطلوبة',
       skill.requiredCapabilities.length <= 25 &&
-          skill.requiredCapabilities.every((item) =>
-              RegExp(r'^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$').hasMatch(item)),
+          skill.requiredCapabilities.every(
+            (item) =>
+                RegExp(r'^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$').hasMatch(item),
+          ),
       'يجب أن تكون القدرات المطلوبة محددة بمعرفات صالحة؛ إعلانها لا يمنحها.',
       blocking: true,
     );
@@ -457,8 +484,7 @@ class FileSkillRepository implements SkillRepository {
       checkedAtUtc: DateTime.now().toUtc().toIso8601String(),
       passed: passed,
       checks: checks,
-      disclaimer:
-          'هذا فحص بنيوي وسلامة أولي فقط. لم تُنفّذ أمثلة الاختبار على نموذج ذكاء اصطناعي، ولم تُنفّذ أي أوامر أو سكربتات. اعتماد المهارة يظل بيد المستخدم.',
+      disclaimer: 'هذا فحص بنيوي وسلامة أولي فقط. لم تُنفّذ أمثلة الاختبار على نموذج ذكاء اصطناعي، ولم تُنفّذ أي أوامر أو سكربتات. اعتماد المهارة يظل بيد المستخدم.',
     );
   }
 
@@ -485,7 +511,8 @@ class FileSkillRepository implements SkillRepository {
     final buffer = StringBuffer();
     for (final rune in value.toLowerCase().runes) {
       final character = String.fromCharCode(rune);
-      if (character == '\u0640' || RegExp(r'[\u064B-\u065F\u0670]').hasMatch(character)) {
+      if (character == '\u0640' ||
+          RegExp(r'[\u064B-\u065F\u0670]').hasMatch(character)) {
         continue;
       }
       switch (character) {

@@ -9,9 +9,9 @@ class LeoSkillTestCase {
   final String expectedOutcome;
 
   Map<String, Object?> toJson() => {
-        'input': input,
-        'expectedOutcome': expectedOutcome,
-      };
+    'input': input,
+    'expectedOutcome': expectedOutcome,
+  };
 
   factory LeoSkillTestCase.fromJson(Map<String, Object?> json) =>
       LeoSkillTestCase(
@@ -36,12 +36,12 @@ class LeoSkillValidationCheck {
   final String details;
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'title': title,
-        'passed': passed,
-        'blocking': blocking,
-        'details': details,
-      };
+    'id': id,
+    'title': title,
+    'passed': passed,
+    'blocking': blocking,
+    'details': details,
+  };
 
   factory LeoSkillValidationCheck.fromJson(Map<String, Object?> json) =>
       LeoSkillValidationCheck(
@@ -67,11 +67,11 @@ class LeoSkillValidationReport {
   final String disclaimer;
 
   Map<String, Object?> toJson() => {
-        'checkedAtUtc': checkedAtUtc,
-        'passed': passed,
-        'checks': checks.map((item) => item.toJson()).toList(),
-        'disclaimer': disclaimer,
-      };
+    'checkedAtUtc': checkedAtUtc,
+    'passed': passed,
+    'checks': checks.map((item) => item.toJson()).toList(),
+    'disclaimer': disclaimer,
+  };
 
   factory LeoSkillValidationReport.fromJson(Map<String, Object?> json) =>
       LeoSkillValidationReport(
@@ -99,11 +99,11 @@ class LeoSkillVersionSnapshot {
   final String createdAtUtc;
 
   Map<String, Object?> toJson() => {
-        'version': version,
-        'instructions': instructions,
-        'changeSummary': changeSummary,
-        'createdAtUtc': createdAtUtc,
-      };
+    'version': version,
+    'instructions': instructions,
+    'changeSummary': changeSummary,
+    'createdAtUtc': createdAtUtc,
+  };
 
   factory LeoSkillVersionSnapshot.fromJson(Map<String, Object?> json) =>
       LeoSkillVersionSnapshot(
@@ -152,22 +152,22 @@ class LeoSkill {
   bool get isValidated => validationReport?.passed == true;
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'name': name,
-        'description': description,
-        'triggers': triggers,
-        'instructions': instructions,
-        'steps': steps,
-        'testCases': testCases.map((item) => item.toJson()).toList(),
-        'requiredCapabilities': requiredCapabilities,
-        'status': status.name,
-        'version': version,
-        'createdAtUtc': createdAtUtc,
-        'updatedAtUtc': updatedAtUtc,
-        'history': history.map((item) => item.toJson()).toList(),
-        'sourceTaskId': sourceTaskId,
-        'validationReport': validationReport?.toJson(),
-      };
+    'id': id,
+    'name': name,
+    'description': description,
+    'triggers': triggers,
+    'instructions': instructions,
+    'steps': steps,
+    'testCases': testCases.map((item) => item.toJson()).toList(),
+    'requiredCapabilities': requiredCapabilities,
+    'status': status.name,
+    'version': version,
+    'createdAtUtc': createdAtUtc,
+    'updatedAtUtc': updatedAtUtc,
+    'history': history.map((item) => item.toJson()).toList(),
+    'sourceTaskId': sourceTaskId,
+    'validationReport': validationReport?.toJson(),
+  };
 
   factory LeoSkill.fromJson(Map<String, Object?> json) {
     final statusName = json['status'] as String? ?? 'proposed';
@@ -218,33 +218,33 @@ class LeoSkill {
     String? sourceTaskId,
     LeoSkillValidationReport? validationReport,
     bool clearValidation = false,
-  }) =>
-      LeoSkill(
-        id: id,
-        name: name ?? this.name,
-        description: description ?? this.description,
-        triggers: triggers ?? this.triggers,
-        instructions: instructions ?? this.instructions,
-        steps: steps ?? this.steps,
-        testCases: testCases ?? this.testCases,
-        requiredCapabilities: requiredCapabilities ?? this.requiredCapabilities,
-        status: status ?? this.status,
-        version: version ?? this.version,
-        createdAtUtc: createdAtUtc,
-        updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
-        history: history ?? this.history,
-        sourceTaskId: sourceTaskId ?? this.sourceTaskId,
-        validationReport:
-            clearValidation ? null : validationReport ?? this.validationReport,
-      );
+  }) => LeoSkill(
+    id: id,
+    name: name ?? this.name,
+    description: description ?? this.description,
+    triggers: triggers ?? this.triggers,
+    instructions: instructions ?? this.instructions,
+    steps: steps ?? this.steps,
+    testCases: testCases ?? this.testCases,
+    requiredCapabilities: requiredCapabilities ?? this.requiredCapabilities,
+    status: status ?? this.status,
+    version: version ?? this.version,
+    createdAtUtc: createdAtUtc,
+    updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
+    history: history ?? this.history,
+    sourceTaskId: sourceTaskId ?? this.sourceTaskId,
+    validationReport: clearValidation
+        ? null
+        : validationReport ?? this.validationReport,
+  );
 
   static List<String> _stringList(Object? value) =>
-      (value as List<Object?>? ?? const [])
-          .whereType<String>()
-          .toList(growable: false);
+      (value as List<Object?>? ?? const []).whereType<String>().toList(
+        growable: false,
+      );
 }
 
 String encodeLeoSkills(List<LeoSkill> skills) => jsonEncode({
-      'schemaVersion': 1,
-      'skills': skills.map((skill) => skill.toJson()).toList(),
-    });
+  'schemaVersion': 1,
+  'skills': skills.map((skill) => skill.toJson()).toList(),
+});

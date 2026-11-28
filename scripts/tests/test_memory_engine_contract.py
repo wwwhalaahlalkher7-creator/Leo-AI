@@ -1,5 +1,9 @@
 """Static contracts for Leo's local-first memory engine and bridge."""
 from pathlib import Path
+
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from dart_source import flat  # noqa: E402
 import tomllib
 import re
 import sqlite3
@@ -161,12 +165,12 @@ class MemoryUiIntegrationContractTests(unittest.TestCase):
     def test_chat_offers_opt_in_proposal_from_user_message_only(self):
         chat = (ROOT / "apps/leo_app/lib/features/chat/chat_page.dart").read_text(encoding="utf-8")
         memory_page = (ROOT / "apps/leo_app/lib/features/memory/memory_page.dart").read_text(encoding="utf-8")
-        self.assertIn("_proposeMessageAsMemory", chat)
-        self.assertIn("message.role == ChatMessageRole.user && !_generating", chat)
-        self.assertIn("suggestionSourceReference", chat)
-        self.assertIn("proposeOnly: true", memory_page)
-        self.assertIn("_repository.propose(", memory_page)
-        self.assertIn("لن يدخل سياق المحادثات حتى توافق عليه لاحقاً", memory_page)
+        self.assertIn(flat("_proposeMessageAsMemory"), flat(chat))
+        self.assertIn(flat("message.role == ChatMessageRole.user && !_generating"), flat(chat))
+        self.assertIn(flat("suggestionSourceReference"), flat(chat))
+        self.assertIn(flat("proposeOnly: true"), flat(memory_page))
+        self.assertIn(flat("_repository.propose("), flat(memory_page))
+        self.assertIn(flat("لن يدخل سياق المحادثات حتى توافق عليه لاحقاً"), flat(memory_page))
 
     def test_chat_retrieval_is_bounded_approved_only_and_not_saved_to_transcript(self):
         chat = (ROOT / "apps/leo_app/lib/features/chat/chat_page.dart").read_text(encoding="utf-8")

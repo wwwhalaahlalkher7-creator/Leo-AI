@@ -59,7 +59,8 @@ void main() {
     });
 
     test('rejects repeated or oversized payloads', () {
-      const call = '<leo_tool_call>{"version":1,"id":"x","name":"contacts.list","arguments":{}}</leo_tool_call>';
+      const call =
+          '<leo_tool_call>{"version":1,"id":"x","name":"contacts.list","arguments":{}}</leo_tool_call>';
       expect(
         () => LeoToolCall.parseAssistantResponse('$call$call'),
         throwsFormatException,
@@ -92,16 +93,19 @@ void main() {
       expect(email.isAllowedFromAgent('planner'), isFalse);
     });
 
-    test('parses a bounded workspace write and scopes it to the file operator', () {
-      final call = LeoToolCall.parseAssistantResponse(
-        '<leo_tool_call>{"version":1,"id":"write_1","name":"workspace.write_file","arguments":{"relative_path":"notes.md","content":"# Notes\\nHello"}}</leo_tool_call>',
-      );
-      expect(call.name, 'workspace.write_file');
-      expect(call.isAllowedFromAgent('file_operator'), isTrue);
-      expect(call.isAllowedFromAgent('device_operator'), isFalse);
-      expect(call.arguments['relative_path'], 'notes.md');
-      expect(call.arguments['content'], '# Notes\nHello');
-    });
+    test(
+      'parses a bounded workspace write and scopes it to the file operator',
+      () {
+        final call = LeoToolCall.parseAssistantResponse(
+          '<leo_tool_call>{"version":1,"id":"write_1","name":"workspace.write_file","arguments":{"relative_path":"notes.md","content":"# Notes\\nHello"}}</leo_tool_call>',
+        );
+        expect(call.name, 'workspace.write_file');
+        expect(call.isAllowedFromAgent('file_operator'), isTrue);
+        expect(call.isAllowedFromAgent('device_operator'), isFalse);
+        expect(call.arguments['relative_path'], 'notes.md');
+        expect(call.arguments['content'], '# Notes\nHello');
+      },
+    );
 
     test('rejects unsafe workspace paths and oversized text', () {
       expect(
@@ -119,10 +123,13 @@ void main() {
       );
     });
 
-    test('does not treat a partial start marker as visible assistant prose', () {
-      expect(LeoToolCall.mayBeToolCallPrefix('<leo_tool_'), isTrue);
-      expect(LeoToolCall.mayBeToolCallPrefix('<leo_tool_call>'), isTrue);
-      expect(LeoToolCall.mayBeToolCallPrefix('مرحباً'), isFalse);
-    });
+    test(
+      'does not treat a partial start marker as visible assistant prose',
+      () {
+        expect(LeoToolCall.mayBeToolCallPrefix('<leo_tool_'), isTrue);
+        expect(LeoToolCall.mayBeToolCallPrefix('<leo_tool_call>'), isTrue);
+        expect(LeoToolCall.mayBeToolCallPrefix('مرحباً'), isFalse);
+      },
+    );
   });
 }

@@ -39,13 +39,15 @@ void main() {
   test('deleting a session removes it from local history', () async {
     final repository = await ChatRepository.open();
     final now = DateTime.now();
-    await repository.saveSession(ChatSession(
-      id: 'chat-to-delete',
-      title: 'حذف',
-      createdAt: now,
-      updatedAt: now,
-      messages: const [],
-    ));
+    await repository.saveSession(
+      ChatSession(
+        id: 'chat-to-delete',
+        title: 'حذف',
+        createdAt: now,
+        updatedAt: now,
+        messages: const [],
+      ),
+    );
 
     await repository.deleteSession('chat-to-delete');
 

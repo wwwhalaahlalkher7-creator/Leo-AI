@@ -24,28 +24,36 @@ class LeoToolCall {
   /// A specialist may only propose tools within its reviewed role boundary.
   /// The Capability Hub still performs the actual authorization and approval.
   bool isAllowedFromAgent(String agentId) => switch (agentId) {
-        'file_operator' => name == 'files.read_selected' || name == 'files.open_selected' || name == 'workspace.write_file',
-        'device_operator' => name == 'web.open' || name == 'app.launch' || name == 'calendar.create_event' || name == 'clipboard.copy_text',
-        'communications' => name == 'email.compose' ||
-            name == 'phone.dial' ||
-            name == 'messages.compose',
-        _ => false,
-      };
+    'file_operator' =>
+      name == 'files.read_selected' ||
+          name == 'files.open_selected' ||
+          name == 'workspace.write_file',
+    'device_operator' =>
+      name == 'web.open' ||
+          name == 'app.launch' ||
+          name == 'calendar.create_event' ||
+          name == 'clipboard.copy_text',
+    'communications' =>
+      name == 'email.compose' ||
+          name == 'phone.dial' ||
+          name == 'messages.compose',
+    _ => false,
+  };
 
   String get displaySummary => switch (name) {
-        'files.read_selected' => 'اختيار ملف وقراءة محتواه',
-        'workspace.write_file' => 'مراجعة وإنشاء أو تعديل ملف داخل مساحة العمل',
-        'files.open_selected' => 'فتح ملف محدد في التطبيق المرتبط به',
-        'calendar.create_event' => 'فتح مسودة موعد في تطبيق التقويم',
-        'clipboard.copy_text' => 'نسخ نص إلى حافظة النظام بعد مراجعته',
-        'contacts.list' => 'قراءة جهات الاتصال',
-        'email.compose' => 'تجهيز رسالة بريد إلكتروني',
-        'phone.dial' => 'فتح لوحة الاتصال',
-        'messages.compose' => 'تجهيز رسالة نصية',
-        'web.open' => 'فتح رابط في المتصفح',
-        'app.launch' => 'فتح تطبيق مثبت',
-        _ => 'تنفيذ أداة',
-      };
+    'files.read_selected' => 'اختيار ملف وقراءة محتواه',
+    'workspace.write_file' => 'مراجعة وإنشاء أو تعديل ملف داخل مساحة العمل',
+    'files.open_selected' => 'فتح ملف محدد في التطبيق المرتبط به',
+    'calendar.create_event' => 'فتح مسودة موعد في تطبيق التقويم',
+    'clipboard.copy_text' => 'نسخ نص إلى حافظة النظام بعد مراجعته',
+    'contacts.list' => 'قراءة جهات الاتصال',
+    'email.compose' => 'تجهيز رسالة بريد إلكتروني',
+    'phone.dial' => 'فتح لوحة الاتصال',
+    'messages.compose' => 'تجهيز رسالة نصية',
+    'web.open' => 'فتح رابط في المتصفح',
+    'app.launch' => 'فتح تطبيق مثبت',
+    _ => 'تنفيذ أداة',
+  };
 
   static bool mayBeToolCallPrefix(String value) {
     final trimmed = value.trimLeft();
@@ -60,13 +68,19 @@ class LeoToolCall {
   factory LeoToolCall.parseAssistantResponse(String output) {
     final trimmed = output.trim();
     if (!trimmed.startsWith(marker) || !trimmed.endsWith(endMarker)) {
-      throw const FormatException('Tool call must be the entire assistant response.');
+      throw const FormatException(
+        'Tool call must be the entire assistant response.',
+      );
     }
     if (trimmed.indexOf(marker) != trimmed.lastIndexOf(marker) ||
         trimmed.indexOf(endMarker) != trimmed.lastIndexOf(endMarker)) {
-      throw const FormatException('Only one tool call is allowed in a response.');
+      throw const FormatException(
+        'Only one tool call is allowed in a response.',
+      );
     }
-    final payload = trimmed.substring(marker.length, trimmed.length - endMarker.length).trim();
+    final payload = trimmed
+        .substring(marker.length, trimmed.length - endMarker.length)
+        .trim();
     if (payload.isEmpty || utf8.encode(payload).length > maxPayloadBytes) {
       throw const FormatException('Tool payload is empty or too large.');
     }
@@ -98,7 +112,9 @@ class LeoToolCall {
     final arguments = <String, String>{};
     for (final entry in rawArguments.entries) {
       if (entry.value is! String) {
-        throw const FormatException('Tool arguments must contain strings only.');
+        throw const FormatException(
+          'Tool arguments must contain strings only.',
+        );
       }
       arguments[entry.key] = entry.value as String;
     }
@@ -114,9 +130,17 @@ class LeoToolCall {
 
   static void _validateArguments(String name, Map<String, String> args) {
     final expected = switch (name) {
-      'files.read_selected' || 'files.open_selected' || 'contacts.list' => const <String>{},
+      'files.read_selected' ||
+      'files.open_selected' ||
+      'contacts.list' => const <String>{},
       'workspace.write_file' => const {'relative_path', 'content'},
-      'calendar.create_event' => const {'title', 'start_iso', 'end_iso', 'location', 'description'},
+      'calendar.create_event' => const {
+        'title',
+        'start_iso',
+        'end_iso',
+        'location',
+        'description',
+      },
       'clipboard.copy_text' => const {'content'},
       'email.compose' => const {'to', 'subject', 'body'},
       'phone.dial' => const {'number'},
@@ -127,11 +151,20 @@ class LeoToolCall {
     };
     if (args.keys.toSet().difference(expected).isNotEmpty ||
         args.length != expected.length) {
-      throw const FormatException('Tool arguments do not match the declared schema.');
+      throw const FormatException(
+        'Tool arguments do not match the declared schema.',
+      );
     }
     for (final value in args.values) {
-      if (value.contains('\u0000') || value.runes.any((rune) => rune == 0x7f || rune < 0x20 && rune != 0x09 && rune != 0x0a && rune != 0x0d)) {
-        throw const FormatException('Tool arguments contain prohibited control characters.');
+      if (value.contains('\u0000') ||
+          value.runes.any(
+            (rune) =>
+                rune == 0x7f ||
+                rune < 0x20 && rune != 0x09 && rune != 0x0a && rune != 0x0d,
+          )) {
+        throw const FormatException(
+          'Tool arguments contain prohibited control characters.',
+        );
       }
     }
 
@@ -156,27 +189,39 @@ class LeoToolCall {
       );
       final start = DateTime.tryParse(startRaw);
       final end = DateTime.tryParse(endRaw);
-      final hasInlineControl = (String value) => value.runes.any(
-            (rune) => rune < 0x20 || rune == 0x7f,
-          );
+      final hasInlineControl = (String value) =>
+          value.runes.any((rune) => rune < 0x20 || rune == 0x7f);
       final descriptionHasInvalidControl = description.runes.any(
-        (rune) => rune == 0x7f ||
+        (rune) =>
+            rune == 0x7f ||
             (rune < 0x20 && rune != 0x09 && rune != 0x0a && rune != 0x0d),
       );
-      if (title.trim().isEmpty || title.runes.length > 200 ||
-          !zonedIso8601.hasMatch(startRaw) || !zonedIso8601.hasMatch(endRaw) ||
-          start == null || end == null || !end.isAfter(start) ||
+      if (title.trim().isEmpty ||
+          title.runes.length > 200 ||
+          !zonedIso8601.hasMatch(startRaw) ||
+          !zonedIso8601.hasMatch(endRaw) ||
+          start == null ||
+          end == null ||
+          !end.isAfter(start) ||
           end.difference(start) > const Duration(days: 7) ||
-          location.runes.length > 300 || description.runes.length > 2048 ||
-          hasInlineControl(title) || hasInlineControl(location) ||
+          location.runes.length > 300 ||
+          description.runes.length > 2048 ||
+          hasInlineControl(title) ||
+          hasInlineControl(location) ||
           descriptionHasInvalidControl) {
-        throw const FormatException('Calendar event values must be bounded ISO-8601 dates with a valid positive duration.');
+        throw const FormatException(
+          'Calendar event values must be bounded ISO-8601 dates with a valid positive duration.',
+        );
       }
     }
     if (name == 'clipboard.copy_text') {
       final content = args['content']!;
-      if (content.isEmpty || content.runes.length > 10000 || utf8.encode(content).length > 16 * 1024) {
-        throw const FormatException('Clipboard text is empty or exceeds the allowed size.');
+      if (content.isEmpty ||
+          content.runes.length > 10000 ||
+          utf8.encode(content).length > 16 * 1024) {
+        throw const FormatException(
+          'Clipboard text is empty or exceeds the allowed size.',
+        );
       }
     }
 
@@ -189,7 +234,9 @@ class LeoToolCall {
             args['body']!.length > 8192 ||
             _hasControl(args['to']!) ||
             _hasControl(args['subject']!)) {
-          throw const FormatException('Email arguments are invalid or too large.');
+          throw const FormatException(
+            'Email arguments are invalid or too large.',
+          );
         }
         break;
       case 'phone.dial':
@@ -234,8 +281,8 @@ String leoToolProtocolPromptForPlatform(String platform) {
   final unavailable = platform == 'windows'
       ? '\nعلى Windows لا تطلب contacts.list أو messages.compose لأنهما غير متاحين في هذا الإصدار.'
       : platform == 'android'
-          ? '\nعلى Android يمكن استخدام جميع الأدوات المذكورة أعلاه ضمن حدود النظام.'
-          : '\nلا تطلب أي أداة لأن المنصة غير مدعومة.';
+      ? '\nعلى Android يمكن استخدام جميع الأدوات المذكورة أعلاه ضمن حدود النظام.'
+      : '\nلا تطلب أي أداة لأن المنصة غير مدعومة.';
   return '$leoToolProtocolSystemPrompt$unavailable';
 }
 

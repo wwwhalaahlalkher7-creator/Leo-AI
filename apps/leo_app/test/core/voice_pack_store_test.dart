@@ -13,7 +13,9 @@ void main() {
   late VoicePackStore store;
 
   setUp(() async {
-    tempDirectory = await Directory.systemTemp.createTemp('leo-voice-pack-test-');
+    tempDirectory = await Directory.systemTemp.createTemp(
+      'leo-voice-pack-test-',
+    );
     store = VoicePackStore(rootDirectory: tempDirectory);
   });
 
@@ -23,14 +25,18 @@ void main() {
     }
   });
 
-  Future<List<PlatformFile>> makeSelectedFiles(List<String> requiredFiles) async {
+  Future<List<PlatformFile>> makeSelectedFiles(
+    List<String> requiredFiles,
+  ) async {
     final sourceDirectory = Directory(p.join(tempDirectory.path, 'source'));
     await sourceDirectory.create(recursive: true);
     final selected = <PlatformFile>[];
     for (final relative in requiredFiles) {
       final file = File(p.join(sourceDirectory.path, p.basename(relative)));
       await file.writeAsBytes([1, 2, 3, 4, 5, 6]);
-      selected.add(_TestPlatformFile(name: p.basename(relative), path: file.path));
+      selected.add(
+        _TestPlatformFile(name: p.basename(relative), path: file.path),
+      );
     }
     return selected;
   }
@@ -43,10 +49,9 @@ void main() {
     expect(status.speechSynthesisReady, isTrue);
     expect(status.speechSynthesisIntegrity, VoicePackIntegrity.baseline);
 
-    final manifest = File(p.join(
-      status.speechSynthesisDirectory,
-      VoicePackStore.manifestFileName,
-    ));
+    final manifest = File(
+      p.join(status.speechSynthesisDirectory, VoicePackStore.manifestFileName),
+    );
     expect(await manifest.exists(), isTrue);
     final contents = await manifest.readAsString();
     expect(contents, contains('"sha256"'));
@@ -62,7 +67,9 @@ void main() {
     expect(first.createdBaseline, isFalse);
 
     final status = await store.inspect();
-    final modelFile = File(p.join(status.speechSynthesisDirectory, 'voice.bin'));
+    final modelFile = File(
+      p.join(status.speechSynthesisDirectory, 'voice.bin'),
+    );
     await modelFile.writeAsBytes([9, 8, 7, 6, 5, 4]);
 
     final second = await store.verifyIntegrity(VoicePackKind.speechSynthesis);
@@ -72,10 +79,9 @@ void main() {
   });
 
   test('adopts a complete legacy pack by creating a local baseline', () async {
-    final legacyDirectory = Directory(p.join(
-      tempDirectory.path,
-      VoicePackStore.speechRecognitionPackId,
-    ));
+    final legacyDirectory = Directory(
+      p.join(tempDirectory.path, VoicePackStore.speechRecognitionPackId),
+    );
     await legacyDirectory.create(recursive: true);
     for (final relative in VoicePackStore.speechRecognitionFiles) {
       final file = File(p.join(legacyDirectory.path, relative));
@@ -85,16 +91,24 @@ void main() {
 
     final before = await store.inspect();
     expect(before.speechRecognitionReady, isTrue);
-    expect(before.speechRecognitionIntegrity, VoicePackIntegrity.legacyUnverified);
+    expect(
+      before.speechRecognitionIntegrity,
+      VoicePackIntegrity.legacyUnverified,
+    );
 
     final result = await store.verifyIntegrity(VoicePackKind.speechRecognition);
     expect(result.valid, isTrue);
     expect(result.createdBaseline, isTrue);
-    expect((await store.inspect()).speechRecognitionIntegrity, VoicePackIntegrity.baseline);
+    expect(
+      (await store.inspect()).speechRecognitionIntegrity,
+      VoicePackIntegrity.baseline,
+    );
   });
 
   test('imports and verifies the optional Silero VAD pack', () async {
-    final files = await makeSelectedFiles(VoicePackStore.voiceActivityDetectionFiles);
+    final files = await makeSelectedFiles(
+      VoicePackStore.voiceActivityDetectionFiles,
+    );
     await store.importFiles(
       kind: VoicePackKind.voiceActivityDetection,
       files: files,
@@ -105,10 +119,14 @@ void main() {
     expect(status.voiceActivityDetectionMissing, isEmpty);
     expect(status.voiceActivityDetectionIntegrity, VoicePackIntegrity.baseline);
 
-    final result = await store.verifyIntegrity(VoicePackKind.voiceActivityDetection);
+    final result = await store.verifyIntegrity(
+      VoicePackKind.voiceActivityDetection,
+    );
     expect(result.valid, isTrue);
-    expect((await store.inspect()).voiceActivityDetectionIntegrity,
-        VoicePackIntegrity.verified);
+    expect(
+      (await store.inspect()).voiceActivityDetectionIntegrity,
+      VoicePackIntegrity.verified,
+    );
   });
 
   test('rejects duplicate selected required filenames', () async {

@@ -77,7 +77,8 @@ class ConversationContextPlanner {
     if (currentIndexes.isNotEmpty) {
       turns.add(_ConversationTurn(List<int>.unmodifiable(currentIndexes)));
     }
-    if (!hasUserRequest || turns.isEmpty ||
+    if (!hasUserRequest ||
+        turns.isEmpty ||
         !turns.last.indexes.any((index) => messages[index].role == 'user')) {
       throw const ConversationContextException(
         'لا توجد رسالة مستخدم حالية يمكن الحفاظ عليها في سياق النموذج.',

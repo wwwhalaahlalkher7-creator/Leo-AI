@@ -3,13 +3,16 @@ import 'package:leo_app/core/resources/model_resource_policy.dart';
 
 void main() {
   group('ModelResourcePolicy', () {
-    test('reserves at least one logical processor and caps chat threads at four', () {
-      expect(ModelResourcePolicy.recommendedModelThreads(0), 1);
-      expect(ModelResourcePolicy.recommendedModelThreads(1), 1);
-      expect(ModelResourcePolicy.recommendedModelThreads(2), 1);
-      expect(ModelResourcePolicy.recommendedModelThreads(4), 3);
-      expect(ModelResourcePolicy.recommendedModelThreads(16), 4);
-    });
+    test(
+      'reserves at least one logical processor and caps chat threads at four',
+      () {
+        expect(ModelResourcePolicy.recommendedModelThreads(0), 1);
+        expect(ModelResourcePolicy.recommendedModelThreads(1), 1);
+        expect(ModelResourcePolicy.recommendedModelThreads(2), 1);
+        expect(ModelResourcePolicy.recommendedModelThreads(4), 3);
+        expect(ModelResourcePolicy.recommendedModelThreads(16), 4);
+      },
+    );
 
     test('uses a smaller CPU budget for speech workloads', () {
       expect(ModelResourcePolicy.recommendedVoiceThreads(1), 1);
@@ -19,14 +22,17 @@ void main() {
     });
 
     test('context presets never exceed the context declared by GGUF', () {
-      expect(
-        ModelResourcePolicy.supportedContextChoices(3072),
-        <int>[512, 1024, 2048],
-      );
-      expect(
-        ModelResourcePolicy.supportedContextChoices(4096),
-        <int>[512, 1024, 2048, 4096],
-      );
+      expect(ModelResourcePolicy.supportedContextChoices(3072), <int>[
+        512,
+        1024,
+        2048,
+      ]);
+      expect(ModelResourcePolicy.supportedContextChoices(4096), <int>[
+        512,
+        1024,
+        2048,
+        4096,
+      ]);
       expect(ModelResourcePolicy.supportedContextChoices(256), isEmpty);
     });
 
@@ -46,7 +52,8 @@ void main() {
         modelFileSizeBytes: BigInt.from(gib),
         contextTokens: 4096,
       );
-      final expected2k = BigInt.from(gib) +
+      final expected2k =
+          BigInt.from(gib) +
           BigInt.from(gib ~/ 8) +
           BigInt.from(384 + 128) * BigInt.from(1024 * 1024);
       expect(for2k, expected2k);

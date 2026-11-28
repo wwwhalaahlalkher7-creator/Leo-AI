@@ -74,7 +74,9 @@ class _VoiceModelsPageState extends State<VoiceModelsPage> {
   Future<void> _setVadEnabled(bool enabled) async {
     final ready = _status?.voiceActivityDetectionReady ?? false;
     if (enabled && !ready) {
-      _message('ثبّت نموذج Silero VAD واجتز فحص سلامته قبل تفعيل الإيقاف التلقائي.');
+      _message(
+        'ثبّت نموذج Silero VAD واجتز فحص سلامته قبل تفعيل الإيقاف التلقائي.',
+      );
       return;
     }
     await _diagnostics.setVadAutoStopEnabled(enabled);
@@ -126,8 +128,10 @@ class _VoiceModelsPageState extends State<VoiceModelsPage> {
         VoicePackKind.voiceActivityDetection => const ['onnx'],
       },
       dialogTitle: switch (kind) {
-        VoicePackKind.speechRecognition => 'الخطوة 1 من 2: اختر ملفات ONNX من المجلد الرئيسي',
-        VoicePackKind.speechSynthesis => 'اختر ملفات حزمة توليد الصوت المستخرجة',
+        VoicePackKind.speechRecognition =>
+          'الخطوة 1 من 2: اختر ملفات ONNX من المجلد الرئيسي',
+        VoicePackKind.speechSynthesis =>
+          'اختر ملفات حزمة توليد الصوت المستخرجة',
         VoicePackKind.voiceActivityDetection => 'اختر ملف silero_vad.onnx',
       },
     );
@@ -143,7 +147,9 @@ class _VoiceModelsPageState extends State<VoiceModelsPage> {
       );
       if (!mounted) return;
       if (tokenizerFiles.isEmpty) {
-        _message('لم يكتمل الاختيار. اختر ملفات tokenizer الثلاثة لإتمام تثبيت حزمة التعرف.');
+        _message(
+          'لم يكتمل الاختيار. اختر ملفات tokenizer الثلاثة لإتمام تثبيت حزمة التعرف.',
+        );
         return;
       }
       files.addAll(tokenizerFiles);
@@ -158,9 +164,11 @@ class _VoiceModelsPageState extends State<VoiceModelsPage> {
       await _refresh();
       if (!mounted) return;
       _message(switch (kind) {
-        VoicePackKind.speechRecognition => 'تم تثبيت حزمة التعرف على الكلام محلياً.',
+        VoicePackKind.speechRecognition =>
+          'تم تثبيت حزمة التعرف على الكلام محلياً.',
         VoicePackKind.speechSynthesis => 'تم تثبيت حزمة توليد الصوت محلياً.',
-        VoicePackKind.voiceActivityDetection => 'تم تثبيت نموذج اكتشاف نهاية الكلام محلياً.',
+        VoicePackKind.voiceActivityDetection =>
+          'تم تثبيت نموذج اكتشاف نهاية الكلام محلياً.',
       });
     } catch (error) {
       if (!mounted) return;
@@ -181,9 +189,11 @@ class _VoiceModelsPageState extends State<VoiceModelsPage> {
       await _refresh();
       if (!mounted) return;
       if (result.valid) {
-        _message(result.createdBaseline
-            ? 'أنشأ Leo خط أساس محلياً لبصمات SHA-256 للحزمة القديمة. أعد الفحص لاحقاً؛ البصمات لا تثبت مصدر الملفات.'
-            : 'اجتازت ملفات الحزمة فحص SHA-256 المحلي.');
+        _message(
+          result.createdBaseline
+              ? 'أنشأ Leo خط أساس محلياً لبصمات SHA-256 للحزمة القديمة. أعد الفحص لاحقاً؛ البصمات لا تثبت مصدر الملفات.'
+              : 'اجتازت ملفات الحزمة فحص SHA-256 المحلي.',
+        );
       } else {
         _message('فشل فحص سلامة بعض الملفات: ${result.mismatches.join('، ')}');
       }
@@ -217,7 +227,9 @@ class _VoiceModelsPageState extends State<VoiceModelsPage> {
         actions: [
           IconButton(
             tooltip: 'تحديث الحالة',
-            onPressed: _loading || _importing || _verifyingKind != null ? null : _refresh,
+            onPressed: _loading || _importing || _verifyingKind != null
+                ? null
+                : _refresh,
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
@@ -244,14 +256,22 @@ class _VoiceModelsPageState extends State<VoiceModelsPage> {
                   ready: status?.speechRecognitionReady ?? false,
                   missing: status?.speechRecognitionMissing ?? const [],
                   directory: status?.speechRecognitionDirectory ?? '',
-                  integrity: status?.speechRecognitionIntegrity ?? VoicePackIntegrity.unavailable,
-                  integrityMessage: status?.speechRecognitionIntegrityMessage ?? 'لم يتم فحص الحزمة.',
+                  integrity:
+                      status?.speechRecognitionIntegrity ??
+                      VoicePackIntegrity.unavailable,
+                  integrityMessage:
+                      status?.speechRecognitionIntegrityMessage ??
+                      'لم يتم فحص الحزمة.',
                   importing: _importing,
                   verifying: _verifyingKind == VoicePackKind.speechRecognition,
                   onVerify: () => _verify(VoicePackKind.speechRecognition),
                   onImport: () => _import(VoicePackKind.speechRecognition),
-                  onOpenDownload: () => _openExternal('https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25.tar.bz2'),
-                  onOpenDocs: () => _openExternal('https://k2-fsa.github.io/sherpa/onnx/qwen3-asr/pretrained.html'),
+                  onOpenDownload: () => _openExternal(
+                    'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25.tar.bz2',
+                  ),
+                  onOpenDocs: () => _openExternal(
+                    'https://k2-fsa.github.io/sherpa/onnx/qwen3-asr/pretrained.html',
+                  ),
                 ),
                 const SizedBox(height: 14),
                 _PackCard(
@@ -261,14 +281,23 @@ class _VoiceModelsPageState extends State<VoiceModelsPage> {
                   ready: status?.voiceActivityDetectionReady ?? false,
                   missing: status?.voiceActivityDetectionMissing ?? const [],
                   directory: status?.voiceActivityDetectionDirectory ?? '',
-                  integrity: status?.voiceActivityDetectionIntegrity ?? VoicePackIntegrity.unavailable,
-                  integrityMessage: status?.voiceActivityDetectionIntegrityMessage ?? 'لم يتم فحص الحزمة.',
+                  integrity:
+                      status?.voiceActivityDetectionIntegrity ??
+                      VoicePackIntegrity.unavailable,
+                  integrityMessage:
+                      status?.voiceActivityDetectionIntegrityMessage ??
+                      'لم يتم فحص الحزمة.',
                   importing: _importing,
-                  verifying: _verifyingKind == VoicePackKind.voiceActivityDetection,
+                  verifying:
+                      _verifyingKind == VoicePackKind.voiceActivityDetection,
                   onVerify: () => _verify(VoicePackKind.voiceActivityDetection),
                   onImport: () => _import(VoicePackKind.voiceActivityDetection),
-                  onOpenDownload: () => _openExternal('https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx'),
-                  onOpenDocs: () => _openExternal('https://k2-fsa.github.io/sherpa/onnx/vad/silero-vad.html'),
+                  onOpenDownload: () => _openExternal(
+                    'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx',
+                  ),
+                  onOpenDocs: () => _openExternal(
+                    'https://k2-fsa.github.io/sherpa/onnx/vad/silero-vad.html',
+                  ),
                 ),
                 const SizedBox(height: 14),
                 _PackCard(
@@ -278,14 +307,22 @@ class _VoiceModelsPageState extends State<VoiceModelsPage> {
                   ready: status?.speechSynthesisReady ?? false,
                   missing: status?.speechSynthesisMissing ?? const [],
                   directory: status?.speechSynthesisDirectory ?? '',
-                  integrity: status?.speechSynthesisIntegrity ?? VoicePackIntegrity.unavailable,
-                  integrityMessage: status?.speechSynthesisIntegrityMessage ?? 'لم يتم فحص الحزمة.',
+                  integrity:
+                      status?.speechSynthesisIntegrity ??
+                      VoicePackIntegrity.unavailable,
+                  integrityMessage:
+                      status?.speechSynthesisIntegrityMessage ??
+                      'لم يتم فحص الحزمة.',
                   importing: _importing,
                   verifying: _verifyingKind == VoicePackKind.speechSynthesis,
                   onVerify: () => _verify(VoicePackKind.speechSynthesis),
                   onImport: () => _import(VoicePackKind.speechSynthesis),
-                  onOpenDownload: () => _openExternal('https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/sherpa-onnx-supertonic-3-tts-int8-2026-05-11.tar.bz2'),
-                  onOpenDocs: () => _openExternal('https://k2-fsa.github.io/sherpa/onnx/tts/all/Arabic/supertonic-3-ar.html'),
+                  onOpenDownload: () => _openExternal(
+                    'https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/sherpa-onnx-supertonic-3-tts-int8-2026-05-11.tar.bz2',
+                  ),
+                  onOpenDocs: () => _openExternal(
+                    'https://k2-fsa.github.io/sherpa/onnx/tts/all/Arabic/supertonic-3-ar.html',
+                  ),
                 ),
                 const SizedBox(height: 14),
                 Card(
@@ -295,20 +332,27 @@ class _VoiceModelsPageState extends State<VoiceModelsPage> {
                     children: [
                       SwitchListTile.adaptive(
                         title: const Text('الإيقاف التلقائي بعد انتهاء الكلام'),
-                        subtitle: Text(status?.voiceActivityDetectionReady == true
-                            ? 'يتوقف التسجيل بعد اكتشاف الصمت. يظل زر الإيقاف وحد 30 ثانية متاحين.'
-                            : 'ثبّت نموذج Silero VAD أولاً. التسجيل اليدوي سيظل يعمل.'),
+                        subtitle: Text(
+                          status?.voiceActivityDetectionReady == true
+                              ? 'يتوقف التسجيل بعد اكتشاف الصمت. يظل زر الإيقاف وحد 30 ثانية متاحين.'
+                              : 'ثبّت نموذج Silero VAD أولاً. التسجيل اليدوي سيظل يعمل.',
+                        ),
                         value: _vadAutoStopEnabled,
-                        onChanged: status?.voiceActivityDetectionReady == true || _vadAutoStopEnabled
+                        onChanged:
+                            status?.voiceActivityDetectionReady == true ||
+                                _vadAutoStopEnabled
                             ? (value) => unawaited(_setVadEnabled(value))
                             : null,
                       ),
                       const Divider(height: 1),
                       SwitchListTile.adaptive(
                         title: const Text('قياسات الأداء المحلية (اختيارية)'),
-                        subtitle: const Text('تحفظ زمن تحميل النموذج والمعالجة وقمة ذاكرة العملية وإصدارات المحرك فقط، دون تسجيل الصوت أو النص.'),
+                        subtitle: const Text(
+                          'تحفظ زمن تحميل النموذج والمعالجة وقمة ذاكرة العملية وإصدارات المحرك فقط، دون تسجيل الصوت أو النص.',
+                        ),
                         value: _metricsEnabled,
-                        onChanged: (value) => unawaited(_setMetricsEnabled(value)),
+                        onChanged: (value) =>
+                            unawaited(_setMetricsEnabled(value)),
                       ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
@@ -318,11 +362,25 @@ class _VoiceModelsPageState extends State<VoiceModelsPage> {
                             SizedBox(
                               width: double.infinity,
                               child: OutlinedButton.icon(
-                                onPressed: _checkingRuntime ? null : _runRuntimeCheck,
+                                onPressed: _checkingRuntime
+                                    ? null
+                                    : _runRuntimeCheck,
                                 icon: _checkingRuntime
-                                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                                    : const Icon(Icons.health_and_safety_outlined),
-                                label: Text(_checkingRuntime ? 'يفحص مكتبة المحرك...' : 'فحص مكتبة المحرك الأصلية'),
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.health_and_safety_outlined,
+                                      ),
+                                label: Text(
+                                  _checkingRuntime
+                                      ? 'يفحص مكتبة المحرك...'
+                                      : 'فحص مكتبة المحرك الأصلية',
+                                ),
                               ),
                             ),
                             if (_runtimeResult != null) ...[
@@ -332,7 +390,9 @@ class _VoiceModelsPageState extends State<VoiceModelsPage> {
                                     ? 'المحرك متاح · Sherpa ${_runtimeResult!.engineVersion} · ONNX ${_runtimeResult!.onnxRuntimeVersion} · ${_runtimeResult!.elapsedMilliseconds} ms'
                                     : 'فشل تحميل المحرك بعد ${_runtimeResult!.elapsedMilliseconds} ms: ${_runtimeResult!.error}',
                                 style: TextStyle(
-                                  color: _runtimeResult!.success ? const Color(0xFF72D6A1) : const Color(0xFFFFA9B5),
+                                  color: _runtimeResult!.success
+                                      ? const Color(0xFF72D6A1)
+                                      : const Color(0xFFFFA9B5),
                                   height: 1.5,
                                   fontSize: 12,
                                 ),
@@ -340,9 +400,21 @@ class _VoiceModelsPageState extends State<VoiceModelsPage> {
                             ],
                             if (_metricsEnabled) ...[
                               const SizedBox(height: 12),
-                              Text('آخر قياس للتعرف على الكلام (ASR)\n${_formatMetrics(_asrMetrics)}', style: const TextStyle(fontSize: 12, height: 1.5)),
+                              Text(
+                                'آخر قياس للتعرف على الكلام (ASR)\n${_formatMetrics(_asrMetrics)}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  height: 1.5,
+                                ),
+                              ),
                               const SizedBox(height: 10),
-                              Text('آخر قياس لتوليد الصوت (TTS)\n${_formatMetrics(_ttsMetrics)}', style: const TextStyle(fontSize: 12, height: 1.5)),
+                              Text(
+                                'آخر قياس لتوليد الصوت (TTS)\n${_formatMetrics(_ttsMetrics)}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  height: 1.5,
+                                ),
+                              ),
                             ],
                           ],
                         ),
@@ -415,15 +487,27 @@ class _PackCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(title,
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
-                Icon(ready ? Icons.check_circle_rounded : Icons.download_for_offline_outlined,
-                    color: color),
+                Icon(
+                  ready
+                      ? Icons.check_circle_rounded
+                      : Icons.download_for_offline_outlined,
+                  color: color,
+                ),
               ],
             ),
             const SizedBox(height: 4),
-            Text(subtitle, style: const TextStyle(color: Color(0xFF9BAAC0), fontSize: 12)),
+            Text(
+              subtitle,
+              style: const TextStyle(color: Color(0xFF9BAAC0), fontSize: 12),
+            ),
             const SizedBox(height: 10),
             Text(description, style: const TextStyle(height: 1.5)),
             const SizedBox(height: 12),
@@ -431,9 +515,15 @@ class _PackCard extends StatelessWidget {
               ready
                   ? 'الحزمة مثبتة. $integrityMessage'
                   : missing.isNotEmpty
-                      ? 'الملفات الناقصة: ${missing.join('، ')}'
-                      : integrityMessage,
-              style: TextStyle(color: integrity == VoicePackIntegrity.failed ? const Color(0xFFFFA9B5) : color, fontSize: 12, height: 1.45),
+                  ? 'الملفات الناقصة: ${missing.join('، ')}'
+                  : integrityMessage,
+              style: TextStyle(
+                color: integrity == VoicePackIntegrity.failed
+                    ? const Color(0xFFFFA9B5)
+                    : color,
+                fontSize: 12,
+                height: 1.45,
+              ),
             ),
             if (ready) ...[
               const SizedBox(height: 8),
@@ -442,15 +532,23 @@ class _PackCard extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: importing || verifying ? null : onVerify,
                   icon: verifying
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : const Icon(Icons.verified_user_outlined),
-                  label: Text(verifying ? 'جارٍ فحص الملفات...' : 'فحص بصمات الملفات'),
+                  label: Text(
+                    verifying ? 'جارٍ فحص الملفات...' : 'فحص بصمات الملفات',
+                  ),
                 ),
               ),
             ],
             const SizedBox(height: 8),
-            SelectableText('مجلد الحزمة: $directory',
-                style: const TextStyle(fontSize: 11, color: Color(0xFF8796AC))),
+            SelectableText(
+              'مجلد الحزمة: $directory',
+              style: const TextStyle(fontSize: 11, color: Color(0xFF8796AC)),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -474,9 +572,15 @@ class _PackCard extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: importing || verifying ? null : onImport,
                 icon: importing
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : const Icon(Icons.drive_folder_upload_outlined),
-                label: Text(ready ? 'استبدال الحزمة' : 'اختيار الملفات وتثبيتها'),
+                label: Text(
+                  ready ? 'استبدال الحزمة' : 'اختيار الملفات وتثبيتها',
+                ),
               ),
             ),
           ],
@@ -487,36 +591,46 @@ class _PackCard extends StatelessWidget {
 }
 
 class _InfoCard extends StatelessWidget {
-  const _InfoCard({required this.icon, required this.title, required this.body});
+  const _InfoCard({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
   final IconData icon;
   final String title;
   final String body;
 
   @override
   Widget build(BuildContext context) => Card(
-        color: const Color(0xFF18253A),
-        margin: EdgeInsets.zero,
-        child: Padding(
-          padding: const EdgeInsets.all(15),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: const Color(0xFF9BB0FF)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 6),
-                    Text(body, style: const TextStyle(height: 1.5, color: Color(0xFFD0D9E8))),
-                  ],
+    color: const Color(0xFF18253A),
+    margin: EdgeInsets.zero,
+    child: Padding(
+      padding: const EdgeInsets.all(15),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFF9BB0FF)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
-              ),
-            ],
+                const SizedBox(height: 6),
+                Text(
+                  body,
+                  style: const TextStyle(height: 1.5, color: Color(0xFFD0D9E8)),
+                ),
+              ],
+            ),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }
 
 class _ErrorCard extends StatelessWidget {
@@ -525,11 +639,11 @@ class _ErrorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-        color: const Color(0xFF3B2530),
-        margin: EdgeInsets.zero,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Text(message, style: const TextStyle(color: Color(0xFFFFCFD7))),
-        ),
-      );
+    color: const Color(0xFF3B2530),
+    margin: EdgeInsets.zero,
+    child: Padding(
+      padding: const EdgeInsets.all(12),
+      child: Text(message, style: const TextStyle(color: Color(0xFFFFCFD7))),
+    ),
+  );
 }

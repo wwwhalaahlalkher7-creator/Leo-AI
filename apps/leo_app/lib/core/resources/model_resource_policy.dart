@@ -15,7 +15,8 @@ class ModelResourcePolicy {
 
   static final BigInt _bytesPerMiB = BigInt.from(1024 * 1024);
   static final BigInt _baseReserveBytes = BigInt.from(384) * _bytesPerMiB;
-  static final BigInt _contextReservePer2048Bytes = BigInt.from(128) * _bytesPerMiB;
+  static final BigInt _contextReservePer2048Bytes =
+      BigInt.from(128) * _bytesPerMiB;
 
   static const List<int> contextChoices = <int>[512, 1024, 2048, 4096];
 
@@ -36,7 +37,9 @@ class ModelResourcePolicy {
   /// Returns supported context presets that do not exceed the GGUF header.
   static List<int> supportedContextChoices(int modelContextLength) {
     final maximum = modelContextLength.clamp(0, maximumContextTokens).toInt();
-    return contextChoices.where((value) => value <= maximum).toList(growable: false);
+    return contextChoices
+        .where((value) => value <= maximum)
+        .toList(growable: false);
   }
 
   /// Prefers a 2K context to reduce KV-cache pressure; smaller declared

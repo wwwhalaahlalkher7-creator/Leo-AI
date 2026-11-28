@@ -8,7 +8,11 @@ import 'package:path_provider/path_provider.dart';
 
 /// Voice model packages are optional and live outside the Flutter asset bundle.
 /// This keeps multi-hundred-megabyte ONNX weights out of the base installer.
-enum VoicePackKind { speechRecognition, speechSynthesis, voiceActivityDetection }
+enum VoicePackKind {
+  speechRecognition,
+  speechSynthesis,
+  voiceActivityDetection,
+}
 
 enum VoicePackIntegrity {
   unavailable,
@@ -100,33 +104,34 @@ class VoicePackStore {
     'voice.bin',
   ];
 
-  static const List<String> voiceActivityDetectionFiles = [
-    'silero_vad.onnx',
-  ];
+  static const List<String> voiceActivityDetectionFiles = ['silero_vad.onnx'];
 
   Future<Directory> _root() async {
-    final root = _providedRoot ??
-        Directory(p.join(
-          (await getApplicationSupportDirectory()).path,
-          'leo',
-          'voice',
-          'packs',
-        ));
+    final root =
+        _providedRoot ??
+        Directory(
+          p.join(
+            (await getApplicationSupportDirectory()).path,
+            'leo',
+            'voice',
+            'packs',
+          ),
+        );
     await root.create(recursive: true);
     return root;
   }
 
   String _packId(VoicePackKind kind) => switch (kind) {
-        VoicePackKind.speechRecognition => speechRecognitionPackId,
-        VoicePackKind.speechSynthesis => speechSynthesisPackId,
-        VoicePackKind.voiceActivityDetection => voiceActivityDetectionPackId,
-      };
+    VoicePackKind.speechRecognition => speechRecognitionPackId,
+    VoicePackKind.speechSynthesis => speechSynthesisPackId,
+    VoicePackKind.voiceActivityDetection => voiceActivityDetectionPackId,
+  };
 
   List<String> _requiredFiles(VoicePackKind kind) => switch (kind) {
-        VoicePackKind.speechRecognition => speechRecognitionFiles,
-        VoicePackKind.speechSynthesis => speechSynthesisFiles,
-        VoicePackKind.voiceActivityDetection => voiceActivityDetectionFiles,
-      };
+    VoicePackKind.speechRecognition => speechRecognitionFiles,
+    VoicePackKind.speechSynthesis => speechSynthesisFiles,
+    VoicePackKind.voiceActivityDetection => voiceActivityDetectionFiles,
+  };
 
   Future<Directory> _packDirectory(VoicePackKind kind) async {
     final root = await _root();
@@ -136,7 +141,9 @@ class VoicePackStore {
   Future<VoicePackStatus> inspect() async {
     final asrDirectory = await _packDirectory(VoicePackKind.speechRecognition);
     final ttsDirectory = await _packDirectory(VoicePackKind.speechSynthesis);
-    final vadDirectory = await _packDirectory(VoicePackKind.voiceActivityDetection);
+    final vadDirectory = await _packDirectory(
+      VoicePackKind.voiceActivityDetection,
+    );
     final asr = await _inspectPack(
       asrDirectory,
       speechRecognitionPackId,
@@ -206,10 +213,13 @@ class VoicePackStore {
       );
       final integrityStatus = manifest['integrity_status'];
       if (!const {'baseline', 'verified', 'failed'}.contains(integrityStatus)) {
-        throw const FormatException('Invalid integrity status in voice-pack manifest.');
+        throw const FormatException(
+          'Invalid integrity status in voice-pack manifest.',
+        );
       }
       if (integrityStatus == 'failed') {
-        final mismatchNames = (manifest['verification_mismatches'] as List?)
+        final mismatchNames =
+            (manifest['verification_mismatches'] as List?)
                 ?.whereType<String>()
                 .toList(growable: false) ??
             const <String>[];
@@ -240,7 +250,8 @@ class VoicePackStore {
       final parsedVerificationTime = lastVerified is String
           ? DateTime.tryParse(lastVerified)
           : null;
-      final isVerified = integrityStatus == 'verified' &&
+      final isVerified =
+          integrityStatus == 'verified' &&
           parsedVerificationTime != null &&
           parsedVerificationTime.isUtc;
       return _PackInspection(
@@ -249,9 +260,7 @@ class VoicePackStore {
         integrity: isVerified
             ? VoicePackIntegrity.verified
             : VoicePackIntegrity.baseline,
-        message: isVerified
-            ? 'اجتازت الملفات آخر فحص SHA-256 مسجل.'
-            : 'توجد بصمات SHA-256 محلية. أعد الفحص قبل الاعتماد على سلامة الملفات.',
+        message: isVerified ? 'اجتازت الملفات آخر فحص SHA-256 مسجل.' : 'توجد بصمات SHA-256 محلية. أعد الفحص قبل الاعتماد على سلامة الملفات.',
       );
     } catch (error) {
       return _PackInspection(
@@ -334,17 +343,19 @@ class VoicePackStore {
         final sink = destination.openWrite();
         var streamedBytes = 0;
         try {
-          await sink.addStream(stream.map((chunk) {
-            streamedBytes += chunk.length;
-            if (streamedBytes > maximumFileBytes ||
-                streamedBytes > declaredSize) {
-              throw VoicePackImportException(
-                'تجاوز الملف ${source.name} حجمه المعلن.',
-              );
-            }
-            hashInput.add(chunk);
-            return chunk;
-          }));
+          await sink.addStream(
+            stream.map((chunk) {
+              streamedBytes += chunk.length;
+              if (streamedBytes > maximumFileBytes ||
+                  streamedBytes > declaredSize) {
+                throw VoicePackImportException(
+                  'تجاوز الملف ${source.name} حجمه المعلن.',
+                );
+              }
+              hashInput.add(chunk);
+              return chunk;
+            }),
+          );
           await sink.flush();
         } finally {
           try {
@@ -434,7 +445,8 @@ class VoicePackStore {
       for (final relativePath in requiredPaths) {
         final file = File(p.join(directory.path, relativePath));
         final size = await file.length();
-        if (size <= 0 || size > maximumFileBytes ||
+        if (size <= 0 ||
+            size > maximumFileBytes ||
             size > maximumPackBytes - totalBytes) {
           throw VoicePackImportException(
             'حجم الملف $relativePath أو حجم الحزمة الإجمالي خارج الحدود المسموحة.',
@@ -463,7 +475,9 @@ class VoicePackStore {
     } else {
       final decoded = jsonDecode(await manifestFile.readAsString());
       if (decoded is! Map<String, dynamic>) {
-        throw const VoicePackImportException('سجل بصمات الحزمة ليس كائن JSON صالحاً.');
+        throw const VoicePackImportException(
+          'سجل بصمات الحزمة ليس كائن JSON صالحاً.',
+        );
       }
       _validatedManifestEntries(
         decoded,
@@ -522,17 +536,16 @@ class VoicePackStore {
     required String packId,
     required List<Map<String, Object>> entries,
     required String integrityStatus,
-  }) =>
-      {
-        'schema_version': manifestSchemaVersion,
-        'pack_id': packId,
-        'runtime': 'sherpa-onnx 2.0.1',
-        'created_at_utc': DateTime.now().toUtc().toIso8601String(),
-        'integrity_status': integrityStatus,
-        'last_verified_utc': null,
-        'verification_mismatches': <String>[],
-        'files': entries,
-      };
+  }) => {
+    'schema_version': manifestSchemaVersion,
+    'pack_id': packId,
+    'runtime': 'sherpa-onnx 2.0.1',
+    'created_at_utc': DateTime.now().toUtc().toIso8601String(),
+    'integrity_status': integrityStatus,
+    'last_verified_utc': null,
+    'verification_mismatches': <String>[],
+    'files': entries,
+  };
 
   Map<String, Map<String, dynamic>> _validatedManifestEntries(
     Object? value, {
@@ -543,13 +556,17 @@ class VoicePackStore {
         value['schema_version'] != manifestSchemaVersion ||
         value['pack_id'] != packId ||
         value['files'] is! List) {
-      throw const FormatException('Unsupported or mismatched voice-pack manifest.');
+      throw const FormatException(
+        'Unsupported or mismatched voice-pack manifest.',
+      );
     }
 
     final entries = <String, Map<String, dynamic>>{};
     for (final raw in value['files'] as List) {
       if (raw is! Map<String, dynamic>) {
-        throw const FormatException('Invalid file entry in voice-pack manifest.');
+        throw const FormatException(
+          'Invalid file entry in voice-pack manifest.',
+        );
       }
       final path = raw['path'];
       final size = raw['size_bytes'];
@@ -562,7 +579,9 @@ class VoicePackStore {
           !RegExp(r'^[a-f0-9]{64}$').hasMatch(digest) ||
           !requiredPaths.contains(path) ||
           entries.containsKey(path)) {
-        throw const FormatException('Invalid or duplicate voice-pack file metadata.');
+        throw const FormatException(
+          'Invalid or duplicate voice-pack file metadata.',
+        );
       }
       entries[path] = raw;
     }
@@ -573,7 +592,9 @@ class VoicePackStore {
     if (entries.length != requiredPaths.length ||
         !requiredPaths.every(entries.containsKey) ||
         totalBytes > maximumPackBytes) {
-      throw const FormatException('Voice-pack manifest does not list every required file or exceeds the pack size limit.');
+      throw const FormatException(
+        'Voice-pack manifest does not list every required file or exceeds the pack size limit.',
+      );
     }
     return entries;
   }
@@ -605,7 +626,10 @@ class VoicePackStore {
     }
   }
 
-  Future<List<String>> _missingFiles(Directory root, List<String> required) async {
+  Future<List<String>> _missingFiles(
+    Directory root,
+    List<String> required,
+  ) async {
     final missing = <String>[];
     for (final relative in required) {
       final file = File(p.join(root.path, relative));
@@ -642,7 +666,8 @@ class _SingleDigestSink implements Sink<Digest> {
 
   @override
   void add(Digest value) {
-    if (digest != null) throw StateError('A digest was emitted more than once.');
+    if (digest != null)
+      throw StateError('A digest was emitted more than once.');
     digest = value;
   }
 

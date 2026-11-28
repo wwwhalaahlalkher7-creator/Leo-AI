@@ -26,15 +26,15 @@ class VoiceRunMetrics {
   final String? errorStage;
 
   Map<String, Object?> toJson() => {
-        'operation': operation,
-        'model_load_ms': modelLoadMilliseconds,
-        'inference_ms': inferenceMilliseconds,
-        'process_peak_rss_bytes': processPeakRssBytes,
-        'engine_version': engineVersion,
-        'onnxruntime_version': onnxRuntimeVersion,
-        'completed_at_utc': completedAtUtc.toUtc().toIso8601String(),
-        'error_stage': errorStage,
-      };
+    'operation': operation,
+    'model_load_ms': modelLoadMilliseconds,
+    'inference_ms': inferenceMilliseconds,
+    'process_peak_rss_bytes': processPeakRssBytes,
+    'engine_version': engineVersion,
+    'onnxruntime_version': onnxRuntimeVersion,
+    'completed_at_utc': completedAtUtc.toUtc().toIso8601String(),
+    'error_stage': errorStage,
+  };
 
   factory VoiceRunMetrics.fromJson(Map<String, dynamic> json) {
     return VoiceRunMetrics(
@@ -44,7 +44,9 @@ class VoiceRunMetrics {
       processPeakRssBytes: json['process_peak_rss_bytes'] as int? ?? 0,
       engineVersion: json['engine_version'] as String? ?? 'غير متاح',
       onnxRuntimeVersion: json['onnxruntime_version'] as String? ?? 'غير متاح',
-      completedAtUtc: DateTime.tryParse(json['completed_at_utc'] as String? ?? '')?.toUtc() ??
+      completedAtUtc:
+          DateTime.tryParse(json['completed_at_utc'] as String? ?? '')
+              ?.toUtc() ??
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
       errorStage: json['error_stage'] as String?,
     );
@@ -163,4 +165,3 @@ int readProcessPeakRssBytes() {
     }
   }
 }
-

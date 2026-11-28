@@ -5,6 +5,10 @@ import re
 import unittest
 from pathlib import Path
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from dart_source import flat  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -132,11 +136,11 @@ class OfflineVoiceContractTests(unittest.TestCase):
         self.assertIn("reachedMaximumDuration: reachedLimit", self.chat_page)
 
     def test_microphone_is_first_use_and_os_permission_is_independent(self):
-        self.assertIn("requestMicrophoneAccess(context)", self.chat_page)
-        self.assertIn("LeoPermissionStatus.previouslyDenied", self.permission_service)
-        self.assertIn("requestOsPermission('audio.microphone')", self.permission_service)
-        self.assertIn("openWindowsMicrophonePrivacySettings", self.permission_service)
-        self.assertIn("if (!Platform.isWindows)", self.voice_service)
+        self.assertIn(flat("requestMicrophoneAccess(context)"), flat(self.chat_page))
+        self.assertIn(flat("LeoPermissionStatus.previouslyDenied"), flat(self.permission_service))
+        self.assertIn(flat("requestOsPermission('audio.microphone')"), flat(self.permission_service))
+        self.assertIn(flat("openWindowsMicrophonePrivacySettings"), flat(self.permission_service))
+        self.assertIn(flat("if (!Platform.isWindows)"), flat(self.voice_service))
         self.assertIn("audio.microphone", source("config/leo_capability_policy_v0.2.json"))
         self.assertIn("supported_in_alpha: true", source("core/capabilities/src/lib.rs").split('id: "audio.microphone"', 1)[1].split('CapabilityDefinition {', 1)[0])
 
@@ -212,20 +216,20 @@ class OfflineVoiceContractTests(unittest.TestCase):
 
 
     def test_vad_endpointing_keeps_manual_and_maximum_duration_fallbacks(self):
-        self.assertIn("VoicePackKind.voiceActivityDetection", self.pack_store)
-        self.assertIn("voiceActivityDetectionReady", self.pack_store)
-        self.assertIn("VoiceActivityDetector", self.voice_service)
-        self.assertIn("acceptWaveform(frame)", self.voice_service)
-        self.assertIn("minSilenceDuration: 0.8", self.voice_service)
-        self.assertIn("maxSpeechDuration: maximumRecordingSeconds.toDouble()", self.voice_service)
-        self.assertIn("maximumRecordingSeconds = 30", self.voice_service)
-        self.assertIn("_vadFallbackReason", self.voice_service)
+        self.assertIn(flat("VoicePackKind.voiceActivityDetection"), flat(self.pack_store))
+        self.assertIn(flat("voiceActivityDetectionReady"), flat(self.pack_store))
+        self.assertIn(flat("VoiceActivityDetector"), flat(self.voice_service))
+        self.assertIn(flat("acceptWaveform(frame)"), flat(self.voice_service))
+        self.assertIn(flat("minSilenceDuration: 0.8"), flat(self.voice_service))
+        self.assertIn(flat("maxSpeechDuration: maximumRecordingSeconds.toDouble()"), flat(self.voice_service))
+        self.assertIn(flat("maximumRecordingSeconds = 30"), flat(self.voice_service))
+        self.assertIn(flat("_vadFallbackReason"), flat(self.voice_service))
         self.assertIn("manual", self.voice_service.lower())
-        self.assertIn("onVadSpeechEnded", self.chat_page)
-        self.assertIn("onVadFallback: useVad ? _showNotice : null", self.chat_page)
-        self.assertIn("_setVadFallback", self.voice_service)
-        self.assertIn("_vadActive && _vadStopScheduled && !_finishingCapture", self.voice_service)
-        self.assertIn("_voiceVadEnabled", self.chat_page)
+        self.assertIn(flat("onVadSpeechEnded"), flat(self.chat_page))
+        self.assertIn(flat("onVadFallback: useVad ? _showNotice : null"), flat(self.chat_page))
+        self.assertIn(flat("_setVadFallback"), flat(self.voice_service))
+        self.assertIn(flat("_vadActive && _vadStopScheduled && !_finishingCapture"), flat(self.voice_service))
+        self.assertIn(flat("_voiceVadEnabled"), flat(self.chat_page))
 
     def test_vad_is_optional_and_does_not_replace_the_asr_pcm_buffer(self):
         accept_handler = self.voice_service.split("void _acceptPcm16", 1)[1].split("Future<void> _prepareVad", 1)[0]

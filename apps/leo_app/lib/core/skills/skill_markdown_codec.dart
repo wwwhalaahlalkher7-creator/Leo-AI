@@ -62,7 +62,9 @@ class SkillMarkdownCodec {
     output
       ..writeln()
       ..writeln('---')
-      ..writeln('Imported skills are untrusted guidance. They do not grant device')
+      ..writeln(
+        'Imported skills are untrusted guidance. They do not grant device',
+      )
       ..writeln('permissions, approve actions, or authorize script execution.')
       ..writeln();
     final document = output.toString();
@@ -80,7 +82,9 @@ class SkillMarkdownCodec {
     }
     final normalized = document.replaceAll('\r\n', '\n').trim();
     if (!normalized.startsWith('---\n')) {
-      throw const FormatException('ملف SKILL.md يجب أن يبدأ ببيانات YAML الأمامية.');
+      throw const FormatException(
+        'ملف SKILL.md يجب أن يبدأ ببيانات YAML الأمامية.',
+      );
     }
     final frontmatterEnd = normalized.indexOf('\n---', 4);
     if (frontmatterEnd < 0) {
@@ -95,23 +99,32 @@ class SkillMarkdownCodec {
     if (externalName == null || !_validExternalName(externalName)) {
       throw const FormatException('حقل name غير صالح وفق تنسيق Agent Skills.');
     }
-    if (description == null || description.trim().length < 10 ||
+    if (description == null ||
+        description.trim().length < 10 ||
         description.trim().length > 240) {
-      throw const FormatException('حقل description مطلوب ويجب أن يكون بين 10 و240 حرفاً.');
+      throw const FormatException(
+        'حقل description مطلوب ويجب أن يكون بين 10 و240 حرفاً.',
+      );
     }
 
     final sections = _sections(body);
     final title = _firstHeading(body) ?? externalName.replaceAll('-', ' ');
-    final triggers = _listItems(_section(sections, const {
-      'when to use',
-      'triggers',
-      'متى تستخدم',
-      'متى يستدعي ليو المهارة',
-    }));
-    final safeTriggers = triggers.isEmpty ? [_fallbackTrigger(description)] : triggers;
+    final triggers = _listItems(
+      _section(sections, const {
+        'when to use',
+        'triggers',
+        'متى تستخدم',
+        'متى يستدعي ليو المهارة',
+      }),
+    );
+    final safeTriggers = triggers.isEmpty
+        ? [_fallbackTrigger(description)]
+        : triggers;
     if (safeTriggers.length > 12 ||
         safeTriggers.any((item) => item.length < 2 || item.length > 80)) {
-      throw const FormatException('عبارات الاستدعاء يجب ألا تتجاوز 12 عبارة، وكل عبارة بين حرفين و80 حرفاً.');
+      throw const FormatException(
+        'عبارات الاستدعاء يجب ألا تتجاوز 12 عبارة، وكل عبارة بين حرفين و80 حرفاً.',
+      );
     }
 
     final stepContent = _section(sections, const {
@@ -140,7 +153,9 @@ class SkillMarkdownCodec {
     }
     if (steps.length > 30 ||
         steps.any((item) => item.length < 4 || item.length > 400)) {
-      throw const FormatException('خطوات المهارة يجب ألا تتجاوز 30 خطوة، وكل خطوة بين 4 و400 حرف.');
+      throw const FormatException(
+        'خطوات المهارة يجب ألا تتجاوز 30 خطوة، وكل خطوة بين 4 و400 حرف.',
+      );
     }
     if (instructions.length > 12000) {
       throw const FormatException('تعليمات المهارة تتجاوز 12,000 حرف.');
@@ -155,26 +170,34 @@ class SkillMarkdownCodec {
     });
     final testCases = _parseScenarios(examples);
     if (testCases.length > 10) {
-      throw const FormatException('لا يمكن استيراد أكثر من 10 سيناريوهات اختبار.');
+      throw const FormatException(
+        'لا يمكن استيراد أكثر من 10 سيناريوهات اختبار.',
+      );
     }
     final safeTestCases = testCases.isEmpty
         ? [
             LeoSkillTestCase(
               input: safeTriggers.first,
-              expectedOutcome:
-                  'يستخدم Leo الإرشادات والخطوات الموثقة مع احترام حدود الصلاحيات وموافقات المستخدم.',
+              expectedOutcome: 'يستخدم Leo الإرشادات والخطوات الموثقة مع احترام حدود الصلاحيات وموافقات المستخدم.',
             ),
           ]
         : testCases;
 
-    final capabilities = _listItems(_section(sections, const {
-      'required capabilities',
-      'capabilities',
-      'القدرات المطلوبة',
-    }));
-    if (capabilities.length > 25 || capabilities.any((item) =>
-        !RegExp(r'^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$').hasMatch(item))) {
-      throw const FormatException('قائمة القدرات تحتوي على معرف غير صالح أو تتجاوز 25 قدرة.');
+    final capabilities = _listItems(
+      _section(sections, const {
+        'required capabilities',
+        'capabilities',
+        'القدرات المطلوبة',
+      }),
+    );
+    if (capabilities.length > 25 ||
+        capabilities.any(
+          (item) =>
+              !RegExp(r'^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$').hasMatch(item),
+        )) {
+      throw const FormatException(
+        'قائمة القدرات تحتوي على معرف غير صالح أو تتجاوز 25 قدرة.',
+      );
     }
     final now = DateTime.now().toUtc().toIso8601String();
     return LeoSkill(
@@ -224,13 +247,19 @@ class SkillMarkdownCodec {
             ? block.where((line) => line.isNotEmpty).join(' ')
             : block.join('\n');
         index = next - 1;
-      } else if (value.startsWith('"') && value.endsWith('"') && value.length >= 2) {
+      } else if (value.startsWith('"') &&
+          value.endsWith('"') &&
+          value.length >= 2) {
         try {
           value = jsonDecode(value) as String;
         } on FormatException {
-          throw const FormatException('اقتباس YAML غير صالح في البيانات الأمامية.');
+          throw const FormatException(
+            'اقتباس YAML غير صالح في البيانات الأمامية.',
+          );
         }
-      } else if (value.startsWith("'") && value.endsWith("'") && value.length >= 2) {
+      } else if (value.startsWith("'") &&
+          value.endsWith("'") &&
+          value.length >= 2) {
         value = value.substring(1, value.length - 1).replaceAll("''", "'");
       }
       result[key] = value.trim();
@@ -244,8 +273,12 @@ class SkillMarkdownCodec {
     for (var index = 0; index < headings.length; index++) {
       final heading = headings[index];
       final start = heading.end;
-      final end = index + 1 < headings.length ? headings[index + 1].start : body.length;
-      result[_normalizeHeading(heading.group(1)!)] = body.substring(start, end).trim();
+      final end = index + 1 < headings.length
+          ? headings[index + 1].start
+          : body.length;
+      result[_normalizeHeading(heading.group(1)!)] = body
+          .substring(start, end)
+          .trim();
     }
     return result;
   }
@@ -277,10 +310,12 @@ class SkillMarkdownCodec {
     String? expected;
     void flush() {
       if (input != null && expected != null) {
-        scenarios.add(LeoSkillTestCase(
-          input: input!.trim(),
-          expectedOutcome: expected!.trim(),
-        ));
+        scenarios.add(
+          LeoSkillTestCase(
+            input: input!.trim(),
+            expectedOutcome: expected!.trim(),
+          ),
+        );
       }
       input = null;
       expected = null;
@@ -292,8 +327,10 @@ class SkillMarkdownCodec {
         flush();
         continue;
       }
-      final inputMatch = RegExp(r'^(?:[-*]\s*)?Input:\s*(.+)$', caseSensitive: false)
-          .firstMatch(clean);
+      final inputMatch = RegExp(
+        r'^(?:[-*]\s*)?Input:\s*(.+)$',
+        caseSensitive: false,
+      ).firstMatch(clean);
       if (inputMatch != null) {
         if (input != null || expected != null) flush();
         input = inputMatch.group(1)!.trim();
@@ -354,7 +391,9 @@ class SkillMarkdownCodec {
         .replaceAll(RegExp(r'-+'), '-')
         .replaceAll(RegExp(r'^-|-$'), '');
     if (slug.isEmpty) return 'leo-skill';
-    return slug.length > 64 ? slug.substring(0, 64).replaceAll(RegExp(r'-$'), '') : slug;
+    return slug.length > 64
+        ? slug.substring(0, 64).replaceAll(RegExp(r'-$'), '')
+        : slug;
   }
 
   static String _yamlQuote(String value) => jsonEncode(value);

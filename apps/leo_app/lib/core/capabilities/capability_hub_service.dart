@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'capability_repository.dart';
 import '../tools/workspace_write_policy.dart';
+
 import 'package:leo_platform_capabilities/leo_platform_capabilities.dart';
 
 class CapabilityExecutionResult {
@@ -38,8 +39,8 @@ class CapabilityHubService {
   CapabilityHubService({
     CapabilityRepository? repository,
     LeoPlatformCapabilities? platform,
-  })  : _repository = repository ?? LocalCapabilityRepository(),
-        _platform = platform ?? LeoPlatformCapabilities();
+  }) : _repository = repository ?? LocalCapabilityRepository(),
+       _platform = platform ?? LeoPlatformCapabilities();
 
   final CapabilityRepository _repository;
   final LeoPlatformCapabilities _platform;
@@ -185,7 +186,8 @@ class CapabilityHubService {
         cancelled: data['cancelled'] == true,
         data: data,
         message: success
-            ? (data['message']?.toString() ?? 'تم تسليم العملية إلى تطبيق أو خدمة النظام.')
+            ? (data['message']?.toString() ??
+                  'تم تسليم العملية إلى تطبيق أو خدمة النظام.')
             : (data['message']?.toString() ?? 'لم تكتمل العملية في النظام.'),
       );
     } catch (error) {
@@ -195,7 +197,6 @@ class CapabilityHubService {
       );
     }
   }
-
 
   Future<LeoSelectedFile?> pickFile(BuildContext context) async {
     final platform = await platformName;
@@ -210,14 +211,11 @@ class CapabilityHubService {
     if (!result.success || result.cancelled) return null;
     final uri = result.data['uri']?.toString();
     final selectedPath = result.data['path']?.toString();
-    if ((uri == null || uri.isEmpty) && (selectedPath == null || selectedPath.isEmpty)) {
+    if ((uri == null || uri.isEmpty) &&
+        (selectedPath == null || selectedPath.isEmpty)) {
       return null;
     }
-    return LeoSelectedFile._(
-      uri: uri,
-      path: selectedPath,
-      platform: platform,
-    );
+    return LeoSelectedFile._(uri: uri, path: selectedPath, platform: platform);
   }
 
   Future<String?> readSelectedText(
@@ -239,7 +237,6 @@ class CapabilityHubService {
     return result.data['text']?.toString();
   }
 
-
   /// Proposes a single text-file create/update inside a folder chosen through
   /// the native system picker. The native adapter keeps the folder token only
   /// for this process and re-checks the original file hash immediately before
@@ -255,7 +252,10 @@ class CapabilityHubService {
       content: content,
     );
     if (validationError != null) {
-      return CapabilityExecutionResult(success: false, message: validationError);
+      return CapabilityExecutionResult(
+        success: false,
+        message: validationError,
+      );
     }
     final platform = await platformName;
     if (platform != 'android' && platform != 'windows') {
@@ -276,7 +276,8 @@ class CapabilityHubService {
     );
     if (!workspace.success || workspace.cancelled) return workspace;
     final token = workspace.data['workspaceToken']?.toString() ?? '';
-    final workspaceLabel = workspace.data['workspaceLabel']?.toString() ?? 'المجلد الذي اخترته';
+    final workspaceLabel =
+        workspace.data['workspaceLabel']?.toString() ?? 'المجلد الذي اخترته';
     if (token.isEmpty || token.length > 80) {
       return const CapabilityExecutionResult(
         success: false,
@@ -297,7 +298,8 @@ class CapabilityHubService {
         await _releaseWorkspace(token);
         return CapabilityExecutionResult(
           success: false,
-          message: preview['message']?.toString() ?? 'تعذر إنشاء معاينة آمنة للملف.',
+          message:
+              preview['message']?.toString() ?? 'تعذر إنشاء معاينة آمنة للملف.',
         );
       }
       final exists = preview['exists'] == true;
@@ -326,7 +328,9 @@ class CapabilityHubService {
         capabilityId: 'files.write',
         scope: 'selected_workspace',
         operation: 'applyWorkspaceWrite',
-        actionSummary: exists ? 'تعديل الملف $relativePath' : 'إنشاء الملف $relativePath',
+        actionSummary: exists
+            ? 'تعديل الملف $relativePath'
+            : 'إنشاء الملف $relativePath',
         impactSummary: exists
             ? 'سيستبدل Leo محتوى هذا الملف فقط بعد مقارنة بصمته الحالية بالبصمة التي عُرضت لك.'
             : 'سينشئ Leo ملفاً نصياً واحداً داخل المجلد المختار، ولن يستبدل ملفاً موجوداً.',
@@ -367,7 +371,6 @@ class CapabilityHubService {
       // Native session tokens expire with the process and are bounded in count.
     }
   }
-
 
   /// First-use microphone grant. Android has a runtime OS permission prompt.
   /// Windows desktop apps instead use the OS microphone privacy page; the OS
@@ -410,10 +413,12 @@ class CapabilityHubService {
       scope: 'microphone_access',
       osPermissionGranted: osGranted,
     );
-    final needsLeoConsent = permission.needsLeoConsent ||
+    final needsLeoConsent =
+        permission.needsLeoConsent ||
         permission.status == LeoPermissionStatus.previouslyDenied;
     final firstUse = permission.needsLeoConsent;
-    final shouldOpenWindowsSettings = firstUse ||
+    final shouldOpenWindowsSettings =
+        firstUse ||
         permission.status == LeoPermissionStatus.previouslyDenied ||
         permission.status == LeoPermissionStatus.osPermissionRevoked;
 
@@ -520,14 +525,17 @@ class CapabilityHubService {
     final safeRecipient = to.trim();
     if (safeRecipient.length > 254 ||
         !RegExp(r'^[^\s@]+@[^\s@]+$').hasMatch(safeRecipient) ||
-        subject.length > 998 || body.length > 8192 ||
+        subject.length > 998 ||
+        body.length > 8192 ||
         _containsAsciiControl(safeRecipient) ||
         _containsAsciiControl(subject) ||
         _containsUnsafeTextControl(body)) {
-      return Future.value(const CapabilityExecutionResult(
-        success: false,
-        message: 'بيانات البريد غير صالحة أو تتجاوز الحدود المسموحة.',
-      ));
+      return Future.value(
+        const CapabilityExecutionResult(
+          success: false,
+          message: 'بيانات البريد غير صالحة أو تتجاوز الحدود المسموحة.',
+        ),
+      );
     }
     final mailto = Uri(
       scheme: 'mailto',
@@ -535,26 +543,29 @@ class CapabilityHubService {
       queryParameters: <String, String>{'subject': subject, 'body': body},
     ).toString();
     if (mailto.length > 100000) {
-      return Future.value(const CapabilityExecutionResult(
-        success: false,
-        message: 'مسودة البريد كبيرة جداً لتسليمها إلى تطبيق البريد بأمان.',
-      ));
+      return Future.value(
+        const CapabilityExecutionResult(
+          success: false,
+          message: 'مسودة البريد كبيرة جداً لتسليمها إلى تطبيق البريد بأمان.',
+        ),
+      );
     }
     return _invoke(
-        context,
-        capabilityId: 'email.compose',
-        scope: 'mail_app_handoff',
-        operation: 'composeEmail',
-        actionSummary: 'فتح رسالة بريد جاهزة إلى $safeRecipient',
-        impactSummary: 'المستلم: $safeRecipient\nالموضوع: $subject\nالنص:\n$body\n\nسيفتح Leo تطبيق البريد كمسودة فقط، ولن يرسلها تلقائياً.',
-        arguments: <String, Object?>{
-          'to': safeRecipient,
-          'subject': subject,
-          'body': body,
-          'mailto': mailto,
-        },
-        externalEffect: true,
-      );
+      context,
+      capabilityId: 'email.compose',
+      scope: 'mail_app_handoff',
+      operation: 'composeEmail',
+      actionSummary: 'فتح رسالة بريد جاهزة إلى $safeRecipient',
+      impactSummary:
+          'المستلم: $safeRecipient\nالموضوع: $subject\nالنص:\n$body\n\nسيفتح Leo تطبيق البريد كمسودة فقط، ولن يرسلها تلقائياً.',
+      arguments: <String, Object?>{
+        'to': safeRecipient,
+        'subject': subject,
+        'body': body,
+        'mailto': mailto,
+      },
+      externalEffect: true,
+    );
   }
 
   Future<CapabilityExecutionResult> openDialer(
@@ -562,21 +573,24 @@ class CapabilityHubService {
     String number,
   ) {
     if (!_isSafePhoneNumber(number)) {
-      return Future.value(const CapabilityExecutionResult(
-        success: false,
-        message: 'رقم الهاتف غير صالح.',
-      ));
+      return Future.value(
+        const CapabilityExecutionResult(
+          success: false,
+          message: 'رقم الهاتف غير صالح.',
+        ),
+      );
     }
     return _invoke(
-        context,
-        capabilityId: 'phone.dial',
-        scope: 'dialer_handoff',
-        operation: 'openDialer',
-        actionSummary: 'فتح لوحة الاتصال للرقم $number',
-        impactSummary: 'سيفتح Leo تطبيق الاتصال بالرقم المطلوب؛ لن يبدأ المكالمة بنفسه.',
-        arguments: <String, Object?>{'number': number.trim()},
-        externalEffect: true,
-      );
+      context,
+      capabilityId: 'phone.dial',
+      scope: 'dialer_handoff',
+      operation: 'openDialer',
+      actionSummary: 'فتح لوحة الاتصال للرقم $number',
+      impactSummary:
+          'سيفتح Leo تطبيق الاتصال بالرقم المطلوب؛ لن يبدأ المكالمة بنفسه.',
+      arguments: <String, Object?>{'number': number.trim()},
+      externalEffect: true,
+    );
   }
 
   Future<CapabilityExecutionResult> composeMessage(
@@ -584,25 +598,32 @@ class CapabilityHubService {
     required String number,
     required String body,
   }) {
-    if (!_isSafePhoneNumber(number) || body.length > 4096 || _containsUnsafeTextControl(body)) {
-      return Future.value(const CapabilityExecutionResult(
-        success: false,
-        message: 'رقم الهاتف أو نص الرسالة غير صالح أو يتجاوز الحد المسموح.',
-      ));
+    if (!_isSafePhoneNumber(number) ||
+        body.length > 4096 ||
+        _containsUnsafeTextControl(body)) {
+      return Future.value(
+        const CapabilityExecutionResult(
+          success: false,
+          message: 'رقم الهاتف أو نص الرسالة غير صالح أو يتجاوز الحد المسموح.',
+        ),
+      );
     }
     return _invoke(
-        context,
-        capabilityId: 'messages.compose',
-        scope: 'messaging_app_handoff',
-        operation: 'composeMessage',
-        actionSummary: 'فتح رسالة إلى $number',
-        impactSummary: 'الرقم: $number\nنص الرسالة:\n$body\n\nسيفتح Leo تطبيق الرسائل كمسودة فقط، ولن يرسلها تلقائياً.',
-        arguments: <String, Object?>{'number': number.trim(), 'body': body},
-        externalEffect: true,
-      );
+      context,
+      capabilityId: 'messages.compose',
+      scope: 'messaging_app_handoff',
+      operation: 'composeMessage',
+      actionSummary: 'فتح رسالة إلى $number',
+      impactSummary:
+          'الرقم: $number\nنص الرسالة:\n$body\n\nسيفتح Leo تطبيق الرسائل كمسودة فقط، ولن يرسلها تلقائياً.',
+      arguments: <String, Object?>{'number': number.trim(), 'body': body},
+      externalEffect: true,
+    );
   }
 
-  Future<CapabilityExecutionResult> openSelectedFile(BuildContext context) async {
+  Future<CapabilityExecutionResult> openSelectedFile(
+    BuildContext context,
+  ) async {
     final selection = await _invoke(
       context,
       capabilityId: 'files.open_selected',
@@ -615,7 +636,10 @@ class CapabilityHubService {
     final uri = selection.data['uri']?.toString();
     final path = selection.data['path']?.toString();
     if ((uri == null || uri.isEmpty) && (path == null || path.isEmpty)) {
-      return const CapabilityExecutionResult(success: false, message: 'لم يُرجع منتقي الملفات مرجعاً صالحاً.');
+      return const CapabilityExecutionResult(
+        success: false,
+        message: 'لم يُرجع منتقي الملفات مرجعاً صالحاً.',
+      );
     }
     return _invoke(
       context,
@@ -643,16 +667,22 @@ class CapabilityHubService {
     final startUtc = start.toUtc();
     final endUtc = end.toUtc();
     final duration = endUtc.difference(startUtc);
-    if (title.trim().isEmpty || title.runes.length > 200 ||
-        location.runes.length > 300 || description.runes.length > 2048 ||
-        startUtc.millisecondsSinceEpoch <= 0 || duration <= Duration.zero ||
+    if (title.trim().isEmpty ||
+        title.runes.length > 200 ||
+        location.runes.length > 300 ||
+        description.runes.length > 2048 ||
+        startUtc.millisecondsSinceEpoch <= 0 ||
+        duration <= Duration.zero ||
         duration > const Duration(days: 7) ||
-        _containsInlineControl(title) || _containsInlineControl(location) ||
+        _containsInlineControl(title) ||
+        _containsInlineControl(location) ||
         _containsUnsafeTextControl(description)) {
-      return Future.value(const CapabilityExecutionResult(
-        success: false,
-        message: 'بيانات الموعد غير صالحة أو تتجاوز الحدود المسموحة.',
-      ));
+      return Future.value(
+        const CapabilityExecutionResult(
+          success: false,
+          message: 'بيانات الموعد غير صالحة أو تتجاوز الحدود المسموحة.',
+        ),
+      );
     }
     return _invoke(
       context,
@@ -660,7 +690,8 @@ class CapabilityHubService {
       scope: 'calendar_event_draft',
       operation: 'createCalendarEventDraft',
       actionSummary: 'إنشاء مسودة موعد: ${title.trim()}',
-      impactSummary: 'سيُفتح تطبيق التقويم بموعد مقترح. لن يُحفظ الموعد ولن تُرسل دعوات حتى تحفظه بنفسك داخل تطبيق التقويم.\n\nالعنوان: ${title.trim()}\nالبداية: ${startUtc.toIso8601String()}\nالنهاية: ${endUtc.toIso8601String()}\nالمكان: $location\nالوصف: $description',
+      impactSummary:
+          'سيُفتح تطبيق التقويم بموعد مقترح. لن يُحفظ الموعد ولن تُرسل دعوات حتى تحفظه بنفسك داخل تطبيق التقويم.\n\nالعنوان: ${title.trim()}\nالبداية: ${startUtc.toIso8601String()}\nالنهاية: ${endUtc.toIso8601String()}\nالمكان: $location\nالوصف: $description',
       arguments: <String, Object?>{
         'title': title.trim(),
         'startEpochMs': startUtc.millisecondsSinceEpoch,
@@ -676,30 +707,34 @@ class CapabilityHubService {
     BuildContext context,
     String content,
   ) {
-    if (content.length > 10000 || content.isEmpty ||
-        utf8.encode(content).length > 16 * 1024 || _containsUnsafeTextControl(content)) {
-      return Future.value(const CapabilityExecutionResult(
-        success: false,
-        message: 'النص المراد نسخه فارغ أو غير صالح أو يتجاوز الحد المسموح.',
-      ));
+    if (content.length > 10000 ||
+        content.isEmpty ||
+        utf8.encode(content).length > 16 * 1024 ||
+        _containsUnsafeTextControl(content)) {
+      return Future.value(
+        const CapabilityExecutionResult(
+          success: false,
+          message: 'النص المراد نسخه فارغ أو غير صالح أو يتجاوز الحد المسموح.',
+        ),
+      );
     }
-    final preview = content.length > 3000 ? '${content.substring(0, 3000)}\n[معاينة مختصرة]' : content;
+    final preview = content.length > 3000
+        ? '${content.substring(0, 3000)}\n[معاينة مختصرة]'
+        : content;
     return _invoke(
       context,
       capabilityId: 'clipboard.write',
       scope: 'system_clipboard_write',
       operation: 'copyText',
       actionSummary: 'نسخ النص إلى حافظة النظام',
-      impactSummary: 'سيستبدل Leo محتوى الحافظة الحالي بالنص التالي بعد موافقتك. لا يقرأ Leo محتوى الحافظة السابق.\n\n$preview',
+      impactSummary:
+          'سيستبدل Leo محتوى الحافظة الحالي بالنص التالي بعد موافقتك. لا يقرأ Leo محتوى الحافظة السابق.\n\n$preview',
       arguments: <String, Object?>{'content': content},
       externalEffect: true,
     );
   }
 
-  Future<CapabilityExecutionResult> openUrl(
-    BuildContext context,
-    String url,
-  ) {
+  Future<CapabilityExecutionResult> openUrl(BuildContext context, String url) {
     final parsed = Uri.tryParse(url);
     if (url.length > 2048 ||
         parsed == null ||
@@ -707,22 +742,26 @@ class CapabilityHubService {
         parsed.host.isEmpty ||
         parsed.userInfo.isNotEmpty ||
         _containsAsciiControl(url)) {
-      return Future.value(const CapabilityExecutionResult(
-        success: false,
-        message: 'يسمح بفتح روابط HTTP وHTTPS صالحة فقط.',
-      ));
-    }
-    final normalizedUrl = parsed.replace(scheme: parsed.scheme.toLowerCase()).toString();
-    return _invoke(
-        context,
-        capabilityId: 'device.open_url',
-        scope: 'link_handoff',
-        operation: 'openUrl',
-        actionSummary: 'فتح موقع خارجي',
-        impactSummary: 'سيتم فتح هذا الرابط في المتصفح: $normalizedUrl',
-        arguments: <String, Object?>{'url': normalizedUrl},
-        externalEffect: true,
+      return Future.value(
+        const CapabilityExecutionResult(
+          success: false,
+          message: 'يسمح بفتح روابط HTTP وHTTPS صالحة فقط.',
+        ),
       );
+    }
+    final normalizedUrl = parsed
+        .replace(scheme: parsed.scheme.toLowerCase())
+        .toString();
+    return _invoke(
+      context,
+      capabilityId: 'device.open_url',
+      scope: 'link_handoff',
+      operation: 'openUrl',
+      actionSummary: 'فتح موقع خارجي',
+      impactSummary: 'سيتم فتح هذا الرابط في المتصفح: $normalizedUrl',
+      arguments: <String, Object?>{'url': normalizedUrl},
+      externalEffect: true,
+    );
   }
 
   Future<CapabilityExecutionResult> launchAndroidApp(
@@ -731,20 +770,22 @@ class CapabilityHubService {
   ) {
     if (packageName.length > 255 ||
         !RegExp(r'^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+$').hasMatch(packageName)) {
-      return Future.value(const CapabilityExecutionResult(
-        success: false,
-        message: 'معرّف تطبيق Android غير صالح.',
-      ));
+      return Future.value(
+        const CapabilityExecutionResult(
+          success: false,
+          message: 'معرّف تطبيق Android غير صالح.',
+        ),
+      );
     }
     return _invoke(
-        context,
-        capabilityId: 'device.app_launch',
-        scope: 'selected_application',
-        operation: 'launchApp',
-        actionSummary: 'فتح التطبيق $packageName',
-        impactSummary: 'سيتم فتح التطبيق المثبت فقط دون مشاركة بيانات معه.',
-        arguments: <String, Object?>{'packageName': packageName},
-      );
+      context,
+      capabilityId: 'device.app_launch',
+      scope: 'selected_application',
+      operation: 'launchApp',
+      actionSummary: 'فتح التطبيق $packageName',
+      impactSummary: 'سيتم فتح التطبيق المثبت فقط دون مشاركة بيانات معه.',
+      arguments: <String, Object?>{'packageName': packageName},
+    );
   }
 
   Future<CapabilityExecutionResult> launchWindowsApp(
@@ -752,20 +793,22 @@ class CapabilityHubService {
     String appTarget,
   ) {
     if (appTarget.length > 512 || _containsNul(appTarget)) {
-      return Future.value(const CapabilityExecutionResult(
-        success: false,
-        message: 'هدف تطبيق Windows غير صالح.',
-      ));
+      return Future.value(
+        const CapabilityExecutionResult(
+          success: false,
+          message: 'هدف تطبيق Windows غير صالح.',
+        ),
+      );
     }
     return _invoke(
-        context,
-        capabilityId: 'device.app_launch',
-        scope: 'selected_application',
-        operation: 'launchApp',
-        actionSummary: 'فتح تطبيق Windows',
-        impactSummary: appTarget,
-        arguments: <String, Object?>{'target': appTarget},
-      );
+      context,
+      capabilityId: 'device.app_launch',
+      scope: 'selected_application',
+      operation: 'launchApp',
+      actionSummary: 'فتح تطبيق Windows',
+      impactSummary: appTarget,
+      arguments: <String, Object?>{'target': appTarget},
+    );
   }
 
   bool _operationAllowed(String capabilityId, String operation) {
@@ -786,7 +829,8 @@ class CapabilityHubService {
   }
 
   bool _isSafePhoneNumber(String value) =>
-      value.length <= 32 && RegExp(r'^[0-9+*#(). -]{1,32}$').hasMatch(value.trim());
+      value.length <= 32 &&
+      RegExp(r'^[0-9+*#(). -]{1,32}$').hasMatch(value.trim());
 
   bool _containsNul(String value) => value.contains('\u0000');
 
@@ -794,13 +838,13 @@ class CapabilityHubService {
       value.runes.any((rune) => rune < 0x20 || rune == 0x7f);
 
   bool _containsUnsafeTextControl(String value) => value.runes.any(
-        (rune) => rune == 0x7f ||
-            (rune < 0x20 && rune != 0x09 && rune != 0x0a && rune != 0x0d),
-      );
+    (rune) =>
+        rune == 0x7f ||
+        (rune < 0x20 && rune != 0x09 && rune != 0x0a && rune != 0x0d),
+  );
 
-  bool _containsInlineControl(String value) => value.runes.any(
-        (rune) => rune < 0x20 || rune == 0x7f,
-      );
+  bool _containsInlineControl(String value) =>
+      value.runes.any((rune) => rune < 0x20 || rune == 0x7f);
 
   Future<bool> _showWorkspaceWriteApproval(
     BuildContext context, {
@@ -832,22 +876,29 @@ class CapabilityHubService {
                       const SizedBox(height: 4),
                       Text(relativePath),
                       const SizedBox(height: 8),
-                      Text(exists
-                          ? 'الأسطر المحذوفة تبدأ بـ - والمضافة بـ +. لن يتغير الملف قبل موافقتك.'
-                          : 'سيُنشأ هذا الملف داخل المجلد الذي اخترته. راجع المحتوى قبل الكتابة.'),
+                      Text(
+                        exists
+                            ? 'الأسطر المحذوفة تبدأ بـ - والمضافة بـ +. لن يتغير الملف قبل موافقتك.'
+                            : 'سيُنشأ هذا الملف داخل المجلد الذي اخترته. راجع المحتوى قبل الكتابة.',
+                      ),
                       const SizedBox(height: 12),
                       Container(
                         constraints: const BoxConstraints(maxHeight: 300),
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Theme.of(dialogContext).colorScheme.surfaceContainerHighest,
+                          color: Theme.of(dialogContext)
+                              .colorScheme
+                              .surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: SingleChildScrollView(
                           child: SelectableText(
                             diff,
-                            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                            style: const TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                       ),
@@ -908,7 +959,9 @@ class CapabilityHubService {
           builder: (dialogContext) => AlertDialog(
             scrollable: true,
             title: const Text('تأكيد تنفيذ الإجراء'),
-            content: Text('$title\n\nالتأثير المتوقع: $impact\n\nهذه موافقة مستقلة عن إذن استخدام القدرة.'),
+            content: Text(
+              '$title\n\nالتأثير المتوقع: $impact\n\nهذه موافقة مستقلة عن إذن استخدام القدرة.',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),

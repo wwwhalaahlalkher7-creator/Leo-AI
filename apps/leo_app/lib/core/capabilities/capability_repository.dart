@@ -42,16 +42,16 @@ class LeoCapability {
   final bool supportedInAlpha;
 
   factory LeoCapability.fromDto(rust_api.CapabilityDto dto) => LeoCapability(
-        id: dto.id,
-        displayName: dto.displayName,
-        description: dto.description,
-        platforms: List.unmodifiable(dto.platforms),
-        providerOrder: List.unmodifiable(dto.providerOrder),
-        grantScope: dto.grantScope,
-        risk: LeoCapabilityRisk.values.byName(_riskNameToDart(dto.risk)),
-        availableOffline: dto.availableOffline,
-        supportedInAlpha: dto.supportedInAlpha,
-      );
+    id: dto.id,
+    displayName: dto.displayName,
+    description: dto.description,
+    platforms: List.unmodifiable(dto.platforms),
+    providerOrder: List.unmodifiable(dto.providerOrder),
+    grantScope: dto.grantScope,
+    risk: LeoCapabilityRisk.values.byName(_riskNameToDart(dto.risk)),
+    availableOffline: dto.availableOffline,
+    supportedInAlpha: dto.supportedInAlpha,
+  );
 }
 
 class LeoPermissionRecord {
@@ -102,7 +102,9 @@ class LeoPermissionCheck {
 
   factory LeoPermissionCheck.fromDto(rust_api.PermissionCheckDto dto) =>
       LeoPermissionCheck(
-        status: LeoPermissionStatus.values.byName(_statusNameToDart(dto.status)),
+        status: LeoPermissionStatus.values.byName(
+          _statusNameToDart(dto.status),
+        ),
         allowed: dto.allowed,
         needsLeoConsent: dto.needsLeoConsent,
         needsOsPermission: dto.needsOsPermission,
@@ -137,7 +139,7 @@ class LocalCapabilityRepository implements CapabilityRepository {
   LocalCapabilityRepository({
     Future<Directory> Function()? supportDirectoryProvider,
   }) : _supportDirectoryProvider =
-            supportDirectoryProvider ?? getApplicationSupportDirectory;
+           supportDirectoryProvider ?? getApplicationSupportDirectory;
 
   final Future<Directory> Function() _supportDirectoryProvider;
 
@@ -207,7 +209,10 @@ class LocalCapabilityRepository implements CapabilityRepository {
   }
 
   @override
-  Future<bool> revoke({required String capabilityId, required String scope}) async {
+  Future<bool> revoke({
+    required String capabilityId,
+    required String scope,
+  }) async {
     await _initialize();
     final databasePath = await _databasePath();
     return rust_api.permissionRevoke(
@@ -241,21 +246,21 @@ class LocalCapabilityRepository implements CapabilityRepository {
 }
 
 String _riskNameToDart(String value) => switch (value) {
-      'read_only' => 'readOnly',
-      'low' => 'low',
-      'moderate' => 'moderate',
-      'high' => 'high',
-      'critical' => 'critical',
-      _ => throw FormatException('Unknown capability risk: $value'),
-    };
+  'read_only' => 'readOnly',
+  'low' => 'low',
+  'moderate' => 'moderate',
+  'high' => 'high',
+  'critical' => 'critical',
+  _ => throw FormatException('Unknown capability risk: $value'),
+};
 
 String _statusNameToDart(String value) => switch (value) {
-      'request_first_use' => 'requestFirstUse',
-      'allowed' => 'allowed',
-      'previously_denied' => 'previouslyDenied',
-      'expired_grant' => 'expiredGrant',
-      'os_permission_required' => 'osPermissionRequired',
-      'os_permission_revoked' => 'osPermissionRevoked',
-      'scope_upgrade_required' => 'scopeUpgradeRequired',
-      _ => throw FormatException('Unknown permission status: $value'),
-    };
+  'request_first_use' => 'requestFirstUse',
+  'allowed' => 'allowed',
+  'previously_denied' => 'previouslyDenied',
+  'expired_grant' => 'expiredGrant',
+  'os_permission_required' => 'osPermissionRequired',
+  'os_permission_revoked' => 'osPermissionRevoked',
+  'scope_upgrade_required' => 'scopeUpgradeRequired',
+  _ => throw FormatException('Unknown permission status: $value'),
+};

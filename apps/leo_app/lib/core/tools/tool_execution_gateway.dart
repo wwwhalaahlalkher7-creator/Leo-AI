@@ -37,14 +37,15 @@ class ToolAuditRecord {
   final String summary;
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'toolName': toolName,
-        'status': status,
-        'timestampUtc': timestampUtc,
-        'summary': summary,
-      };
+    'id': id,
+    'toolName': toolName,
+    'status': status,
+    'timestampUtc': timestampUtc,
+    'summary': summary,
+  };
 
-  factory ToolAuditRecord.fromJson(Map<String, Object?> json) => ToolAuditRecord(
+  factory ToolAuditRecord.fromJson(Map<String, Object?> json) =>
+      ToolAuditRecord(
         id: json['id']! as String,
         toolName: json['toolName']! as String,
         status: json['status']! as String,
@@ -57,8 +58,8 @@ class ToolExecutionGateway {
   ToolExecutionGateway({
     CapabilityHubService? capabilities,
     Future<SharedPreferences> Function()? preferencesLoader,
-  })  : _capabilities = capabilities ?? CapabilityHubService(),
-        _preferencesLoader = preferencesLoader ?? SharedPreferences.getInstance;
+  }) : _capabilities = capabilities ?? CapabilityHubService(),
+       _preferencesLoader = preferencesLoader ?? SharedPreferences.getInstance;
 
   static const _auditKey = 'leo.tool_execution.audit.v1';
   static const maxToolCallsPerTurn = 3;
@@ -85,7 +86,8 @@ class ToolExecutionGateway {
           success: false,
           cancelled: false,
           toolResult: 'This capability is not available on Windows in this Alpha build.',
-          userSummary: 'هذه القدرة غير متاحة على Windows في إصدار Alpha الحالي.',
+          userSummary:
+              'هذه القدرة غير متاحة على Windows في إصدار Alpha الحالي.',
         );
         await _record(call, entryId: executionId, status: 'failed');
         return unsupported;
@@ -97,8 +99,8 @@ class ToolExecutionGateway {
         status: outcome.cancelled
             ? 'cancelled'
             : outcome.success
-                ? 'succeeded'
-                : 'failed',
+            ? 'succeeded'
+            : 'failed',
       );
       return outcome;
     } catch (_) {
@@ -146,10 +148,10 @@ class ToolExecutionGateway {
         final baseSummary = result.data.isEmpty
             ? result.message
             : created
-                ? 'أنشأ Leo الملف ${call.arguments['relative_path']} داخل مساحة العمل بعد موافقتك.'
-                : updated
-                    ? 'عدّل Leo الملف ${call.arguments['relative_path']} داخل مساحة العمل بعد موافقتك.'
-                    : result.message;
+            ? 'أنشأ Leo الملف ${call.arguments['relative_path']} داخل مساحة العمل بعد موافقتك.'
+            : updated
+            ? 'عدّل Leo الملف ${call.arguments['relative_path']} داخل مساحة العمل بعد موافقتك.'
+            : result.message;
         // A native adapter may report that content was verified but a backup
         // could not be removed. Preserve that actionable warning for the user
         // instead of reducing a committed write to a generic success message.
@@ -161,7 +163,10 @@ class ToolExecutionGateway {
 
       case 'files.open_selected':
         final result = await _capabilities.openSelectedFile(context);
-        return _fromCapabilityResult(result, fallback: 'تم تسليم الملف المحدد إلى التطبيق المرتبط به.');
+        return _fromCapabilityResult(
+          result,
+          fallback: 'تم تسليم الملف المحدد إلى التطبيق المرتبط به.',
+        );
 
       case 'calendar.create_event':
         final result = await _capabilities.createCalendarEventDraft(
@@ -172,11 +177,21 @@ class ToolExecutionGateway {
           location: call.arguments['location']!,
           description: call.arguments['description']!,
         );
-        return _fromCapabilityResult(result, fallback: 'فُتحت مسودة الموعد في تطبيق التقويم؛ احفظها هناك لإنشاء الموعد.');
+        return _fromCapabilityResult(
+          result,
+          fallback:
+              'فُتحت مسودة الموعد في تطبيق التقويم؛ احفظها هناك لإنشاء الموعد.',
+        );
 
       case 'clipboard.copy_text':
-        final result = await _capabilities.copyTextToClipboard(context, call.arguments['content']!);
-        return _fromCapabilityResult(result, fallback: 'نُسخ النص إلى حافظة النظام بعد موافقتك.');
+        final result = await _capabilities.copyTextToClipboard(
+          context,
+          call.arguments['content']!,
+        );
+        return _fromCapabilityResult(
+          result,
+          fallback: 'نُسخ النص إلى حافظة النظام بعد موافقتك.',
+        );
 
       case 'contacts.list':
         final result = await _capabilities.readContacts(context);
@@ -187,10 +202,12 @@ class ToolExecutionGateway {
         final boundedContacts = contacts
             .whereType<Map>()
             .take(30)
-            .map((contact) => {
-                  'name': contact['name']?.toString() ?? '',
-                  'number': contact['number']?.toString() ?? '',
-                })
+            .map(
+              (contact) => {
+                'name': contact['name']?.toString() ?? '',
+                'number': contact['number']?.toString() ?? '',
+              },
+            )
             .toList(growable: false);
         final output = jsonEncode(boundedContacts);
         return _success(
@@ -207,11 +224,20 @@ class ToolExecutionGateway {
           subject: call.arguments['subject']!,
           body: call.arguments['body']!,
         );
-        return _fromCapabilityResult(result, fallback: 'تم فتح مسودة البريد فقط.');
+        return _fromCapabilityResult(
+          result,
+          fallback: 'تم فتح مسودة البريد فقط.',
+        );
 
       case 'phone.dial':
-        final result = await _capabilities.openDialer(context, call.arguments['number']!);
-        return _fromCapabilityResult(result, fallback: 'تم فتح لوحة الاتصال فقط.');
+        final result = await _capabilities.openDialer(
+          context,
+          call.arguments['number']!,
+        );
+        return _fromCapabilityResult(
+          result,
+          fallback: 'تم فتح لوحة الاتصال فقط.',
+        );
 
       case 'messages.compose':
         final result = await _capabilities.composeMessage(
@@ -219,23 +245,35 @@ class ToolExecutionGateway {
           number: call.arguments['number']!,
           body: call.arguments['body']!,
         );
-        return _fromCapabilityResult(result, fallback: 'تم فتح مسودة الرسالة فقط.');
+        return _fromCapabilityResult(
+          result,
+          fallback: 'تم فتح مسودة الرسالة فقط.',
+        );
 
       case 'web.open':
-        final result = await _capabilities.openUrl(context, call.arguments['url']!);
-        return _fromCapabilityResult(result, fallback: 'تم تسليم الرابط إلى المتصفح.');
+        final result = await _capabilities.openUrl(
+          context,
+          call.arguments['url']!,
+        );
+        return _fromCapabilityResult(
+          result,
+          fallback: 'تم تسليم الرابط إلى المتصفح.',
+        );
 
       case 'app.launch':
         final target = call.arguments['target']!;
         final result = Platform.isAndroid
             ? await _capabilities.launchAndroidApp(context, target)
             : Platform.isWindows
-                ? await _capabilities.launchWindowsApp(context, target)
-                : const CapabilityExecutionResult(
-                    success: false,
-                    message: 'المنصة الحالية غير مدعومة.',
-                  );
-        return _fromCapabilityResult(result, fallback: 'تم تسليم طلب فتح التطبيق إلى النظام.');
+            ? await _capabilities.launchWindowsApp(context, target)
+            : const CapabilityExecutionResult(
+                success: false,
+                message: 'المنصة الحالية غير مدعومة.',
+              );
+        return _fromCapabilityResult(
+          result,
+          fallback: 'تم تسليم طلب فتح التطبيق إلى النظام.',
+        );
 
       default:
         // Parser currently prevents this branch; keep a second allowlist gate.
@@ -255,7 +293,8 @@ class ToolExecutionGateway {
     return _success(fallback, fallback);
   }
 
-  ToolExecutionOutcome _success(String summary, String result) => ToolExecutionOutcome(
+  ToolExecutionOutcome _success(String summary, String result) =>
+      ToolExecutionOutcome(
         success: true,
         cancelled: false,
         userSummary: summary,
@@ -263,20 +302,21 @@ class ToolExecutionGateway {
       );
 
   ToolExecutionOutcome _failed(String summary) => ToolExecutionOutcome(
-        success: false,
-        cancelled: false,
-        userSummary: summary,
-        toolResult: 'The requested operation did not complete. $summary',
-      );
+    success: false,
+    cancelled: false,
+    userSummary: summary,
+    toolResult: 'The requested operation did not complete. $summary',
+  );
 
   ToolExecutionOutcome _cancelled(String summary) => ToolExecutionOutcome(
-        success: false,
-        cancelled: true,
-        userSummary: summary,
-        toolResult: 'The user cancelled or declined this operation. No side effect was performed. Do not retry it.',
-      );
+    success: false,
+    cancelled: true,
+    userSummary: summary,
+    toolResult: 'The user cancelled or declined this operation. No side effect was performed. Do not retry it.',
+  );
 
-  String _boundedResult(String value) => value.length <= _maxToolOutputCharacters
+  String _boundedResult(String value) =>
+      value.length <= _maxToolOutputCharacters
       ? value
       : '${value.substring(0, _maxToolOutputCharacters)}\n[output truncated]';
 
@@ -296,7 +336,9 @@ class ToolExecutionGateway {
       if (decoded is! List) return const [];
       return decoded
           .whereType<Map>()
-          .map((item) => ToolAuditRecord.fromJson(Map<String, Object?>.from(item)))
+          .map(
+            (item) => ToolAuditRecord.fromJson(Map<String, Object?>.from(item)),
+          )
           .toList(growable: false);
     } catch (_) {
       return const [];

@@ -36,7 +36,8 @@ class _MemoryPageState extends State<MemoryPage> {
   bool _searching = false;
   bool _showSearchResults = false;
   _MemoryFilter _filter = _MemoryFilter.all;
-  final MemoryIntelligenceService _intelligence = const MemoryIntelligenceService();
+  final MemoryIntelligenceService _intelligence =
+      const MemoryIntelligenceService();
 
   @override
   void initState() {
@@ -108,18 +109,20 @@ class _MemoryPageState extends State<MemoryPage> {
   }
 
   List<LeoMemoryEntry> get _visibleEntries {
-    return _entries.where((entry) {
-      switch (_filter) {
-        case _MemoryFilter.all:
-          return true;
-        case _MemoryFilter.active:
-          return entry.userApproved && entry.active;
-        case _MemoryFilter.pending:
-          return !entry.userApproved;
-        case _MemoryFilter.disabled:
-          return entry.userApproved && !entry.active;
-      }
-    }).toList(growable: false);
+    return _entries
+        .where((entry) {
+          switch (_filter) {
+            case _MemoryFilter.all:
+              return true;
+            case _MemoryFilter.active:
+              return entry.userApproved && entry.active;
+            case _MemoryFilter.pending:
+              return !entry.userApproved;
+            case _MemoryFilter.disabled:
+              return entry.userApproved && !entry.active;
+          }
+        })
+        .toList(growable: false);
   }
 
   Future<void> _reviewSuggestedMemory() async {
@@ -140,8 +143,11 @@ class _MemoryPageState extends State<MemoryPage> {
         kind: draft.kind,
         existing: _entries,
       );
-      if (findings.any((finding) =>
-          finding.kind == MemoryFindingKind.duplicate && finding.similarity >= .999)) {
+      if (findings.any(
+        (finding) =>
+            finding.kind == MemoryFindingKind.duplicate &&
+            finding.similarity >= .999,
+      )) {
         _showMessage('توجد ذاكرة مطابقة؛ لم يُنشأ اقتراح مكرر.');
         return;
       }
@@ -152,7 +158,9 @@ class _MemoryPageState extends State<MemoryPage> {
         tags: draft.tags,
         sourceReference: draft.sourceReference,
       );
-      _showMessage('أُضيف اقتراح الذاكرة إلى قائمة المراجعة. لن يستخدمه Leo قبل اعتمادك وتفعيله.');
+      _showMessage(
+        'أُضيف اقتراح الذاكرة إلى قائمة المراجعة. لن يستخدمه Leo قبل اعتمادك وتفعيله.',
+      );
       await _refresh();
     });
   }
@@ -169,9 +177,14 @@ class _MemoryPageState extends State<MemoryPage> {
         kind: draft.kind,
         existing: _entries,
       );
-      if (findings.any((finding) =>
-          finding.kind == MemoryFindingKind.duplicate && finding.similarity >= .999)) {
-        _showMessage('هذه المعلومة موجودة بالفعل بصورة مطابقة؛ لم تتم إضافة نسخة مكررة.');
+      if (findings.any(
+        (finding) =>
+            finding.kind == MemoryFindingKind.duplicate &&
+            finding.similarity >= .999,
+      )) {
+        _showMessage(
+          'هذه المعلومة موجودة بالفعل بصورة مطابقة؛ لم تتم إضافة نسخة مكررة.',
+        );
         return;
       }
       final saveAsProposal = findings.isNotEmpty
@@ -210,29 +223,39 @@ class _MemoryPageState extends State<MemoryPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: findings.map((finding) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      finding.kind == MemoryFindingKind.duplicate
-                          ? 'تشابه مرتفع (${(finding.similarity * 100).round()}%)'
-                          : 'احتمال تعارض (${(finding.similarity * 100).round()}%)',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+              children: findings
+                  .map(
+                    (finding) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            finding.kind == MemoryFindingKind.duplicate
+                                ? 'تشابه مرتفع (${(finding.similarity * 100).round()}%)'
+                                : 'احتمال تعارض (${(finding.similarity * 100).round()}%)',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(finding.existing.content),
+                          const SizedBox(height: 3),
+                          Text(
+                            finding.explanation,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(finding.existing.content),
-                    const SizedBox(height: 3),
-                    Text(finding.explanation, style: const TextStyle(fontSize: 12)),
-                  ],
-                ),
-              )).toList(growable: false),
+                  )
+                  .toList(growable: false),
             ),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
           FilledButton.tonal(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('إضافة كاقتراح للمراجعة'),
@@ -267,18 +290,25 @@ class _MemoryPageState extends State<MemoryPage> {
                 TextField(
                   controller: confirmController,
                   obscureText: true,
-                  decoration: const InputDecoration(labelText: 'تأكيد كلمة المرور'),
+                  decoration: const InputDecoration(
+                    labelText: 'تأكيد كلمة المرور',
+                  ),
                 ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('إلغاء'),
+            ),
             FilledButton(
               onPressed: () {
                 if (controller.text.runes.length < 12 ||
                     (confirm && controller.text != confirmController.text)) {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(content: Text('تحقق من طول كلمة المرور وتطابقها.')),
+                    const SnackBar(
+                      content: Text('تحقق من طول كلمة المرور وتطابقها.'),
+                    ),
                   );
                   return;
                 }
@@ -299,14 +329,17 @@ class _MemoryPageState extends State<MemoryPage> {
     final passphrase = await _askPassphrase(confirm: true);
     if (passphrase == null || !mounted) return;
     await _run(() async {
-      final bytes = await MemoryBackupService(_repository).exportEncrypted(passphrase);
+      final bytes = await MemoryBackupService(_repository)
+          .exportEncrypted(passphrase);
       final saved = await FilePicker.platform.saveFile(
         dialogTitle: 'حفظ نسخة ذاكرة Leo المشفرة',
         fileName: 'leo-memory-backup.leomem',
         bytes: bytes,
       );
       if (saved == null) return;
-      _showMessage('تم إنشاء النسخة الاحتياطية المشفرة. احتفظ بكلمة مرورها منفصلة عن الملف.');
+      _showMessage(
+        'تم إنشاء النسخة الاحتياطية المشفرة. احتفظ بكلمة مرورها منفصلة عن الملف.',
+      );
     });
   }
 
@@ -322,10 +355,16 @@ class _MemoryPageState extends State<MemoryPage> {
     if (picked == null || picked.files.isEmpty || !mounted) return;
     await _run(() async {
       final file = picked.files.single;
-      final bytes = file.bytes ?? (file.path == null ? null : await File(file.path!).readAsBytes());
-      if (bytes == null) throw const FormatException('تعذر قراءة ملف النسخة الاحتياطية.');
-      final report = await MemoryBackupService(_repository).importEncrypted(bytes, passphrase);
-      _showMessage('استيراد مكتمل: ${report.proposed} اقتراح، ${report.duplicatesSkipped} مكرر، ${report.invalidSkipped} غير صالح. كل المستوردات تنتظر موافقتك.');
+      final bytes =
+          file.bytes ??
+          (file.path == null ? null : await File(file.path!).readAsBytes());
+      if (bytes == null)
+        throw const FormatException('تعذر قراءة ملف النسخة الاحتياطية.');
+      final report = await MemoryBackupService(_repository)
+          .importEncrypted(bytes, passphrase);
+      _showMessage(
+        'استيراد مكتمل: ${report.proposed} اقتراح، ${report.duplicatesSkipped} مكرر، ${report.invalidSkipped} غير صالح. كل المستوردات تنتظر موافقتك.',
+      );
       await _refresh();
     });
   }
@@ -335,10 +374,18 @@ class _MemoryPageState extends State<MemoryPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('تدوير مفتاح تشفير الذاكرة'),
-        content: const Text('سيعيد Leo تشفير سجلات الذاكرة بمفتاح جديد. لا تغلق التطبيق أثناء العملية.'),
+        content: const Text(
+          'سيعيد Leo تشفير سجلات الذاكرة بمفتاح جديد. لا تغلق التطبيق أثناء العملية.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('تدوير المفتاح')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('تدوير المفتاح'),
+          ),
         ],
       ),
     );
@@ -355,18 +402,29 @@ class _MemoryPageState extends State<MemoryPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('مسح الذاكرة بالكامل؟'),
-        content: const Text('سيحذف Leo قاعدة الذاكرة وملفات SQLite الجانبية ومفتاح التشفير المحلي. هذا الإجراء نهائي. أنشئ نسخة احتياطية مشفرة أولاً إن احتجت إليها.'),
+        content: const Text(
+          'سيحذف Leo قاعدة الذاكرة وملفات SQLite الجانبية ومفتاح التشفير المحلي. هذا الإجراء نهائي. أنشئ نسخة احتياطية مشفرة أولاً إن احتجت إليها.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
-          FilledButton.tonal(onPressed: () => Navigator.pop(context, true), child: const Text('مسح نهائي')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('مسح نهائي'),
+          ),
         ],
       ),
     );
     if (confirmed != true) return;
     await _run(() async {
       final verified = await _repository.eraseAllAndVerify();
-      if (!verified) throw StateError('لم يكتمل التحقق من حذف قاعدة الذاكرة ومفتاحها.');
-      _showMessage('تم مسح الذاكرة المحلية والتحقق من اختفاء قاعدة البيانات ومفتاحها.');
+      if (!verified)
+        throw StateError('لم يكتمل التحقق من حذف قاعدة الذاكرة ومفتاحها.');
+      _showMessage(
+        'تم مسح الذاكرة المحلية والتحقق من اختفاء قاعدة البيانات ومفتاحها.',
+      );
       await _refresh();
     });
   }
@@ -400,7 +458,9 @@ class _MemoryPageState extends State<MemoryPage> {
   Future<void> _toggleActive(LeoMemoryEntry entry) async {
     await _run(() async {
       await _repository.setActive(entry.id, !entry.active);
-      _showMessage(entry.active ? 'تم إيقاف استخدام الذاكرة.' : 'تم تفعيل الذاكرة.');
+      _showMessage(
+        entry.active ? 'تم إيقاف استخدام الذاكرة.' : 'تم تفعيل الذاكرة.',
+      );
       await _refresh();
     });
   }
@@ -410,7 +470,9 @@ class _MemoryPageState extends State<MemoryPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('حذف الذاكرة؟'),
-        content: const Text('سيتم حذف هذه المعلومة نهائياً من قاعدة Leo المحلية.'),
+        content: const Text(
+          'سيتم حذف هذه المعلومة نهائياً من قاعدة Leo المحلية.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -466,17 +528,28 @@ class _MemoryPageState extends State<MemoryPage> {
             enabled: !_working && !_loading,
             onSelected: (value) {
               switch (value) {
-                case 'export': _exportBackup(); break;
-                case 'import': _importBackup(); break;
-                case 'rotate': _rotateKey(); break;
-                case 'erase': _eraseAll(); break;
+                case 'export':
+                  _exportBackup();
+                  break;
+                case 'import':
+                  _importBackup();
+                  break;
+                case 'rotate':
+                  _rotateKey();
+                  break;
+                case 'erase':
+                  _eraseAll();
+                  break;
               }
             },
             itemBuilder: (context) => const [
               PopupMenuItem(value: 'export', child: Text('تصدير نسخة مشفرة')),
               PopupMenuItem(value: 'import', child: Text('استيراد نسخة مشفرة')),
               PopupMenuDivider(),
-              PopupMenuItem(value: 'rotate', child: Text('تدوير مفتاح التشفير')),
+              PopupMenuItem(
+                value: 'rotate',
+                child: Text('تدوير مفتاح التشفير'),
+              ),
               PopupMenuItem(value: 'erase', child: Text('مسح الذاكرة بالكامل')),
             ],
           ),
@@ -542,7 +615,10 @@ class _MemoryPageState extends State<MemoryPage> {
             if (!_showSearchResults)
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 child: Row(
                   children: [
                     _filterChip('الكل', _MemoryFilter.all),
@@ -554,7 +630,10 @@ class _MemoryPageState extends State<MemoryPage> {
               )
             else
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -595,7 +674,11 @@ class _MemoryPageState extends State<MemoryPage> {
           Expanded(
             child: Text(
               'تُحفظ الذكريات محلياً داخل مساحة التطبيق. المحتوى والوسوم والمصادر وفهرس البحث مشفرة بـ AES-256-GCM ومربوطة بهوية السجل؛ ومفتاحها محفوظ في التخزين الآمن للنظام. تبقى بعض بيانات الفهرسة الوصفية ظاهرة داخل قاعدة SQLite، ومنها نوع الذاكرة ومعرّفها وأوقات الإنشاء والتحديث وحالة الموافقة/التفعيل وإصدار المخطط/التشفير وبصمة محتوى مبهمة مشتقة بمفتاح محلي. لا يستخدم Leo الذكريات في المحادثات إلا بعد اعتمادها وتفعيلها. احتفظ بكلمة مرور النسخة الاحتياطية منفصلة؛ فقدان مفتاح الجهاز دون نسخة احتياطية قد يمنع الاستعادة.',
-              style: TextStyle(color: Color(0xFFC4D0E2), fontSize: 12, height: 1.55),
+              style: TextStyle(
+                color: Color(0xFFC4D0E2),
+                fontSize: 12,
+                height: 1.55,
+              ),
             ),
           ),
         ],
@@ -625,11 +708,18 @@ class _MemoryPageState extends State<MemoryPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Color(0xFFFFC58F), size: 34),
+              const Icon(
+                Icons.warning_amber_rounded,
+                color: Color(0xFFFFC58F),
+                size: 34,
+              ),
               const SizedBox(height: 12),
               Text(_error!, textAlign: TextAlign.center),
               const SizedBox(height: 12),
-              FilledButton.tonal(onPressed: _refresh, child: const Text('إعادة المحاولة')),
+              FilledButton.tonal(
+                onPressed: _refresh,
+                child: const Text('إعادة المحاولة'),
+              ),
             ],
           ),
         ),
@@ -642,10 +732,16 @@ class _MemoryPageState extends State<MemoryPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.psychology_alt_rounded, size: 46, color: Color(0xFF7485A3)),
+              const Icon(
+                Icons.psychology_alt_rounded,
+                size: 46,
+                color: Color(0xFF7485A3),
+              ),
               const SizedBox(height: 14),
               Text(
-                _showSearchResults ? 'لم نعثر على ذكريات مطابقة.' : 'لا توجد ذكريات محفوظة بعد.',
+                _showSearchResults
+                    ? 'لم نعثر على ذكريات مطابقة.'
+                    : 'لا توجد ذكريات محفوظة بعد.',
                 style: const TextStyle(color: Color(0xFFADBBD0), fontSize: 15),
                 textAlign: TextAlign.center,
               ),
@@ -701,13 +797,13 @@ class _MemoryCard extends StatelessWidget {
     final status = entry.isPending
         ? 'بانتظار الموافقة'
         : entry.active
-            ? 'نشطة'
-            : 'معطلة';
+        ? 'نشطة'
+        : 'معطلة';
     final statusColor = entry.isPending
         ? const Color(0xFFFFC58F)
         : entry.active
-            ? const Color(0xFF92D6A6)
-            : const Color(0xFF9AA8BC);
+        ? const Color(0xFF92D6A6)
+        : const Color(0xFF9AA8BC);
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -727,7 +823,10 @@ class _MemoryCard extends StatelessWidget {
                   runSpacing: 6,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    _smallLabel(_kindLabel(entry.kind), const Color(0xFF9BB0FF)),
+                    _smallLabel(
+                      _kindLabel(entry.kind),
+                      const Color(0xFF9BB0FF),
+                    ),
                     _smallLabel(status, statusColor),
                   ],
                 ),
@@ -752,11 +851,16 @@ class _MemoryCard extends StatelessWidget {
                 },
                 itemBuilder: (context) => [
                   if (entry.isPending)
-                    const PopupMenuItem(value: 'approve', child: Text('اعتماد الذاكرة')),
+                    const PopupMenuItem(
+                      value: 'approve',
+                      child: Text('اعتماد الذاكرة'),
+                    ),
                   if (!entry.isPending)
                     PopupMenuItem(
                       value: 'toggle',
-                      child: Text(entry.active ? 'إيقاف الاستخدام' : 'تفعيل الذاكرة'),
+                      child: Text(
+                        entry.active ? 'إيقاف الاستخدام' : 'تفعيل الذاكرة',
+                      ),
                     ),
                   if (!entry.isPending)
                     const PopupMenuItem(value: 'edit', child: Text('تعديل')),
@@ -768,23 +872,32 @@ class _MemoryCard extends StatelessWidget {
           const SizedBox(height: 9),
           SelectableText(
             entry.content,
-            style: const TextStyle(color: Color(0xFFE0E8F4), height: 1.6, fontSize: 14),
+            style: const TextStyle(
+              color: Color(0xFFE0E8F4),
+              height: 1.6,
+              fontSize: 14,
+            ),
           ),
           if (entry.tags.isNotEmpty) ...[
             const SizedBox(height: 10),
             Wrap(
               spacing: 6,
               runSpacing: 5,
-              children: entry.tags.map((tag) => Chip(
-                label: Text(tag, style: const TextStyle(fontSize: 10)),
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
-                backgroundColor: const Color(0xFF1C2A3F),
-                side: BorderSide.none,
-              )).toList(growable: false),
+              children: entry.tags
+                  .map(
+                    (tag) => Chip(
+                      label: Text(tag, style: const TextStyle(fontSize: 10)),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      backgroundColor: const Color(0xFF1C2A3F),
+                      side: BorderSide.none,
+                    ),
+                  )
+                  .toList(growable: false),
             ),
           ],
-          if (entry.sourceReference != null && entry.sourceReference!.isNotEmpty) ...[
+          if (entry.sourceReference != null &&
+              entry.sourceReference!.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
               'المصدر: ${entry.sourceReference}',
@@ -797,21 +910,21 @@ class _MemoryCard extends StatelessWidget {
   }
 
   Widget _smallLabel(String text, Color color) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: .10),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(text, style: TextStyle(color: color, fontSize: 10)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: .10),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Text(text, style: TextStyle(color: color, fontSize: 10)),
+  );
 
   String _kindLabel(LeoMemoryKind kind) => switch (kind) {
-        LeoMemoryKind.personal => 'شخصية',
-        LeoMemoryKind.episodic => 'حدث وتجربة',
-        LeoMemoryKind.semantic => 'معلومة',
-        LeoMemoryKind.procedural => 'طريقة عمل',
-        LeoMemoryKind.project => 'مشروع',
-      };
+    LeoMemoryKind.personal => 'شخصية',
+    LeoMemoryKind.episodic => 'حدث وتجربة',
+    LeoMemoryKind.semantic => 'معلومة',
+    LeoMemoryKind.procedural => 'طريقة عمل',
+    LeoMemoryKind.project => 'مشروع',
+  };
 }
 
 class _MemoryDraft {
@@ -876,9 +989,13 @@ class _MemoryEditorDialogState extends State<_MemoryEditorDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.proposeOnly
-          ? 'مراجعة اقتراح ذاكرة'
-          : widget.entry == null ? 'إضافة ذاكرة' : 'تعديل الذاكرة'),
+      title: Text(
+        widget.proposeOnly
+            ? 'مراجعة اقتراح ذاكرة'
+            : widget.entry == null
+            ? 'إضافة ذاكرة'
+            : 'تعديل الذاكرة',
+      ),
       content: SizedBox(
         width: math.min(480.0, MediaQuery.sizeOf(context).width * .82),
         child: SingleChildScrollView(
@@ -888,10 +1005,14 @@ class _MemoryEditorDialogState extends State<_MemoryEditorDialog> {
               DropdownButtonFormField<LeoMemoryKind>(
                 initialValue: _kind,
                 decoration: const InputDecoration(labelText: 'نوع الذاكرة'),
-                items: LeoMemoryKind.values.map((kind) => DropdownMenuItem(
-                  value: kind,
-                  child: Text(_kindLabel(kind)),
-                )).toList(growable: false),
+                items: LeoMemoryKind.values
+                    .map(
+                      (kind) => DropdownMenuItem(
+                        value: kind,
+                        child: Text(_kindLabel(kind)),
+                      ),
+                    )
+                    .toList(growable: false),
                 onChanged: widget.entry == null
                     ? (value) {
                         if (value != null) setState(() => _kind = value);
@@ -933,7 +1054,11 @@ class _MemoryEditorDialogState extends State<_MemoryEditorDialog> {
                   widget.proposeOnly
                       ? 'هذا اقتراح مستخرج من رسالة اخترتها. راجعه وعدّله؛ سيبقى غير معتمد ولن يدخل سياق المحادثات حتى توافق عليه لاحقاً.'
                       : 'عند الحفظ، ستُعتمد هذه الذاكرة بموافقتك ويمكن لـLeo استرجاعها عند صلتها بالمحادثة.',
-                  style: const TextStyle(color: Color(0xFF9AAAC1), fontSize: 11, height: 1.5),
+                  style: const TextStyle(
+                    color: Color(0xFF9AAAC1),
+                    fontSize: 11,
+                    height: 1.5,
+                  ),
                 ),
               ],
             ],
@@ -947,9 +1072,13 @@ class _MemoryEditorDialogState extends State<_MemoryEditorDialog> {
         ),
         FilledButton(
           onPressed: _save,
-          child: Text(widget.proposeOnly
-              ? 'إضافة كاقتراح للمراجعة'
-              : widget.entry == null ? 'حفظ واعتماد' : 'حفظ التعديلات'),
+          child: Text(
+            widget.proposeOnly
+                ? 'إضافة كاقتراح للمراجعة'
+                : widget.entry == null
+                ? 'حفظ واعتماد'
+                : 'حفظ التعديلات',
+          ),
         ),
       ],
     );
@@ -977,12 +1106,12 @@ class _MemoryEditorDialogState extends State<_MemoryEditorDialog> {
   }
 
   String _kindLabel(LeoMemoryKind kind) => switch (kind) {
-        LeoMemoryKind.personal => 'شخصية',
-        LeoMemoryKind.episodic => 'حدث وتجربة',
-        LeoMemoryKind.semantic => 'معلومة',
-        LeoMemoryKind.procedural => 'طريقة عمل',
-        LeoMemoryKind.project => 'مشروع',
-      };
+    LeoMemoryKind.personal => 'شخصية',
+    LeoMemoryKind.episodic => 'حدث وتجربة',
+    LeoMemoryKind.semantic => 'معلومة',
+    LeoMemoryKind.procedural => 'طريقة عمل',
+    LeoMemoryKind.project => 'مشروع',
+  };
 }
 
 enum _MemoryFilter { all, active, pending, disabled }

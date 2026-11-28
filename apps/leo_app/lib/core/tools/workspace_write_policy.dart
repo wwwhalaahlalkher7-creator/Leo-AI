@@ -17,12 +17,18 @@ class WorkspaceWritePolicy {
     required String content,
   }) {
     final name = relativePath;
-    if (name != name.trim() || name.isEmpty || utf8.encode(name).length > maxRelativePathBytes) {
+    if (name != name.trim() ||
+        name.isEmpty ||
+        utf8.encode(name).length > maxRelativePathBytes) {
       return 'اسم الملف فارغ أو يتجاوز الحد المسموح.';
     }
-    if (name == '.' || name == '..' ||
-        name.contains('/') || name.contains('\\') ||
-        name.contains(':') || name.endsWith('.') || name.endsWith(' ')) {
+    if (name == '.' ||
+        name == '..' ||
+        name.contains('/') ||
+        name.contains('\\') ||
+        name.contains(':') ||
+        name.endsWith('.') ||
+        name.endsWith(' ')) {
       return 'يسمح Leo باسم ملف واحد داخل المجلد المختار، دون مسارات فرعية أو انتقال بين المجلدات.';
     }
     if (name.runes.any((rune) => rune < 0x20 || rune == 0x7f) ||
@@ -31,9 +37,28 @@ class WorkspaceWritePolicy {
     }
     final deviceName = name.split('.').first.toUpperCase();
     if (const {
-      'CON', 'PRN', 'AUX', 'NUL',
-      'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
-      'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9',
+      'CON',
+      'PRN',
+      'AUX',
+      'NUL',
+      'COM1',
+      'COM2',
+      'COM3',
+      'COM4',
+      'COM5',
+      'COM6',
+      'COM7',
+      'COM8',
+      'COM9',
+      'LPT1',
+      'LPT2',
+      'LPT3',
+      'LPT4',
+      'LPT5',
+      'LPT6',
+      'LPT7',
+      'LPT8',
+      'LPT9',
     }.contains(deviceName)) {
       return 'اسم الملف محجوز في Windows ولا يمكن استخدامه بأمان على النظامين.';
     }
@@ -46,8 +71,11 @@ class WorkspaceWritePolicy {
     if (utf8.encode(content).length > maxContentBytes) {
       return 'حجم المحتوى يتجاوز 16 KiB في إصدار Alpha الحالي.';
     }
-    if (content.runes.any((rune) => rune == 0x7f ||
-        (rune < 0x20 && rune != 0x09 && rune != 0x0a && rune != 0x0d))) {
+    if (content.runes.any(
+      (rune) =>
+          rune == 0x7f ||
+          (rune < 0x20 && rune != 0x09 && rune != 0x0a && rune != 0x0d),
+    )) {
       return 'المحتوى يحتوي على محارف تحكم غير مسموح بها.';
     }
     return null;
@@ -64,7 +92,8 @@ class WorkspaceWritePolicy {
     final oldLines = before.isEmpty ? <String>[] : before.split('\n');
     final newLines = after.isEmpty ? <String>[] : after.split('\n');
     var prefix = 0;
-    while (prefix < oldLines.length && prefix < newLines.length &&
+    while (prefix < oldLines.length &&
+        prefix < newLines.length &&
         oldLines[prefix] == newLines[prefix]) {
       prefix++;
     }
@@ -81,10 +110,20 @@ class WorkspaceWritePolicy {
     for (var i = contextStart; i < prefix; i++) {
       output.add('  ${oldLines[i]}');
     }
-    output.addAll(oldLines.skip(prefix).take(oldLines.length - prefix - suffix)
-        .take(maxChangedLines).map((line) => '- $line'));
-    output.addAll(newLines.skip(prefix).take(newLines.length - prefix - suffix)
-        .take(maxChangedLines).map((line) => '+ $line'));
+    output.addAll(
+      oldLines
+          .skip(prefix)
+          .take(oldLines.length - prefix - suffix)
+          .take(maxChangedLines)
+          .map((line) => '- $line'),
+    );
+    output.addAll(
+      newLines
+          .skip(prefix)
+          .take(newLines.length - prefix - suffix)
+          .take(maxChangedLines)
+          .map((line) => '+ $line'),
+    );
     final suffixStartOld = oldLines.length - suffix;
     final suffixStart = suffixStartOld.clamp(0, oldLines.length).toInt();
     final suffixCount = suffix.clamp(0, 3).toInt();

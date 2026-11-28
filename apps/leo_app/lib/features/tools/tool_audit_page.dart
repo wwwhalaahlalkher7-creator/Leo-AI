@@ -27,31 +27,33 @@ class _ToolAuditPageState extends State<ToolAuditPage> {
   }
 
   String _statusLabel(String status) => switch (status) {
-        'started' => 'قيد التنفيذ',
-        'succeeded' => 'اكتملت',
-        'failed' => 'فشلت',
-        'cancelled' => 'أُلغيت',
-        _ => status,
-      };
+    'started' => 'قيد التنفيذ',
+    'succeeded' => 'اكتملت',
+    'failed' => 'فشلت',
+    'cancelled' => 'أُلغيت',
+    _ => status,
+  };
 
   String _toolLabel(String name) => switch (name) {
-        'files.read_selected' => 'قراءة ملف محدد',
-        'workspace.write_file' => 'إنشاء أو تعديل ملف بموافقة',
-        'contacts.list' => 'قراءة جهات الاتصال',
-        'email.compose' => 'إنشاء مسودة بريد',
-        'phone.dial' => 'فتح لوحة الاتصال',
-        'messages.compose' => 'إنشاء مسودة رسالة',
-        'web.open' => 'فتح رابط',
-        'app.launch' => 'فتح تطبيق',
-        _ => name,
-      };
+    'files.read_selected' => 'قراءة ملف محدد',
+    'workspace.write_file' => 'إنشاء أو تعديل ملف بموافقة',
+    'contacts.list' => 'قراءة جهات الاتصال',
+    'email.compose' => 'إنشاء مسودة بريد',
+    'phone.dial' => 'فتح لوحة الاتصال',
+    'messages.compose' => 'إنشاء مسودة رسالة',
+    'web.open' => 'فتح رابط',
+    'app.launch' => 'فتح تطبيق',
+    _ => name,
+  };
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('سجل تنفيذ الأدوات'),
-        actions: [IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh))],
+        actions: [
+          IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh)),
+        ],
       ),
       body: FutureBuilder<List<ToolAuditRecord>>(
         future: _records,
@@ -79,7 +81,8 @@ class _ToolAuditPageState extends State<ToolAuditPage> {
                 );
               }
               final record = records[index - 1];
-              final localTime = DateTime.tryParse(record.timestampUtc)?.toLocal();
+              final localTime = DateTime.tryParse(record.timestampUtc)
+                  ?.toLocal();
               return Card(
                 child: ListTile(
                   leading: const Icon(Icons.build_circle_outlined),
