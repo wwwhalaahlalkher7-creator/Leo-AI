@@ -385,7 +385,7 @@ LeoSkill _learningSourceSkill({bool withPrivateData = false}) {
     validationReport: const LeoSkillValidationReport(
       checkedAtUtc: now,
       passed: true,
-      checks: const [],
+      checks: [],
       disclaimer: 'Structural review only.',
     ),
   );
