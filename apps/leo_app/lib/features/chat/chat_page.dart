@@ -78,7 +78,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   late final MemoryRepository _memoryRepository;
   late final SkillRepository _skillRepository;
   late final SkillRunRepository _skillRunRepository;
-  final SkillExecutionService _skillExecutionService = SkillExecutionService();
+  final SkillExecutionService _skillExecutionService = const SkillExecutionService();
   late final ToolExecutionGateway _toolExecutionGateway;
   late final AgentTaskCheckpointStore _agentTaskCheckpointStore;
   late final CapabilityHubService _capabilityHub;
@@ -90,8 +90,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   final RuntimeBenchmarkStore _runtimeBenchmarkStore = RuntimeBenchmarkStore();
   final Set<String> _preserveAgentTaskCheckpointsOnCancel = <String>{};
   bool _voiceVadEnabled = false;
-  final MemoryContextBuilder _memoryContextBuilder = MemoryContextBuilder();
-  final SkillContextBuilder _skillContextBuilder = SkillContextBuilder();
+  final MemoryContextBuilder _memoryContextBuilder = const MemoryContextBuilder();
+  final SkillContextBuilder _skillContextBuilder = const SkillContextBuilder();
   ChatRepository? _repository;
   List<ChatSession> _sessions = [];
   ChatSession? _activeSession;
@@ -365,8 +365,9 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       text,
       requestMessages,
       applicableSkills: applicableSkills,
-    ))
+    )) {
       return;
+    }
     final skillContext = _skillContextBuilder.build(applicableSkills);
     if (skillContext != null) {
       _insertSystemContextBeforeToolPolicy(requestMessages, skillContext);
@@ -398,9 +399,12 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       final actionAgents = selected
           .where(actionFocusedAgents.contains)
           .toList();
-      if (actionAgents.isNotEmpty && !_hasExplicitAgentToolIntent(goal))
+      if (actionAgents.isNotEmpty && !_hasExplicitAgentToolIntent(goal)) {
         return false;
-      if (_requiresToolAction(goal) && actionAgents.isEmpty) return false;
+      }
+      if (_requiresToolAction(goal) && actionAgents.isEmpty) {
+        return false;
+      }
       final plan = await rust_api.previewTaskPlan(
         taskId: taskId,
         request: goal,
@@ -879,7 +883,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
           event.text,
           notice: [
             event.error ?? 'اكتملت المهمة جزئياً؛ راجع الخطوات التي تعذرت.',
-            if (skillReviewNotice != null) skillReviewNotice,
+            ?skillReviewNotice,
           ].join(' '),
         );
         break;
@@ -1284,6 +1288,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     }
 
     if (record.state == AgentTaskCheckpointState.awaitingAction) {
+      if (!context.mounted) return;
       final decision = await showDialog<int>(
         context: context,
         builder: (dialogContext) => AlertDialog(
@@ -1577,8 +1582,9 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         .listen(
           (event) => _handleRuntimeEvent(event, requestId),
           onError: (Object error) {
-            if (_activeRequestId != requestId || _runtimeTerminalReceived)
+            if (_activeRequestId != requestId || _runtimeTerminalReceived) {
               return;
+            }
             _runtimeTerminalReceived = true;
             _recordRuntimeBenchmark(
               succeeded: false,
@@ -2032,8 +2038,9 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   }
 
   Future<void> _deleteSession(ChatSession session) async {
-    if ((_generating || _learningSkill) && _activeSession?.id == session.id)
+    if ((_generating || _learningSkill) && _activeSession?.id == session.id) {
       return;
+    }
     await _repository?.deleteSession(session.id);
     if (!mounted) return;
     setState(() {
@@ -2063,8 +2070,9 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     if (session == null ||
         message.role != ChatMessageRole.user ||
         _generating ||
-        _learningSkill)
+        _learningSkill) {
       return;
+    }
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         builder: (_) => MemoryPage(
@@ -2120,8 +2128,9 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         _voicePreflightInProgress ||
         _generating ||
         _learningSkill ||
-        _loading)
+        _loading) {
       return;
+    }
     if (_voiceRecording) {
       await _stopVoiceCapture();
       return;
@@ -2146,10 +2155,11 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       );
       if (!mounted) return;
       if (!microphoneGrant.success) {
-        if (!microphoneGrant.cancelled)
+        if (!microphoneGrant.cancelled) {
           _showNotice(microphoneGrant.message);
-        else if (Platform.isWindows)
+        } else if (Platform.isWindows) {
           _showNotice(microphoneGrant.message);
+        }
         return;
       }
 
@@ -2666,7 +2676,7 @@ class _LeoHeader extends StatelessWidget {
               PopupMenuItem(
                 value: 'learn-skill',
                 enabled: canLearnSkill && !generating,
-                child: ListTile(
+                child: const ListTile(
                   dense: true,
                   leading: Icon(Icons.school_outlined),
                   title: Text('تعلم مهارة من هذه المحادثة'),
@@ -2760,9 +2770,9 @@ class _WelcomePanel extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 28),
-              Align(
+              const Align(
                 alignment: AlignmentDirectional.centerStart,
-                child: const Text(
+                child: Text(
                   'جرّب بدء محادثة',
                   style: TextStyle(
                     color: Color(0xFFB9C5D9),
@@ -3151,7 +3161,7 @@ class _Composer extends StatelessWidget {
                     ? 'يعالج Leo الصوت محلياً. لن يُرسل النص دون ضغط زر الإرسال.'
                     : 'الصوت محلي عند تثبيت حزمته. راجع النص المتعرف عليه قبل إرساله.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Color(0xFF78879D), fontSize: 10),
+                style: const TextStyle(color: Color(0xFF78879D), fontSize: 10),
               ),
             ],
           ),

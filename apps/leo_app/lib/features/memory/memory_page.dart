@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 
@@ -334,7 +334,7 @@ class _MemoryPageState extends State<MemoryPage> {
       final saved = await FilePicker.saveFile(
         dialogTitle: 'حفظ نسخة ذاكرة Leo المشفرة',
         fileName: 'leo-memory-backup.leomem',
-        bytes: bytes,
+        bytes: Uint8List.fromList(bytes),
       );
       if (saved == null) return;
       _showMessage(
@@ -354,8 +354,9 @@ class _MemoryPageState extends State<MemoryPage> {
     await _run(() async {
       final file = picked;
       final bytes = await file.readAsBytes();
-      if (bytes.isEmpty)
+      if (bytes.isEmpty) {
         throw const FormatException('تعذر قراءة ملف النسخة الاحتياطية.');
+      }
       final report = await MemoryBackupService(_repository)
           .importEncrypted(bytes, passphrase);
       _showMessage(
@@ -416,8 +417,9 @@ class _MemoryPageState extends State<MemoryPage> {
     if (confirmed != true) return;
     await _run(() async {
       final verified = await _repository.eraseAllAndVerify();
-      if (!verified)
+      if (!verified) {
         throw StateError('لم يكتمل التحقق من حذف قاعدة الذاكرة ومفتاحها.');
+      }
       _showMessage(
         'تم مسح الذاكرة المحلية والتحقق من اختفاء قاعدة البيانات ومفتاحها.',
       );
@@ -758,7 +760,7 @@ class _MemoryPageState extends State<MemoryPage> {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
       itemCount: entries.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 9),
+      separatorBuilder: (_, _) => const SizedBox(height: 9),
       itemBuilder: (context, index) => _MemoryCard(
         entry: entries[index],
         working: _working,

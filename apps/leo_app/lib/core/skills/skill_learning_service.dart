@@ -15,9 +15,13 @@ class SkillLearningService {
     required AssistantRuntimeClient runtime,
     required SkillRepository repository,
     SkillRunEvidenceReader? runRepository,
-  }) : _runtime = runtime,
-       _repository = repository,
-       _runRepository = runRepository;
+  }) : this._(runtime, repository, runRepository);
+
+  const SkillLearningService._(
+    this._runtime,
+    this._repository,
+    this._runRepository,
+  );
 
   final AssistantRuntimeClient _runtime;
   final SkillRepository _repository;

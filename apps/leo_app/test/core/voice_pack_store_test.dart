@@ -6,7 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
-import '../../lib/core/voice/voice_pack_store.dart';
+import 'package:leo_app/core/voice/voice_pack_store.dart';
 
 void main() {
   late Directory tempDirectory;

@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import '../../lib/core/voice/pcm_frame_buffer.dart';
+import 'package:leo_app/core/voice/pcm_frame_buffer.dart';
 
 void main() {
   group('PcmFrameBuffer', () {

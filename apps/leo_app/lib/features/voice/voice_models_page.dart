@@ -121,7 +121,6 @@ class _VoiceModelsPageState extends State<VoiceModelsPage> {
     if (_importing) return;
     final selected = await FilePicker.pickFiles(
       type: FileType.custom,
-      allowMultiple: true,
       allowedExtensions: switch (kind) {
         VoicePackKind.speechRecognition => const ['onnx'],
         VoicePackKind.speechSynthesis => const ['onnx', 'json', 'bin'],
@@ -141,7 +140,6 @@ class _VoiceModelsPageState extends State<VoiceModelsPage> {
     if (kind == VoicePackKind.speechRecognition) {
       final tokenizerFiles = await FilePicker.pickFiles(
         type: FileType.custom,
-        allowMultiple: true,
         allowedExtensions: const ['txt', 'json'],
         dialogTitle: 'الخطوة 2 من 2: افتح مجلد tokenizer واختر ملفاته الثلاثة',
       );

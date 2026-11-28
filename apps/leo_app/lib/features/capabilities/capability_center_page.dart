@@ -189,9 +189,9 @@ class _NoticeCard extends StatelessWidget {
   const _NoticeCard();
 
   @override
-  Widget build(BuildContext context) => Card(
-    color: const Color(0xFF18263A),
-    child: const Padding(
+  Widget build(BuildContext context) => const Card(
+    color: Color(0xFF18263A),
+    child: Padding(
       padding: EdgeInsets.all(16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

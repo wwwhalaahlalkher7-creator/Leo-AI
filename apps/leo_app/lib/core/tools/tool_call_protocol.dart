@@ -189,7 +189,7 @@ class LeoToolCall {
       );
       final start = DateTime.tryParse(startRaw);
       final end = DateTime.tryParse(endRaw);
-      final hasInlineControl = (String value) =>
+      bool hasInlineControl(String value) =>
           value.runes.any((rune) => rune < 0x20 || rune == 0x7f);
       final descriptionHasInvalidControl = description.runes.any(
         (rune) =>

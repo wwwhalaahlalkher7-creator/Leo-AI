@@ -105,7 +105,7 @@ Do not mark unavailable toolchain checks as passed. Record them as pending with 
 The current `.github/workflows/ci.yml` is the executable CI source of truth. Its jobs are:
 - `foundation`: version/source integrity and Python architecture/contract tests.
 - `full-stack`: pinned Flutter/Rust toolchains, FRB generation, Dart format/analyze/tests, Rust format/tests/target checks/Clippy, and generated-binding artifact.
-- `android-app`: waits for `full-stack`, requires committed Flutter/Rust lockfiles, then uses pinned Java/SDK/NDK/CMake, the llama.cpp checkout and Android ARM64 debug/release qualification APK builds. The one-time bootstrap workflow creates and validates the lockfiles; they must be integrated into source control before this job can pass.
+- `android-app`: waits for `full-stack`, requires committed Flutter/Rust lockfiles, then uses pinned Java/SDK/NDK/CMake, the llama.cpp checkout and Android ARM64 debug/release qualification APK builds. The former one-time bootstrap workflow has been retired. Both Flutter and Cargo lockfiles are now committed and are checked by the qualification jobs before locked dependency resolution.
 - `windows-app`: generated bridge consumption, Windows runner preparation, native DLL build and Windows debug app build.
 
 A change is not CI-qualified until the relevant workflow run completes successfully. If workflow behavior changes, update this document and the workflow together. Keep permissions least-privilege and pin third-party source revisions/tool versions where the repository already requires pinning.

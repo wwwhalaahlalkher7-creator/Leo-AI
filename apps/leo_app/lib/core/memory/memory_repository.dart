@@ -55,7 +55,7 @@ abstract interface class MemoryKeyStore {
 }
 
 class _FlutterMemoryKeyStore implements MemoryKeyStore {
-  _FlutterMemoryKeyStore() : _storage = FlutterSecureStorage();
+  _FlutterMemoryKeyStore() : _storage = const FlutterSecureStorage();
   final FlutterSecureStorage _storage;
 
   @override

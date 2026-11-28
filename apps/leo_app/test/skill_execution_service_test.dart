@@ -19,7 +19,7 @@ class _MemorySkillRunStore implements SkillRunSecureStore {
   }
 }
 
-LeoSkill _activeSkill() => LeoSkill(
+LeoSkill _activeSkill() => const LeoSkill(
   id: 'skill-test',
   name: 'تنظيم ملفات الدراسة',
   description: 'ترتيب الملفات الدراسية بطريقة منظمة وآمنة.',

@@ -231,11 +231,12 @@ class _ModelLibraryPageState extends State<ModelLibraryPage> {
   }
 
   Future<void> _runOperation(Future<void> Function() operation) async {
-    if (mounted)
+    if (mounted) {
       setState(() {
         _working = true;
         _error = null;
       });
+    }
     try {
       await operation();
     } catch (error) {
@@ -894,7 +895,7 @@ class _ModelLoadDialogState extends State<_ModelLoadDialog> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _formatByteCount(requiredMemory),
+                    _formatBigByteCount(requiredMemory),
                     style: const TextStyle(
                       color: Color(0xFF9DE6B4),
                       fontSize: 18,
@@ -945,12 +946,17 @@ class _ModelLoadDialogState extends State<_ModelLoadDialog> {
   }
 }
 
-String _formatByteCount(int bytes) {
+String _formatByteCount(int bytes) => _formatByteValue(bytes, bytes.toString());
+
+String _formatBigByteCount(BigInt bytes) =>
+    _formatByteValue(bytes.toDouble(), bytes.toString());
+
+String _formatByteValue(num bytes, String exactValue) {
   const mebibyte = 1024 * 1024;
   final value = bytes.toDouble();
   if (value >= mebibyte * 1024) {
     return '${(value / (mebibyte * 1024)).toStringAsFixed(2)} GiB';
   }
   if (value >= mebibyte) return '${(value / mebibyte).toStringAsFixed(1)} MiB';
-  return '$bytes bytes';
+  return '$exactValue bytes';
 }

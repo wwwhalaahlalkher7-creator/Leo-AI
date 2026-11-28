@@ -185,14 +185,15 @@ class AndroidQualificationContractTests(unittest.TestCase):
         self.assertIn("android.builtInKotlin=false", runner)
         self.assertIn("android.newDsl=false", runner)
 
-    def test_removed_bootstrap_workflow_is_not_required_by_ci(self):
-        # Bootstrap was retired after generated runner files and lockfiles became
-        # part of the normal repository/CI contract. The main CI must not depend
-        # on the deleted one-off workflow.
-        bootstrap = ROOT / ".github/workflows/prepare_android_bootstrap_files.yml"
-        self.assertFalse(bootstrap.exists())
+    def test_removed_bootstrap_workflow_is_replaced_by_locked_ci_preflight(self):
+        bootstrap_path = ROOT / ".github/workflows/prepare_android_bootstrap_files.yml"
+        self.assertFalse(bootstrap_path.exists())
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-        self.assertNotIn("prepare_android_bootstrap_files.yml", workflow)
+        generator = (ROOT / "scripts/generate_bridge.sh").read_text(encoding="utf-8")
+        self.assertIn("Resolve Flutter dependencies and generate typed bridge", workflow)
+        self.assertIn("LEO_REQUIRE_LOCKFILES: '1'", workflow)
+        self.assertIn('check_dependency_lockfiles.py', generator)
+        self.assertIn('flutter pub get --enforce-lockfile', generator)
 
     def test_apk_validation_accepts_correct_arm64_native_package(self):
         with tempfile.TemporaryDirectory() as temp_dir:

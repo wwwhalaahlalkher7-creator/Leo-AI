@@ -97,6 +97,13 @@ class CapabilityHubService {
     );
 
     if (permission.needsLeoConsent) {
+      if (!context.mounted) {
+        return const CapabilityExecutionResult(
+          success: false,
+          cancelled: true,
+          message: 'أُغلقت الشاشة قبل طلب الموافقة؛ لم ينفذ Leo العملية.',
+        );
+      }
       final consent = await _showConsent(context, capability, scope);
       if (!consent || !context.mounted) {
         if (!consent) {
@@ -200,6 +207,7 @@ class CapabilityHubService {
 
   Future<LeoSelectedFile?> pickFile(BuildContext context) async {
     final platform = await platformName;
+    if (!context.mounted) return null;
     final result = await _invoke(
       context,
       capabilityId: 'files.read',
@@ -264,6 +272,13 @@ class CapabilityHubService {
         message: 'تعديل الملفات غير مدعوم على هذه المنصة.',
       );
     }
+    if (!context.mounted) {
+      return const CapabilityExecutionResult(
+        success: false,
+        cancelled: true,
+        message: 'أُغلقت الشاشة قبل اختيار مساحة العمل.',
+      );
+    }
 
     final workspace = await _invoke(
       context,
@@ -320,6 +335,14 @@ class CapabilityHubService {
         return const CapabilityExecutionResult(
           success: true,
           message: 'الملف يحتوي بالفعل على المحتوى نفسه؛ لم تُجرَ أي كتابة.',
+        );
+      }
+      if (!context.mounted) {
+        await _releaseWorkspace(token);
+        return const CapabilityExecutionResult(
+          success: false,
+          cancelled: true,
+          message: 'أُغلقت الشاشة قبل اعتماد تعديل الملف؛ لم تتم الكتابة.',
         );
       }
 
@@ -423,6 +446,13 @@ class CapabilityHubService {
         permission.status == LeoPermissionStatus.osPermissionRevoked;
 
     if (needsLeoConsent) {
+      if (!context.mounted) {
+        return const CapabilityExecutionResult(
+          success: false,
+          cancelled: true,
+          message: 'أُغلقت الشاشة قبل طلب إذن الميكروفون.',
+        );
+      }
       final consent = await _showConsent(
         context,
         capability,
@@ -633,6 +663,13 @@ class CapabilityHubService {
       impactSummary: 'سيختار المستخدم ملفاً واحداً. لن يفتح Leo أنواع الملفات التنفيذية أو السكربتات.',
     );
     if (!selection.success || selection.cancelled) return selection;
+    if (!context.mounted) {
+      return const CapabilityExecutionResult(
+        success: false,
+        cancelled: true,
+        message: 'أُغلقت الشاشة قبل فتح الملف؛ لم ينفذ Leo العملية.',
+      );
+    }
     final uri = selection.data['uri']?.toString();
     final path = selection.data['path']?.toString();
     if ((uri == null || uri.isEmpty) && (path == null || path.isEmpty)) {

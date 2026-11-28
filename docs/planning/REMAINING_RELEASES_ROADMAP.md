@@ -46,3 +46,8 @@ Android qualification preparation has started: the workspace now pins/checks the
 ## Progress note — 2026-11-25
 
 Android qualification CI now has an explicit reproducible-dependency gate: the Android build waits for the full-stack checks, requires both lockfiles to be present and committed, and resolves Flutter/Cargo dependencies in locked mode once those files exist. The bootstrap workflow validates newly generated lockfiles before packaging them. This closes a CI policy gap; it does **not** complete Android qualification. The current supplied source still has no `apps/leo_app/pubspec.lock` or workspace `Cargo.lock`, so the Android qualification job is intentionally blocked until the generated bootstrap files are integrated. Flutter/Rust/NDK builds and the two-device functional matrix are still pending. Keep the source at `v0.27.0 / ALPHA`.
+
+
+## Progress note — 2026-11-28
+
+The Flutter `pubspec.lock` and workspace `Cargo.lock` are now present in the source tree, so the earlier missing-lockfile blocker recorded on 2026-11-25 is resolved. The one-time bootstrap workflow has been retired; the main CI workflow now owns dependency-lock validation and qualification. Android qualification itself remains pending until the full Flutter/Rust/NDK builds and the physical-device acceptance matrix pass.

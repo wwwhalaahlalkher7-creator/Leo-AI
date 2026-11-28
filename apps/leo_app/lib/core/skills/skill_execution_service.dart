@@ -162,8 +162,9 @@ class LeoSkillRunRecord {
       status: status,
       steps: rawSteps
           .map((item) {
-            if (item is! Map)
+            if (item is! Map) {
               throw const FormatException('Invalid skill run step.');
+            }
             return LeoSkillStepReview.fromJson(Map<String, Object?>.from(item));
           })
           .toList(growable: false),
@@ -210,7 +211,7 @@ abstract interface class SkillRunSecureStore {
 }
 
 class _FlutterSkillRunSecureStore implements SkillRunSecureStore {
-  _FlutterSkillRunSecureStore() : _storage = FlutterSecureStorage();
+  _FlutterSkillRunSecureStore() : _storage = const FlutterSecureStorage();
 
   final FlutterSecureStorage _storage;
 
@@ -280,8 +281,9 @@ class SkillRunRepository implements SkillRunEvidenceReader {
     }
     final records = rawRuns
         .map((item) {
-          if (item is! Map)
+          if (item is! Map) {
             throw const FormatException('Invalid skill run record.');
+          }
           return LeoSkillRunRecord.fromJson(Map<String, Object?>.from(item));
         })
         .toList(growable: false);

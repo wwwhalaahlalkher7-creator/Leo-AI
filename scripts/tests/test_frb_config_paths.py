@@ -72,6 +72,7 @@ class FlutterRustBridgePathTests(unittest.TestCase):
         generator = (ROOT / "scripts" / "generate_bridge.sh").read_text(encoding="utf-8")
         android_builder = (ROOT / "scripts" / "build_android_app.sh").read_text(encoding="utf-8")
         ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        bootstrap_path = ROOT / ".github" / "workflows" / "prepare_android_bootstrap_files.yml"
         self.assertIn("FRB path contract passed", generator)
         self.assertIn("Config::from_config_file overwrites the YAML base_dir", generator)
         self.assertIn('if "rust_output" in values:', generator)
@@ -87,6 +88,7 @@ class FlutterRustBridgePathTests(unittest.TestCase):
         self.assertIn('bash "${ROOT_DIR}/scripts/prepare_android_runner.sh"', android_builder)
         self.assertIn("run: bash scripts/generate_bridge.sh", ci)
         self.assertIn("run: bash scripts/build_android_app.sh", ci)
+        self.assertFalse(bootstrap_path.exists())
         self.assertIn("cargo install cargo-expand --version 1.0.126 --locked", ci)
         self.assertIn("needs: foundation", ci)
         self.assertIn("cargo test --workspace --locked", ci)

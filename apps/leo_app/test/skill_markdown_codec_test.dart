@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:leo_app/core/skills/skill_markdown_codec.dart';
 import 'package:leo_app/core/skills/skill_models.dart';
 
-LeoSkill sampleSkill() => LeoSkill(
+LeoSkill sampleSkill() => const LeoSkill(
   id: 'skill-roundtrip',
   name: 'تنظيم ملفات الدراسة',
   description: 'يرتب الملفات الدراسية حسب المادة والفصل الدراسي.',

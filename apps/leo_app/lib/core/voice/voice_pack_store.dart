@@ -666,8 +666,9 @@ class _SingleDigestSink implements Sink<Digest> {
 
   @override
   void add(Digest value) {
-    if (digest != null)
+    if (digest != null) {
       throw StateError('A digest was emitted more than once.');
+    }
     digest = value;
   }
 

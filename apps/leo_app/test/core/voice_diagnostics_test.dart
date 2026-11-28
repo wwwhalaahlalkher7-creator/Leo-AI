@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../lib/core/voice/voice_diagnostics.dart';
+import 'package:leo_app/core/voice/voice_diagnostics.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

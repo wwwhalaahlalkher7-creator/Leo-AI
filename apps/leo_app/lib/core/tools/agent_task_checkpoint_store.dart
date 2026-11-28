@@ -103,7 +103,7 @@ abstract interface class SecureTextStore {
 }
 
 class _FlutterSecureTextStore implements SecureTextStore {
-  _FlutterSecureTextStore() : _storage = FlutterSecureStorage();
+  _FlutterSecureTextStore() : _storage = const FlutterSecureStorage();
 
   final FlutterSecureStorage _storage;
 
@@ -216,8 +216,9 @@ class AgentTaskCheckpointStore {
     }
     final records = await loadPending();
     final index = records.indexWhere((item) => item.taskId == taskId);
-    if (index < 0)
+    if (index < 0) {
       throw StateError('No durable checkpoint exists for this task.');
+    }
     final current = records[index];
     if (current.state != AgentTaskCheckpointState.awaitingAction ||
         current.toolCallId != toolCallId ||
@@ -249,8 +250,9 @@ class AgentTaskCheckpointStore {
   }) async {
     final records = await loadPending();
     final index = records.indexWhere((item) => item.taskId == taskId);
-    if (index < 0)
+    if (index < 0) {
       throw StateError('No durable checkpoint exists for this task.');
+    }
     final current = records[index];
     if (current.state != AgentTaskCheckpointState.awaitingAction ||
         current.toolCallId == null ||

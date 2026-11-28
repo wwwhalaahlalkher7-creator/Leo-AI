@@ -473,7 +473,7 @@ class LeoVoiceService {
     final status = await _packStore.inspect();
     if (_disposed || generation != _speechGeneration) return;
     if (!status.speechSynthesisReady) {
-      throw VoiceModelMissingException(
+      throw const VoiceModelMissingException(
         'حزمة تحويل النص إلى كلام غير مثبتة أو فشل فحص سلامتها. افتح مكتبة نماذج الصوت.',
       );
     }

@@ -52,7 +52,7 @@ class FileSkillRepository implements SkillRepository {
            supportDirectoryProvider ??
            (rootDirectory == null
                ? getApplicationSupportDirectory
-               : (() async => rootDirectory!));
+               : (() async => rootDirectory));
 
   final Future<Directory> Function() _supportDirectoryProvider;
   Future<void> _tail = Future<void>.value();

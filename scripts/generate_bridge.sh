@@ -187,8 +187,8 @@ print(
 )
 PY_FRB_PATHS
 
-# Once both lockfiles are generated, never silently re-resolve the dependency
-# graph during qualification. The bootstrap workflow is the only exception.
+# Qualification jobs require committed lockfiles and never silently re-resolve
+# the dependency graph.
 if [[ "${LEO_REQUIRE_LOCKFILES:-0}" == "1" ]]; then
   python3 "${ROOT_DIR}/scripts/check_dependency_lockfiles.py"
 fi

@@ -92,6 +92,16 @@ class ToolExecutionGateway {
         await _record(call, entryId: executionId, status: 'failed');
         return unsupported;
       }
+      if (!context.mounted) {
+        const cancelled = ToolExecutionOutcome(
+          success: false,
+          cancelled: true,
+          toolResult: 'The screen closed before the action could be approved. No action was executed.',
+          userSummary: 'أُغلقت الشاشة قبل اعتماد الإجراء؛ لم يتم تنفيذ الأداة.',
+        );
+        await _record(call, entryId: executionId, status: 'cancelled');
+        return cancelled;
+      }
       final outcome = await _executeValidated(context, call);
       await _record(
         call,

@@ -349,7 +349,7 @@ void main() {
 }
 
 LeoSkill _learningSourceSkill({bool withPrivateData = false}) {
-  final now = '2026-11-17T00:00:00Z';
+  const now = '2026-11-17T00:00:00Z';
   final steps = withPrivateData
       ? [
           r'افتح C:\Users\Ali\private\report.txt وتحقق من alice@example.com',
