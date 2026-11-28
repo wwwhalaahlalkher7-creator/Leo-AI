@@ -126,25 +126,40 @@ jobs:
 
       - name: Verify generated files and enforce lockfile reproducibility
         run: |
-          test -s apps/leo_app/pubspec.lock
-          test -s Cargo.lock
-          python scripts/check_dependency_lockfiles.py --allow-untracked
-          test -s core/bridge/src/frb_generated.rs
-          test -s apps/leo_app/lib/src/rust/frb_generated.dart
-          test -s apps/leo_app/lib/src/rust/frb_generated.io.dart
-          test -s apps/leo_app/lib/src/rust/frb_generated.web.dart
-          test -s apps/leo_app/android/app/build.gradle.kts
-          test -s apps/leo_app/android/app/src/main/AndroidManifest.xml
-          test -s apps/leo_app/android/app/src/main/res/xml/leo_backup_rules.xml
-          test -s apps/leo_app/android/app/src/main/res/xml/leo_data_extraction_rules.xml
+          # Run each check separately; on failure publish the command output as
+          # a GitHub annotation so the exact cause is visible on the run page.
+          run_check() {
+            local label="$1"; shift
+            local log="$RUNNER_TEMP/check-${label}.log"
+            echo "::group::${label}"
+            local code=0
+            "$@" > "$log" 2>&1 || code=$?
+            cat "$log"; echo "::endgroup::"
+            if [ "$code" -eq 0 ]; then return 0; fi
+            local msg
+            msg="$(tail -n 25 "$log" | sed -e 's/%/%25/g' | tr -d '\r' | awk '{printf "%s%%0A", $0}')"
+            echo "::error title=${label} failed (exit ${code})::${msg}"
+            return "$code"
+          }
 
-          (
-            cd apps/leo_app
-            flutter pub get --enforce-lockfile
-          )
-          cargo metadata --manifest-path Cargo.toml --format-version 1 --locked \
-            > "$RUNNER_TEMP/leo-cargo-metadata.json"
-          python scripts/verify_android_runner.py apps/leo_app
+          for required in \
+            apps/leo_app/pubspec.lock \
+            Cargo.lock \
+            core/bridge/src/frb_generated.rs \
+            apps/leo_app/lib/src/rust/frb_generated.dart \
+            apps/leo_app/lib/src/rust/frb_generated.io.dart \
+            apps/leo_app/lib/src/rust/frb_generated.web.dart \
+            apps/leo_app/android/app/build.gradle.kts \
+            apps/leo_app/android/app/src/main/AndroidManifest.xml \
+            apps/leo_app/android/app/src/main/res/xml/leo_backup_rules.xml \
+            apps/leo_app/android/app/src/main/res/xml/leo_data_extraction_rules.xml; do
+            test -s "$required" || { echo "::error title=Missing generated file::$required"; exit 1; }
+          done
+
+          run_check lockfile-validation python scripts/check_dependency_lockfiles.py --allow-untracked
+          run_check flutter-enforce-lockfile bash -c 'cd apps/leo_app && flutter pub get --enforce-lockfile'
+          run_check cargo-locked-metadata bash -c 'cargo metadata --manifest-path Cargo.toml --format-version 1 --locked > "$RUNNER_TEMP/leo-cargo-metadata.json"'
+          run_check android-runner-contract python scripts/verify_android_runner.py apps/leo_app
 
       - name: Assemble portable preparation bundle
         run: |

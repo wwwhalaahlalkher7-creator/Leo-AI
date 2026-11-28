@@ -520,7 +520,11 @@ struct PersistedAgentCheckpoint {
 }
 
 struct AgentToolResumeReceipt {
+    // Validated against the pending proposal while parsing; kept for the
+    // receipt's shape and read by tests.
+    #[allow(dead_code)]
     tool_call_id: String,
+    #[allow(dead_code)]
     tool_name: String,
     result: String,
     checkpoint: PersistedAgentCheckpoint,
