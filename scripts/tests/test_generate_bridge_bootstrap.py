@@ -56,10 +56,11 @@ class GenerateBridgeBootstrapTests(unittest.TestCase):
                 ");\n",
                 encoding="utf-8",
             )
-            (repo / "rust-toolchain.toml").write_text(
-                '[toolchain]\nchannel = "1.100.0"\ntargets = ["aarch64-linux-android"]\n',
-                encoding="utf-8",
+            toolchain_text = (
+                '[toolchain]\nchannel = "1.100.0"\ntargets = ["aarch64-linux-android"]\n'
             )
+            (repo / "rust-toolchain.toml").write_text(toolchain_text, encoding="utf-8")
+            (bridge / "rust-toolchain.toml").write_text(toolchain_text, encoding="utf-8")
 
             flutter = fake_bin / "flutter"
             flutter.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")

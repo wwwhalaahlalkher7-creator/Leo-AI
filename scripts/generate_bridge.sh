@@ -125,6 +125,7 @@ for required in (
     app_dir / "hook/build.dart",
     crate_root / "src/lib.rs",
     repo_root / "rust-toolchain.toml",
+    crate_root / "rust-toolchain.toml",
 ):
     if not required.is_file():
         raise SystemExit(f"ERROR: Required FRB/Native Assets project file is missing: {required}")
@@ -172,7 +173,16 @@ if asset_name_match.group(1) != "src/rust/frb_generated.io.dart":
         f"found {asset_name_match.group(1)!r}."
     )
 
-rust_toolchain = tomllib.loads((repo_root / "rust-toolchain.toml").read_text(encoding="utf-8"))
+root_toolchain_path = repo_root / "rust-toolchain.toml"
+crate_toolchain_path = crate_root / "rust-toolchain.toml"
+root_toolchain_text = root_toolchain_path.read_text(encoding="utf-8")
+crate_toolchain_text = crate_toolchain_path.read_text(encoding="utf-8")
+if crate_toolchain_text != root_toolchain_text:
+    raise SystemExit(
+        "ERROR: core/bridge/rust-toolchain.toml must exactly match the repository-level "
+        "rust-toolchain.toml. Native Assets validates the toolchain from the crate root."
+    )
+rust_toolchain = tomllib.loads(root_toolchain_text)
 toolchain = rust_toolchain.get("toolchain", {})
 if toolchain.get("channel") != "1.100.0":
     raise SystemExit("ERROR: Native Assets must use the pinned Rust toolchain 1.100.0.")

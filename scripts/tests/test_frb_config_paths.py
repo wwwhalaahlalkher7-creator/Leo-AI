@@ -57,6 +57,7 @@ class FlutterRustBridgePathTests(unittest.TestCase):
         manifest = (ROOT / "core" / "bridge" / "Cargo.toml").read_text(encoding="utf-8")
         pubspec = (APP / "pubspec.yaml").read_text(encoding="utf-8")
         toolchain = (ROOT / "rust-toolchain.toml").read_text(encoding="utf-8")
+        crate_toolchain = (ROOT / "core" / "bridge" / "rust-toolchain.toml").read_text(encoding="utf-8")
         self.assertIn("cratePath: '../../core/bridge'", hook)
         self.assertIn("assetName: 'src/rust/frb_generated.io.dart'", hook)
         self.assertEqual((APP / "../../core/bridge").resolve(), (ROOT / "core/bridge").resolve())
@@ -67,6 +68,7 @@ class FlutterRustBridgePathTests(unittest.TestCase):
         self.assertIn('flutter_rust_bridge = "=2.13.0"', manifest)
         self.assertIn('channel = "1.100.0"', toolchain)
         self.assertIn('"aarch64-linux-android"', toolchain)
+        self.assertEqual(crate_toolchain, toolchain)
 
     def test_codegen_preflight_and_workflows_use_bash(self) -> None:
         generator = (ROOT / "scripts" / "generate_bridge.sh").read_text(encoding="utf-8")
@@ -74,6 +76,8 @@ class FlutterRustBridgePathTests(unittest.TestCase):
         ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
         bootstrap_path = ROOT / ".github" / "workflows" / "prepare_android_bootstrap_files.yml"
         self.assertIn("FRB path contract passed", generator)
+        self.assertIn('crate_root / "rust-toolchain.toml"', generator)
+        self.assertIn("Native Assets validates the toolchain from the crate root.", generator)
         self.assertIn("Config::from_config_file overwrites the YAML base_dir", generator)
         self.assertIn('if "rust_output" in values:', generator)
         self.assertIn("canonicalized rust_root fallback", generator)

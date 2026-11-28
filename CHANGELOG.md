@@ -9,6 +9,9 @@
 - Hardened the runtime cancellation handshake: Rust remembers a cancellation that arrives after request registration but before the native start callback, then forwards it as soon as the native generation lifecycle is active. A request disposed with the chat page is recorded as an unsuccessful/cancelled benchmark sample when measurements are enabled.
 - Added Rust, Dart and Python contract coverage for whole-turn context planning, pinned policy order, dynamic output budgets, metadata-only benchmarks, native contention, low-memory preflight and cancellation races.
 
+### Fixed
+- Fixed Flutter test/native-asset startup failing because `native_toolchain_rust` could not find `rust-toolchain.toml` inside `core/bridge`. Added an exact crate-local copy of the pinned workspace toolchain and strengthened bridge preflight/regression tests to require the copy to remain synchronized.
+
 ### Runtime and privacy boundaries
 - Application-side token budgeting uses a lightweight character-based estimate; it is not the model tokenizer. The native llama.cpp tokenizer remains final and may remove additional complete older turns. The latest request and mandatory system instructions are never silently dropped.
 - Runtime benchmarks are local opt-in metadata, not a token/s benchmark. Throughput is measured in output characters per second and includes successful requests only; latency/success rate include failed and cancelled attempts. RSS measures the whole Leo process rather than model allocations alone.
