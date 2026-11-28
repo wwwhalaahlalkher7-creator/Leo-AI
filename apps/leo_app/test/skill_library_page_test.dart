@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:leo_app/core/skills/skill_models.dart';
 import 'package:leo_app/core/skills/skill_repository.dart';
+import 'package:leo_app/core/skills/skill_execution_service.dart';
 import 'package:leo_app/features/skills/skill_library_page.dart';
 
 void main() {
@@ -9,10 +10,15 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         home: Directionality(
           textDirection: TextDirection.rtl,
-          child: SkillLibraryPage(repository: _EmptySkillRepository()),
+          child: SkillLibraryPage(
+            repository: _EmptySkillRepository(),
+            runRepository: SkillRunRepository(
+              secureStore: _EmptySkillRunSecureStore(),
+            ),
+          ),
         ),
       ),
     );
@@ -23,6 +29,23 @@ void main() {
     expect(find.textContaining('الفحص الحالي بنيوي فقط'), findsOneWidget);
     expect(find.text('تعلم مهارة'), findsOneWidget);
   });
+}
+
+class _EmptySkillRunSecureStore implements SkillRunSecureStore {
+  final Map<String, String> _values = {};
+
+  @override
+  Future<String?> read({required String key}) async => _values[key];
+
+  @override
+  Future<void> write({required String key, required String value}) async {
+    _values[key] = value;
+  }
+
+  @override
+  Future<void> delete({required String key}) async {
+    _values.remove(key);
+  }
 }
 
 class _EmptySkillRepository implements SkillRepository {

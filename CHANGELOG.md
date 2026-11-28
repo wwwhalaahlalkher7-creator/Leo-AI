@@ -17,6 +17,8 @@
 - Made workspace diff previews explicitly report when removed or added lines were clipped by the preview limit.
 - Tightened conversation-context estimation and reserve behavior so a prompt at the exact estimated budget is compacted while preserving the newest complete historical turn and a first goal when they fit.
 - Replaced widget-test `pumpAndSettle` waits with bounded frame pumping on screens containing intentionally repeating animations/indeterminate progress indicators.
+- Kept encrypted agent-checkpoint restoration off the chat's first-render critical path. The chat becomes interactive after its core preferences load, then applies recovered task checkpoints when secure storage responds.
+- Updated widget tests to use an in-memory secure-store adapter for skill-run history, await simulated keyboard submit actions, and assert the current engine-status copy instead of an obsolete label.
 - Restored the explicit skill-context boundary wording that untrusted skills receive no permissions or privileges.
 
 ### Runtime and privacy boundaries

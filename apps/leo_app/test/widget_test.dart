@@ -7,6 +7,7 @@ import 'package:leo_app/features/chat/chat_page.dart';
 import 'package:leo_app/core/memory/memory_repository.dart';
 import 'package:leo_app/core/skills/skill_models.dart';
 import 'package:leo_app/core/skills/skill_repository.dart';
+import 'package:leo_app/core/skills/skill_execution_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -20,7 +21,7 @@ void main() {
 
     expect(find.text('Leo'), findsOneWidget);
     expect(find.text('مرحباً، أنا Leo'), findsOneWidget);
-    expect(find.text('المحرك غير مربوط'), findsOneWidget);
+    expect(find.textContaining('ربط محرك الذكاء المحلي قيد التطوير'), findsOneWidget);
   });
 
   testWidgets('the initial chat suggestions can fill the composer', (
@@ -48,6 +49,7 @@ void main() {
             runtimeClient: runtime,
             memoryRepository: _EmptyMemoryRepository(),
             skillRepository: _EmptySkillRepository(),
+            skillRunRepository: _emptySkillRunRepository(),
           ),
         ),
       ),
@@ -55,7 +57,7 @@ void main() {
     await _pumpUi(tester);
 
     await tester.enterText(find.byType(TextField), 'رسالة اختبار');
-    tester.testTextInput.receiveAction(TextInputAction.send);
+    await tester.testTextInput.receiveAction(TextInputAction.send);
     await _pumpUi(tester);
 
     expect(runtime.requests, hasLength(1));
@@ -77,6 +79,7 @@ void main() {
             runtimeClient: runtime,
             memoryRepository: _EmptyMemoryRepository(),
             skillRepository: _ActiveSkillRepository(),
+            skillRunRepository: _emptySkillRunRepository(),
           ),
         ),
       ),
@@ -84,7 +87,7 @@ void main() {
     await _pumpUi(tester);
 
     await tester.enterText(find.byType(TextField), 'رتب ملفاتي الدراسية');
-    tester.testTextInput.receiveAction(TextInputAction.send);
+    await tester.testTextInput.receiveAction(TextInputAction.send);
     await _pumpUi(tester);
 
     final request = runtime.requests.single;
@@ -116,6 +119,7 @@ void main() {
             runtimeClient: _StreamingTestRuntime(),
             memoryRepository: _EmptyMemoryRepository(),
             skillRepository: _EmptySkillRepository(),
+            skillRunRepository: _emptySkillRunRepository(),
           ),
         ),
       ),
@@ -130,6 +134,26 @@ void main() {
     expect(find.text('مهارات Leo'), findsOneWidget);
     expect(find.text('مكتبة المهارات فارغة حالياً'), findsOneWidget);
   });
+}
+
+SkillRunRepository _emptySkillRunRepository() =>
+    SkillRunRepository(secureStore: _EmptySkillRunSecureStore());
+
+class _EmptySkillRunSecureStore implements SkillRunSecureStore {
+  final Map<String, String> _values = {};
+
+  @override
+  Future<String?> read({required String key}) async => _values[key];
+
+  @override
+  Future<void> write({required String key, required String value}) async {
+    _values[key] = value;
+  }
+
+  @override
+  Future<void> delete({required String key}) async {
+    _values.remove(key);
+  }
 }
 
 class _StreamingTestRuntime implements AssistantRuntimeClient {

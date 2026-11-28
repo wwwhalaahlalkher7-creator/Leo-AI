@@ -162,12 +162,22 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     } catch (_) {
       _voiceVadEnabled = false;
     }
-    try {
-      _restorableAgentTasks = await _agentTaskCheckpointStore.loadPending();
-    } catch (_) {
-      _restorableAgentTasks = const [];
-    }
+    // Restoring encrypted checkpoints may require an OS secure-storage
+    // channel. Keep that optional recovery work from blocking the first chat
+    // frame or making the composer unavailable while the platform responds.
     if (mounted) setState(() => _loading = false);
+    unawaited(_restoreAgentTaskCheckpoints());
+  }
+
+  Future<void> _restoreAgentTaskCheckpoints() async {
+    List<AgentTaskCheckpointRecord> restored;
+    try {
+      restored = await _agentTaskCheckpointStore.loadPending();
+    } catch (_) {
+      restored = const [];
+    }
+    if (!mounted) return;
+    setState(() => _restorableAgentTasks = restored);
   }
 
   @override
