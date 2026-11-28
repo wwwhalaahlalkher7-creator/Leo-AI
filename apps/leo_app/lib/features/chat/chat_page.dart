@@ -78,7 +78,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   late final MemoryRepository _memoryRepository;
   late final SkillRepository _skillRepository;
   late final SkillRunRepository _skillRunRepository;
-  final SkillExecutionService _skillExecutionService = const SkillExecutionService();
+  final SkillExecutionService _skillExecutionService =
+      const SkillExecutionService();
   late final ToolExecutionGateway _toolExecutionGateway;
   late final AgentTaskCheckpointStore _agentTaskCheckpointStore;
   late final CapabilityHubService _capabilityHub;
@@ -90,7 +91,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   final RuntimeBenchmarkStore _runtimeBenchmarkStore = RuntimeBenchmarkStore();
   final Set<String> _preserveAgentTaskCheckpointsOnCancel = <String>{};
   bool _voiceVadEnabled = false;
-  final MemoryContextBuilder _memoryContextBuilder = const MemoryContextBuilder();
+  final MemoryContextBuilder _memoryContextBuilder =
+      const MemoryContextBuilder();
   final SkillContextBuilder _skillContextBuilder = const SkillContextBuilder();
   ChatRepository? _repository;
   List<ChatSession> _sessions = [];
@@ -1383,7 +1385,9 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
           incrementToolApproval: true,
         );
       } else {
-        final skillRun = await _skillRunRepository.getByTaskId(resumedRecord.taskId);
+        final skillRun = await _skillRunRepository.getByTaskId(
+          resumedRecord.taskId,
+        );
         if (skillRun != null && skillRun.status == LeoSkillRunStatus.paused) {
           await _recordSkillRunStatus(
             resumedRecord.taskId,

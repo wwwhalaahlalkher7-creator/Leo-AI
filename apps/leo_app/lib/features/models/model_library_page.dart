@@ -388,8 +388,7 @@ class _RuntimeCard extends StatelessWidget {
                 style: const TextStyle(color: Colors.white54, fontSize: 12),
               ),
             if (state != null &&
-                (state.residentBytes > 0 ||
-                    state.peakResidentBytes > 0)) ...[
+                (state.residentBytes > 0 || state.peakResidentBytes > 0)) ...[
               const SizedBox(height: 8),
               Text(
                 'ذاكرة عملية Leo: ${_formatByteCount(state.residentBytes)} حالياً • '
@@ -576,9 +575,7 @@ class _RuntimeBenchmarkCardState extends State<_RuntimeBenchmarkCard> {
               ),
               _MetricLine(
                 label: 'أعلى ذروة لذاكرة العملية',
-                value: _formatByteCount(
-                  summary.maximumPeakResidentBytes,
-                ),
+                value: _formatByteCount(summary.maximumPeakResidentBytes),
               ),
               _MetricLine(
                 label: 'معدل اكتمال التوليد',
