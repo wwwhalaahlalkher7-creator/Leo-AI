@@ -382,7 +382,7 @@ LeoSkill _learningSourceSkill({bool withPrivateData = false}) {
     createdAtUtc: now,
     updatedAtUtc: now,
     history: const [],
-    validationReport: LeoSkillValidationReport(
+    validationReport: const LeoSkillValidationReport(
       checkedAtUtc: now,
       passed: true,
       checks: const [],

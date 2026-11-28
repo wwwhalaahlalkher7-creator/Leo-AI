@@ -23,28 +23,28 @@ LeoSkill _activeSkill() => const LeoSkill(
   id: 'skill-test',
   name: 'تنظيم ملفات الدراسة',
   description: 'ترتيب الملفات الدراسية بطريقة منظمة وآمنة.',
-  triggers: const ['رتب ملفات الدراسة'],
+  triggers: ['رتب ملفات الدراسة'],
   instructions:
       'افحص محتويات الملفات أولاً، ولا تغير أي ملف قبل عرض خطة واضحة. '
       'اطلب موافقة المستخدم لكل عملية كتابة، وتوقف عند رفضه.',
-  steps: const [
+  steps: [
     'افحص المستندات التي اختارها المستخدم وحدد أنواعها.',
     'اقترح طريقة تنظيم واضحة واعرضها للمستخدم.',
     'بعد الموافقة، اكتب التغييرات المراجعة فقط.',
   ],
-  testCases: const [
+  testCases: [
     LeoSkillTestCase(
       input: 'رتب ملفات محاضراتي',
       expectedOutcome: 'يقدم خطة ثم ينتظر الموافقة قبل الكتابة.',
     ),
   ],
-  requiredCapabilities: const ['files.read', 'files.write'],
+  requiredCapabilities: ['files.read', 'files.write'],
   status: LeoSkillStatus.active,
   version: '0.2.0',
   createdAtUtc: '2026-11-17T00:00:00Z',
   updatedAtUtc: '2026-11-17T00:00:00Z',
-  history: const [],
-  validationReport: const LeoSkillValidationReport(
+  history: [],
+  validationReport: LeoSkillValidationReport(
     checkedAtUtc: '2026-11-17T00:00:00Z',
     passed: true,
     checks: [],

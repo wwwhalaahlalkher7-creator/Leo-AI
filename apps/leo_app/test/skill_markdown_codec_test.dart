@@ -6,28 +6,28 @@ LeoSkill sampleSkill() => const LeoSkill(
   id: 'skill-roundtrip',
   name: 'تنظيم ملفات الدراسة',
   description: 'يرتب الملفات الدراسية حسب المادة والفصل الدراسي.',
-  triggers: const ['رتب ملفاتي الدراسية', 'نظم مجلد الجامعة'],
+  triggers: ['رتب ملفاتي الدراسية', 'نظم مجلد الجامعة'],
   instructions:
       'افحص المجلد أولاً، ثم اعرض خطة التنظيم. احتفظ بالأصل، '
       'ولا تنقل أو تحذف أي ملف قبل موافقة المستخدم الصريحة.',
-  steps: const [
+  steps: [
     'افحص الملفات وحدد أنواعها دون تعديل.',
     'اقترح بنية مجلدات مناسبة واعرضها للمستخدم.',
     'انتظر الموافقة قبل نقل الملفات أو إعادة تسميتها.',
   ],
-  testCases: const [
+  testCases: [
     LeoSkillTestCase(
       input: 'نظم ملفات محاضرات الفصل الحالي',
       expectedOutcome: 'يعرض خطة أولاً ثم ينتظر موافقة المستخدم قبل التغيير.',
     ),
   ],
-  requiredCapabilities: const ['files.read', 'files.write'],
+  requiredCapabilities: ['files.read', 'files.write'],
   status: LeoSkillStatus.active,
   version: '0.3.0',
   createdAtUtc: '2026-11-15T00:00:00Z',
   updatedAtUtc: '2026-11-15T00:00:00Z',
-  history: const [],
-  validationReport: const LeoSkillValidationReport(
+  history: [],
+  validationReport: LeoSkillValidationReport(
     checkedAtUtc: '2026-11-15T00:00:00Z',
     passed: true,
     checks: [],

@@ -1290,7 +1290,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     }
 
     if (record.state == AgentTaskCheckpointState.awaitingAction) {
-      if (!context.mounted) return;
+      if (!mounted) return;
       final decision = await showDialog<int>(
         context: context,
         builder: (dialogContext) => AlertDialog(
