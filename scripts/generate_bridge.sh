@@ -186,8 +186,13 @@ rust_toolchain = tomllib.loads(root_toolchain_text)
 toolchain = rust_toolchain.get("toolchain", {})
 if toolchain.get("channel") != "1.100.0":
     raise SystemExit("ERROR: Native Assets must use the pinned Rust toolchain 1.100.0.")
-if "aarch64-linux-android" not in toolchain.get("targets", []):
-    raise SystemExit("ERROR: rust-toolchain.toml must include aarch64-linux-android.")
+required_targets = {"aarch64-linux-android", "x86_64-unknown-linux-gnu"}
+missing_targets = sorted(required_targets.difference(toolchain.get("targets", [])))
+if missing_targets:
+    raise SystemExit(
+        "ERROR: rust-toolchain.toml is missing required targets: "
+        + ", ".join(missing_targets)
+    )
 
 print(
     "FRB path contract passed: "

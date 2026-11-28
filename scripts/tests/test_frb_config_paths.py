@@ -68,6 +68,7 @@ class FlutterRustBridgePathTests(unittest.TestCase):
         self.assertIn('flutter_rust_bridge = "=2.13.0"', manifest)
         self.assertIn('channel = "1.100.0"', toolchain)
         self.assertIn('"aarch64-linux-android"', toolchain)
+        self.assertIn('"x86_64-unknown-linux-gnu"', toolchain)
         self.assertEqual(crate_toolchain, toolchain)
 
     def test_codegen_preflight_and_workflows_use_bash(self) -> None:

@@ -57,7 +57,7 @@ class GenerateBridgeBootstrapTests(unittest.TestCase):
                 encoding="utf-8",
             )
             toolchain_text = (
-                '[toolchain]\nchannel = "1.100.0"\ntargets = ["aarch64-linux-android"]\n'
+                '[toolchain]\nchannel = "1.100.0"\ntargets = ["aarch64-linux-android", "x86_64-unknown-linux-gnu"]\n'
             )
             (repo / "rust-toolchain.toml").write_text(toolchain_text, encoding="utf-8")
             (bridge / "rust-toolchain.toml").write_text(toolchain_text, encoding="utf-8")
