@@ -97,7 +97,9 @@ class ConversationContextPlanner {
       fullConversationIndexes.addAll(turn.indexes);
     }
     final fullConversationCost = _costFor(messages, fullConversationIndexes);
-    if (fullConversationCost <= inputBudgetTokens) {
+    // Keep a small margin instead of filling the budget exactly; the native
+    // tokenizer can be slightly more expensive than this estimate.
+    if (fullConversationCost < inputBudgetTokens) {
       return ConversationContextPlan(
         messages: messages,
         estimatedInputTokens: fullConversationCost,
@@ -181,7 +183,9 @@ class ConversationContextPlanner {
     // This lightweight heuristic is only for deciding which older turns to
     // compact. Token density varies by model and language; native llama.cpp
     // performs exact tokenization and may still trim more complete old turns.
-    final estimatedTokens = (content.runes.length + 1) ~/ 2;
+    // A little over half a token per code point is intentionally conservative
+    // for mixed Arabic/English text; native tokenization remains authoritative.
+    final estimatedTokens = (content.runes.length * 11 + 19) ~/ 20;
     return estimatedTokens + messageOverheadTokens;
   }
 }

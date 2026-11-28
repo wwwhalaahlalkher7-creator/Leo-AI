@@ -145,7 +145,7 @@ class AgentTaskCheckpointStore {
           final savedAt = DateTime.tryParse(record.savedAtUtc)?.toUtc();
           return savedAt != null && savedAt.isAfter(cutoff);
         })
-        .toList(growable: false);
+        .toList(growable: true);
     if (fresh.length != records.length) await _writeRecords(fresh);
     return fresh;
   }

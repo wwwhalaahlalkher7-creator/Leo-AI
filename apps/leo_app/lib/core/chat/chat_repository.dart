@@ -36,7 +36,7 @@ class ChatRepository {
   }
 
   Future<void> saveSession(ChatSession session) async {
-    final sessions = loadSessions();
+    final sessions = List<ChatSession>.of(loadSessions());
     final existingIndex = sessions.indexWhere((item) => item.id == session.id);
     if (existingIndex >= 0) {
       sessions[existingIndex] = session;
@@ -51,7 +51,7 @@ class ChatRepository {
   }
 
   Future<void> deleteSession(String sessionId) async {
-    final sessions = loadSessions()
+    final sessions = List<ChatSession>.of(loadSessions())
       ..removeWhere((session) => session.id == sessionId);
     await _preferences.setString(_storageKey, ChatSession.encodeList(sessions));
   }

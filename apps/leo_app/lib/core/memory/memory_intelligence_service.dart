@@ -42,23 +42,23 @@ class MemoryIntelligenceService {
       final prior = _tokens(entry.content);
       if (prior.isEmpty) continue;
       final similarity = _jaccard(candidate, prior);
-      if (similarity >= duplicateThreshold) {
-        findings.add(
-          MemoryReviewFinding(
-            kind: MemoryFindingKind.duplicate,
-            existing: entry,
-            similarity: similarity,
-            explanation: 'توجد ذاكرة معتمدة متشابهة بدرجة عالية.',
-          ),
-        );
-      } else if (similarity >= conflictThreshold &&
-          candidatePolarity != _polarity(entry.content)) {
+      final oppositePolarity = candidatePolarity != _polarity(entry.content);
+      if (oppositePolarity && similarity >= conflictThreshold) {
         findings.add(
           MemoryReviewFinding(
             kind: MemoryFindingKind.possibleContradiction,
             existing: entry,
             similarity: similarity,
             explanation: 'قد تتعارض المعلومة الجديدة مع ذاكرة موجودة؛ راجع السياق قبل اعتمادها.',
+          ),
+        );
+      } else if (similarity >= duplicateThreshold) {
+        findings.add(
+          MemoryReviewFinding(
+            kind: MemoryFindingKind.duplicate,
+            existing: entry,
+            similarity: similarity,
+            explanation: 'توجد ذاكرة معتمدة متشابهة بدرجة عالية.',
           ),
         );
       }

@@ -16,7 +16,7 @@ void main() {
 
   testWidgets('Leo opens with its Arabic welcome screen', (tester) async {
     await tester.pumpWidget(const LeoApp());
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     expect(find.text('Leo'), findsOneWidget);
     expect(find.text('مرحباً، أنا Leo'), findsOneWidget);
@@ -27,7 +27,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(const LeoApp());
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     await tester.tap(find.text('الرياضيات'));
     await tester.pump();
@@ -52,11 +52,11 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     await tester.enterText(find.byType(TextField), 'رسالة اختبار');
     tester.testTextInput.receiveAction(TextInputAction.send);
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     expect(runtime.requests, hasLength(1));
     expect(runtime.requests.single.messages.last.content, 'رسالة اختبار');
@@ -81,11 +81,11 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     await tester.enterText(find.byType(TextField), 'رتب ملفاتي الدراسية');
     tester.testTextInput.receiveAction(TextInputAction.send);
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     final request = runtime.requests.single;
     expect(
@@ -120,12 +120,12 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     await tester.tap(find.byTooltip('مكتبات Leo'));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
     await tester.tap(find.text('المهارات'));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     expect(find.text('مهارات Leo'), findsOneWidget);
     expect(find.text('مكتبة المهارات فارغة حالياً'), findsOneWidget);
@@ -285,4 +285,11 @@ class _ActiveSkillRepository extends _EmptySkillRepository {
       ),
     ),
   ];
+}
+
+
+Future<void> _pumpUi(WidgetTester tester) async {
+  for (var frame = 0; frame < 8; frame++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
 }

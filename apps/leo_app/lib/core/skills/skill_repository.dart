@@ -88,7 +88,7 @@ class FileSkillRepository implements SkillRepository {
     } else if (await file.exists() && await backup.exists()) {
       await backup.delete();
     }
-    if (!await file.exists()) return const [];
+    if (!await file.exists()) return <LeoSkill>[];
     final decoded = jsonDecode(await file.readAsString());
     if (decoded is! Map<String, Object?>) {
       throw const FormatException('تنسيق مكتبة المهارات غير صالح.');

@@ -106,6 +106,10 @@ class WorkspaceWritePolicy {
     }
 
     final output = <String>[];
+    final removedLineCount = oldLines.length - prefix - suffix;
+    final addedLineCount = newLines.length - prefix - suffix;
+    final changedLinesTruncated =
+        removedLineCount > maxChangedLines || addedLineCount > maxChangedLines;
     final contextStart = (prefix - 3).clamp(0, prefix).toInt();
     for (var i = contextStart; i < prefix; i++) {
       output.add('  ${oldLines[i]}');
@@ -130,8 +134,11 @@ class WorkspaceWritePolicy {
     for (var i = suffixStart; i < suffixStart + suffixCount; i++) {
       if (i < oldLines.length) output.add('  ${oldLines[i]}');
     }
-    if (output.length > maxChangedLines * 2 + 6) {
+    final outputWasTruncated = output.length > maxChangedLines * 2 + 6;
+    if (outputWasTruncated) {
       output.removeRange(maxChangedLines * 2 + 6, output.length);
+    }
+    if (changedLinesTruncated || outputWasTruncated) {
       output.add('… تم اقتطاع بقية المعاينة.');
     }
     if (output.isEmpty) return 'لا توجد تغييرات.';

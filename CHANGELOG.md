@@ -11,6 +11,13 @@
 
 ### Fixed
 - Fixed Flutter test/native-asset startup failing because `native_toolchain_rust` could not find `rust-toolchain.toml` inside `core/bridge`. Added an exact crate-local copy of the pinned workspace toolchain and strengthened bridge preflight/regression tests to require the copy to remain synchronized.
+- Fixed empty-state collection mutation in chat history and the local skill library by ensuring repository write paths operate on growable copies/lists.
+- Fixed task-checkpoint snapshots returning fixed-length lists even though save, update and remove flows must mutate them.
+- Classified opposite-polarity memory candidates as possible contradictions before applying the high-similarity duplicate rule.
+- Made workspace diff previews explicitly report when removed or added lines were clipped by the preview limit.
+- Tightened conversation-context estimation and reserve behavior so a prompt at the exact estimated budget is compacted while preserving the newest complete historical turn and a first goal when they fit.
+- Replaced widget-test `pumpAndSettle` waits with bounded frame pumping on screens containing intentionally repeating animations/indeterminate progress indicators.
+- Restored the explicit skill-context boundary wording that untrusted skills receive no permissions or privileges.
 
 ### Runtime and privacy boundaries
 - Application-side token budgeting uses a lightweight character-based estimate; it is not the model tokenizer. The native llama.cpp tokenizer remains final and may remove additional complete older turns. The latest request and mandatory system instructions are never silently dropped.
