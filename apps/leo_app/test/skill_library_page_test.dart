@@ -101,7 +101,6 @@ class _EmptySkillRepository implements SkillRepository {
   Future<LeoSkill> validate(String skillId) => throw UnimplementedError();
 }
 
-
 Future<void> _pumpUi(WidgetTester tester) async {
   for (var frame = 0; frame < 8; frame++) {
     await tester.pump(const Duration(milliseconds: 100));

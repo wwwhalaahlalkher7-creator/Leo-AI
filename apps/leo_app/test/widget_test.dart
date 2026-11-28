@@ -21,7 +21,10 @@ void main() {
 
     expect(find.text('Leo'), findsOneWidget);
     expect(find.text('مرحباً، أنا Leo'), findsOneWidget);
-    expect(find.textContaining('ربط محرك الذكاء المحلي قيد التطوير'), findsOneWidget);
+    expect(
+      find.textContaining('ربط محرك الذكاء المحلي قيد التطوير'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('the initial chat suggestions can fill the composer', (
@@ -310,7 +313,6 @@ class _ActiveSkillRepository extends _EmptySkillRepository {
     ),
   ];
 }
-
 
 Future<void> _pumpUi(WidgetTester tester) async {
   for (var frame = 0; frame < 8; frame++) {
