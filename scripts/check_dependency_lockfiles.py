@@ -40,6 +40,25 @@ def _require(condition: bool, message: str) -> None:
         raise LockfileValidationError(message)
 
 
+def _normalize_pub_lock(text: str) -> str:
+    """Make pubspec.lock parsing independent of BOM, CRLF and trailing blanks."""
+    text = text.lstrip("\ufeff").replace("\r\n", "\n").replace("\r", "\n")
+    return "\n".join(line.rstrip() for line in text.split("\n"))
+
+
+def _top_level_keys(text: str) -> list[str]:
+    return re.findall(r"(?m)^[\"']?([A-Za-z0-9_.-]+)[\"']?\s*:", text)
+
+
+def _describe_pub_lock(path: Path, text: str) -> str:
+    """Short, log-friendly description so a failing CI run shows the real content."""
+    head = "\n".join(text.split("\n")[:12])
+    return (
+        f"size={path.stat().st_size} bytes; top-level keys={_top_level_keys(text)!r}; "
+        f"first lines:\n{head}"
+    )
+
+
 def _is_git_tracked(path: Path) -> bool | None:
     """Return tracking state, or None when this directory has no Git metadata."""
     try:
@@ -87,13 +106,18 @@ def validate_lockfiles(*, allow_untracked: bool = False) -> list[str]:
         "Cargo.lock is missing Leo workspace packages: " + ", ".join(missing_cargo),
     )
 
-    pub_text = PUB_LOCK.read_text(encoding="utf-8")
-    _require(
-        re.search(r"(?m)^packages:\s*$", pub_text) is not None
-        and re.search(r"(?m)^sdks:\s*$", pub_text) is not None,
-        "pubspec.lock does not have the expected packages/sdks sections.",
+    pub_text = _normalize_pub_lock(PUB_LOCK.read_text(encoding="utf-8-sig"))
+    section = lambda name: re.search(  # noqa: E731
+        rf"(?m)^[\"']?{name}[\"']?\s*:\s*(?:#.*)?$", pub_text
     )
-    pub_names = set(re.findall(r"(?m)^  ([A-Za-z0-9_]+):\s*$", pub_text))
+    _require(
+        section("packages") is not None and section("sdks") is not None,
+        "pubspec.lock does not have the expected packages/sdks sections. "
+        + _describe_pub_lock(PUB_LOCK, pub_text),
+    )
+    pub_names = set(
+        re.findall(r"(?m)^  [\"']?([A-Za-z0-9_]+)[\"']?:\s*(?:#.*)?$", pub_text)
+    )
     missing_pub = sorted(REQUIRED_PUB_PACKAGES - pub_names)
     _require(
         not missing_pub,
