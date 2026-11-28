@@ -31,6 +31,8 @@ jobs:
   full-stack:
     needs: foundation
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       LEO_REQUIRE_LOCKFILES: '1'
     steps:
@@ -68,7 +70,23 @@ jobs:
             apps/leo_app/lib/src/rust/
           if-no-files-found: error
           retention-days: 1
-      - name: Dart format check
+      - name: Format Dart files
+        working-directory: apps/leo_app
+        run: dart format .
+      - name: Commit Dart formatting changes
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          if git diff --quiet -- apps/leo_app; then
+            echo 'Dart formatting is already up to date.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -u -- apps/leo_app
+          git commit -m 'style: format Dart sources'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+      - name: Verify Dart formatting
         working-directory: apps/leo_app
         run: dart format --output=none --set-exit-if-changed .
       - name: Flutter analyze
