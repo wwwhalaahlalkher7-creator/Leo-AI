@@ -93,11 +93,15 @@ jobs:
           rm -f pubspec.lock
           flutter pub get
           test -s pubspec.lock
-          if [ "$(head -c 1 pubspec.lock)" = "{" ]; then
-            echo "::error title=pubspec.lock is JSON::flutter pub get did not write a YAML lockfile"
+          if ! grep -Eq '^packages:[[:space:]]*$' pubspec.lock || ! grep -Eq '^sdks:[[:space:]]*$' pubspec.lock; then
+            echo "::error title=pubspec.lock is not a pub YAML lockfile::flutter pub get wrote an unexpected format"
+            wc -c pubspec.lock
             head -n 20 pubspec.lock
             exit 1
           fi
+          echo "pubspec.lock written by flutter pub get: $(wc -c < pubspec.lock) bytes"
+          # Keep the canonical resolution so later generators cannot silently replace it.
+          cp pubspec.lock "$RUNNER_TEMP/pubspec.lock.canonical"
 
       - name: Resolve Rust workspace and create Cargo.lock
         run: |
@@ -126,11 +130,33 @@ jobs:
           RUSTC_BOOTSTRAP: '1'
         run: bash scripts/generate_bridge.sh
 
+      - name: Guard pubspec.lock after bridge code generation
+        run: |
+          f=apps/leo_app/pubspec.lock
+          c="$RUNNER_TEMP/pubspec.lock.canonical"
+          if ! cmp -s "$f" "$c"; then
+            echo "::warning title=pubspec.lock was rewritten::changed during: bridge code generation ($(wc -c < "$f") bytes, expected $(wc -c < "$c"))"
+            head -n 15 "$f"
+            cp "$c" "$f"
+            echo "Restored the canonical lockfile from flutter pub get."
+          fi
+
       - name: Compile the generated bridge crate on the host
         run: cargo check --package leo-bridge --locked
 
       - name: Generate and validate the hardened Android project scaffold
         run: bash scripts/prepare_android_runner.sh
+
+      - name: Guard pubspec.lock after Android runner generation
+        run: |
+          f=apps/leo_app/pubspec.lock
+          c="$RUNNER_TEMP/pubspec.lock.canonical"
+          if ! cmp -s "$f" "$c"; then
+            echo "::warning title=pubspec.lock was rewritten::changed during: Android runner generation ($(wc -c < "$f") bytes, expected $(wc -c < "$c"))"
+            head -n 15 "$f"
+            cp "$c" "$f"
+            echo "Restored the canonical lockfile from flutter pub get."
+          fi
 
       - name: Verify generated files and enforce lockfile reproducibility
         run: |
