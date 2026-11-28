@@ -268,7 +268,7 @@ class SkillMarkdownCodec {
   }
 
   static Map<String, String> _sections(String body) {
-    final headings = RegExp(r'(?m)^##\s+(.+?)\s*$').allMatches(body).toList();
+    final headings = RegExp(r'^##\s+(.+?)\s*$', multiLine: true).allMatches(body).toList();
     final result = <String, String>{};
     for (var index = 0; index < headings.length; index++) {
       final heading = headings[index];
@@ -349,14 +349,14 @@ class SkillMarkdownCodec {
   }
 
   static String? _firstHeading(String body) {
-    final match = RegExp(r'(?m)^#\s+(.+?)\s*$').firstMatch(body);
+    final match = RegExp(r'^#\s+(.+?)\s*$', multiLine: true).firstMatch(body);
     return match?.group(1)?.trim();
   }
 
   static String _fallbackInstructions(String body) {
     final cleaned = body
-        .replaceAll(RegExp(r'(?m)^#{1,6}\s+.*$'), '')
-        .replaceAll(RegExp(r'(?m)^<!--.*?-->\s*$', dotAll: true), '')
+        .replaceAll(RegExp(r'^#{1,6}\s+.*$', multiLine: true), '')
+        .replaceAll(RegExp(r'^<!--.*?-->\s*$', multiLine: true, dotAll: true), '')
         .trim();
     final value = cleaned.isEmpty
         ? 'اتبع خطوات المهارة عند ملاءمتها لطلب المستخدم.'
@@ -380,7 +380,7 @@ class SkillMarkdownCodec {
       .replaceAll(RegExp(r'\s+'), ' ');
 
   static bool _validExternalName(String name) =>
-      name.length >= 1 &&
+      name.isNotEmpty &&
       name.length <= 64 &&
       RegExp(r'^[a-z0-9]+(?:-[a-z0-9]+)*$').hasMatch(name);
 

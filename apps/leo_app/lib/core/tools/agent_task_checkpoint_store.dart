@@ -83,7 +83,7 @@ class AgentTaskCheckpointRecord {
       toolName: json['tool_name'] as String?,
       toolResult: json['tool_result'] as String?,
     );
-    _validateRecord(record);
+    AgentTaskCheckpointStore._validateRecord(record);
     return record;
   }
 }

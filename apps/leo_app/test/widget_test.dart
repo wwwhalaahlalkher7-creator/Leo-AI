@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:leo_app/main.dart';
 import 'package:leo_app/core/chat/assistant_runtime_client.dart';

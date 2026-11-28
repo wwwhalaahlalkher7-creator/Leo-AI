@@ -252,7 +252,7 @@ class _ModelLibraryPageState extends State<ModelLibraryPage> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
-  String _formatBytes(BigInt bytes) => _formatByteCount(bytes);
+  String _formatBytes(int bytes) => _formatByteCount(bytes);
 
   @override
   Widget build(BuildContext context) {
@@ -387,8 +387,8 @@ class _RuntimeCard extends StatelessWidget {
                 style: const TextStyle(color: Colors.white54, fontSize: 12),
               ),
             if (state != null &&
-                (state.residentBytes > BigInt.zero ||
-                    state.peakResidentBytes > BigInt.zero)) ...[
+                (state.residentBytes > 0 ||
+                    state.peakResidentBytes > 0)) ...[
               const SizedBox(height: 8),
               Text(
                 'ذاكرة عملية Leo: ${_formatByteCount(state.residentBytes)} حالياً • '
@@ -576,7 +576,7 @@ class _RuntimeBenchmarkCardState extends State<_RuntimeBenchmarkCard> {
               _MetricLine(
                 label: 'أعلى ذروة لذاكرة العملية',
                 value: _formatByteCount(
-                  BigInt.from(summary.maximumPeakResidentBytes),
+                  summary.maximumPeakResidentBytes,
                 ),
               ),
               _MetricLine(
@@ -817,7 +817,7 @@ class _ModelLoadDialogState extends State<_ModelLoadDialog> {
   @override
   Widget build(BuildContext context) {
     final requiredMemory = ModelResourcePolicy.estimateRequiredAvailableMemory(
-      modelFileSizeBytes: widget.model.fileSizeBytes,
+      modelFileSizeBytes: BigInt.from(widget.model.fileSizeBytes),
       contextTokens: _contextTokens,
     );
     final threadChoices = List<int>.generate(
@@ -945,7 +945,7 @@ class _ModelLoadDialogState extends State<_ModelLoadDialog> {
   }
 }
 
-String _formatByteCount(BigInt bytes) {
+String _formatByteCount(int bytes) {
   const mebibyte = 1024 * 1024;
   final value = bytes.toDouble();
   if (value >= mebibyte * 1024) {

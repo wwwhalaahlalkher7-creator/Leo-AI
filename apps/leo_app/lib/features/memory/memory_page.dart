@@ -331,7 +331,7 @@ class _MemoryPageState extends State<MemoryPage> {
     await _run(() async {
       final bytes = await MemoryBackupService(_repository)
           .exportEncrypted(passphrase);
-      final saved = await FilePicker.platform.saveFile(
+      final saved = await FilePicker.saveFile(
         dialogTitle: 'حفظ نسخة ذاكرة Leo المشفرة',
         fileName: 'leo-memory-backup.leomem',
         bytes: bytes,
@@ -346,19 +346,15 @@ class _MemoryPageState extends State<MemoryPage> {
   Future<void> _importBackup() async {
     final passphrase = await _askPassphrase(confirm: false);
     if (passphrase == null || !mounted) return;
-    final picked = await FilePicker.platform.pickFiles(
+    final picked = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: const ['leomem'],
-      withData: true,
-      allowMultiple: false,
     );
-    if (picked == null || picked.files.isEmpty || !mounted) return;
+    if (picked == null || !mounted) return;
     await _run(() async {
-      final file = picked.files.single;
-      final bytes =
-          file.bytes ??
-          (file.path == null ? null : await File(file.path!).readAsBytes());
-      if (bytes == null)
+      final file = picked;
+      final bytes = await file.readAsBytes();
+      if (bytes.isEmpty)
         throw const FormatException('تعذر قراءة ملف النسخة الاحتياطية.');
       final report = await MemoryBackupService(_repository)
           .importEncrypted(bytes, passphrase);
