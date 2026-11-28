@@ -88,8 +88,16 @@ jobs:
       - name: Resolve Flutter packages and create pubspec.lock
         working-directory: apps/leo_app
         run: |
+          # This one-time workflow owns the lockfile: discard any placeholder or
+          # stale file so pub always writes a real, complete resolution.
+          rm -f pubspec.lock
           flutter pub get
           test -s pubspec.lock
+          if [ "$(head -c 1 pubspec.lock)" = "{" ]; then
+            echo "::error title=pubspec.lock is JSON::flutter pub get did not write a YAML lockfile"
+            head -n 20 pubspec.lock
+            exit 1
+          fi
 
       - name: Resolve Rust workspace and create Cargo.lock
         run: |

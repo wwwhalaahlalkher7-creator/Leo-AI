@@ -107,6 +107,12 @@ def validate_lockfiles(*, allow_untracked: bool = False) -> list[str]:
     )
 
     pub_text = _normalize_pub_lock(PUB_LOCK.read_text(encoding="utf-8-sig"))
+    _require(
+        not pub_text.lstrip().startswith("{"),
+        "pubspec.lock is JSON, but `flutter pub get` writes YAML. This is a hand-made or "
+        "placeholder file, not a real resolution: delete apps/leo_app/pubspec.lock and "
+        "regenerate it with `flutter pub get`. " + _describe_pub_lock(PUB_LOCK, pub_text),
+    )
     section = lambda name: re.search(  # noqa: E731
         rf"(?m)^[\"']?{name}[\"']?\s*:\s*(?:#.*)?$", pub_text
     )

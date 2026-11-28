@@ -109,6 +109,11 @@ class DependencyLockfileTests(unittest.TestCase):
         with self.assertRaisesRegex(lockcheck.LockfileValidationError, "top-level keys=.*unexpected"):
             self.validate_fixture()
 
+    def test_rejects_json_placeholder_pubspec_lock(self):
+        self.pub.write_text('{\n  "packages": {},\n  "sdks": {}\n}\n', encoding="utf-8")
+        with self.assertRaisesRegex(lockcheck.LockfileValidationError, "JSON"):
+            self.validate_fixture()
+
     def test_rejects_missing_cargo_lock(self):
         self.cargo.unlink()
         with self.assertRaisesRegex(lockcheck.LockfileValidationError, "Cargo.lock"):
